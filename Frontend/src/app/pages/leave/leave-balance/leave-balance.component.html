@@ -1,0 +1,185 @@
+<div>
+  <ng-container>
+    <!-- Year Selector -->
+    <div fxLayout="row" fxLayoutAlign="end center" class="p-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Select Year</mat-label>
+        <mat-select [(ngModel)]="selectedYear" (selectionChange)="filterLeaves()">
+          <mat-option *ngFor="let year of availableYears" [value]="year">{{ year }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="10px" class="leave-cards-container">
+      @if (leaveCounts && leaveCounts.length) {
+        <ng-container *ngFor="let leaveType of leaveCounts; let i = index">
+          <!-- Special card for LOP -->
+          @if (leaveType.leaveType !== 'LOP') {
+            <div fxLayout="column" fxLayoutAlign="center center" class="leave-card lop-card"
+                 [style.background-image]="'url(' + getIcon(leaveType.leaveType) + ')'" 
+                 [style.background-size]="'cover'" 
+                 [style.background-position]="'center'"
+                 [fxFlex]="100 / leaveCounts.length + '%'">
+              
+              <!-- Background Overlay for Readability -->
+              <div class="overlay lop-overlay"></div>
+    
+              <div fxFlex="80" class="leave-info lop-info">
+                <h3 class="leave-title">{{ leaveType.leaveType }}</h3>
+                <p><strong>Allotted No Of Days :</strong> <span class="highlight"> {{ leaveType.userLeaves?.noOfDays || 0 }}</span></p>
+                <p><strong>Leave Balance :</strong> <span class="highlight balance"> {{ leaveType.userLeaves?.leaveBalance || 0 }}</span></p>
+                <p><strong>No Of Days Taken :</strong> <span class="highlight taken"> {{ leaveType.userLeaves?.takenLeaves || 0 }}</span></p>
+                <p><strong>No Of Pending Leaves :</strong> <span class="highlight pending"> {{ leaveType.userLeaves?.pendingLeaveCount || 0 }}</span></p>
+              </div>
+            </div>
+          } @else {
+            <!-- Regular card for other leave types -->
+            <div fxLayout="column" fxLayoutAlign="center center" class="leave-card"
+                 [style.background-image]="'url(' + getIcon(leaveType.leaveType) + ')'" 
+                 [style.background-size]="'cover'" 
+                 [style.background-position]="'center'"
+                 [fxFlex]="100 / leaveCounts.length + '%'">
+              
+              <!-- Background Overlay for Readability -->
+              <div class="overlay"></div>
+    
+              <div fxFlex="80" class="leave-info">
+                <h3 class="leave-title">{{ leaveType.leaveType }}</h3>
+                <p><strong>Days Taken in Year :</strong> <span class="highlight taken">{{ leaveType?.userLeaves?.takenLeaves || 0 }}</span></p>
+                <p><strong>Days Taken in Month :</strong> <span class="highlight taken">{{ leaveType.monthlyLOPCount || 0 }}</span></p>
+                <p><strong>No Of Pending Leaves :</strong> <span class="highlight pending"> {{ leaveType.userLeaves?.pendingLeaveCount || 0 }}</span></p>
+              </div>
+            </div>
+          }
+        </ng-container>
+      }
+    </div>
+  </ng-container>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <div>
+  <ng-container>
+    <div fxLayout="row" fxLayoutAlign="end center" class="p-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Select Year</mat-label>
+        <mat-select [(ngModel)]="selectedYear" (selectionChange)="filterLeaves()">
+          <mat-option *ngFor="let year of availableYears" [value]="year">{{ year }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div fxLayout="row" fxLayoutGap="10px" class="leave-cards-container">
+      @if (leaveCounts && leaveCounts.length) {
+        <ng-container *ngFor="let leaveType of leaveCounts; let i = index">
+          <div fxLayout="row" fxLayout.xs="column" fxLayoutAlign="center center" class="leave-card"
+               [style.background-image]="'url(' + getIcon(leaveType.leaveType) + ')'" 
+               [style.background-size]="'cover'" 
+               [style.background-position]="'center'"
+               [fxFlex]="100 / leaveCounts.length + '%'">
+            <div fxFlex="20" class="icon-container">
+              <img [src]="getIcon(leaveType.leaveType)" alt="{{ leaveType.leaveType }}" class="icon">
+            </div>
+            <div fxFlex="80" class="leave-info">
+              <h3>{{ leaveType.leaveType }}</h3>
+              <p><strong>Allotted No Of Days:</strong> {{ leaveType.userLeaves?.noOfDays || 0 }}</p>
+              <p><strong>Leave Balance:</strong> {{ leaveType.userLeaves?.leaveBalance || 0 }}</p>
+              <p><strong>No Of Days Taken:</strong> {{ leaveType.userLeaves?.takenLeaves || 0 }}</p>
+              <p><strong>No Of Pending Leaves:</strong> {{ leaveType.userLeaves?.pendingLeaveCount || 0 }}</p>
+            </div>
+          </div>
+        </ng-container>
+      }
+    </div>
+
+  </ng-container>
+</div> -->
+
+
+
+
+
+
+    <!-- <div fxLayout="row">
+      @if (leaveCounts && leaveCounts.length) {
+        <ng-container *ngFor="let leaveType of leaveCounts">
+          <div fxFlex="50" class="p-2">
+            <mat-card>
+              <mat-card-header fxLayoutAlign="center">
+                <mat-card-title fxLayoutAlign="center">{{ leaveType.leaveType }}</mat-card-title>
+              </mat-card-header>
+              <mat-card-content class="bag pt-3">
+                <div *ngIf="leaveType.leaveType !== 'LOP'">
+                  <mat-card *ngFor="let color of colors" 
+                            [class.bg-primary]="color=='primary'"
+                            [class.bg-accent]="color=='accent'"
+                            [class.bg-warn]="color=='warn'"
+                            [class.bg-pending]="color=='pending'"
+                            class="draggable p-3">
+                    <div *ngIf="color === 'primary'" fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>Allotted No Of Days:</strong> {{ leaveType.userLeaves?.noOfDays || 0 }}
+                      </div>
+                    </div>
+                    <div *ngIf="color === 'accent'" fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>Leave Balance:</strong> {{ leaveType.userLeaves?.leaveBalance || 0 }}
+                      </div>
+                    </div>
+                    <div *ngIf="color === 'warn' && leaveType.leaveType !== 'LOP'" fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>No Of Days Taken:</strong> {{ leaveType.userLeaves?.takenLeaves || 0 }}
+                      </div>
+                    </div>
+                    <div *ngIf="color === 'pending' && leaveType.leaveType !== 'LOP'" fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>No Of Pending Leaves:</strong> {{ leaveType.userLeaves?.pendingLeaveCount || 0 }}
+                      </div>
+                    </div>
+                  </mat-card>
+                </div>
+              
+                <ng-container *ngIf="leaveType.leaveType === 'LOP'">
+                  <mat-card class="bg-warn draggable p-3">
+                    <div fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>Days Taken in Year:</strong> {{ leaveType?.userLeaves?.takenLeaves || 0 }}
+                      </div>
+                    </div>
+                  </mat-card>
+                  <mat-card class="bg-warn draggable p-3" *ngIf="selectedYear === currentYear">
+                    <div fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>Days Taken in Month:</strong> {{ leaveType.monthlyLOPCount || 0 }}
+                      </div>
+                    </div>
+                  </mat-card>
+                  <mat-card class="bg-pending draggable p-3" *ngIf="selectedYear === currentYear">
+                    <div fxLayout="row" fxLayoutAlign="start center">
+                      <div fxFlex="100">
+                        <strong>No Of Pending Leaves:</strong> {{ leaveType.userLeaves?.pendingLeaveCount || 0 }}
+                      </div>
+                    </div>
+                  </mat-card>
+                </ng-container>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-container>
+      }
+    </div> -->
+

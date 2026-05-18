@@ -1,0 +1,37 @@
+<div id="confirmationModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-confirm">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h4 class="modal-title"  *ngIf="showOkButton">Confirmation</h4>
+              <h4 class="modal-title"  *ngIf="showCancelButton">Alert</h4>
+          </div>
+
+          <!-- <mat-icon style="font-size: 25px; color: #60c7c1;" *ngIf="showOkButton">check_circle</mat-icon> -->
+
+          <div class="modal-body text-center">
+
+            <p>{{ message.message }}</p>
+
+            <br>
+            @if(message.details && message.details.length > 0){
+              <div>
+                <ul>
+                  <li *ngFor="let leave of message.details">
+                    <p><strong>Applied For:</strong> {{ leave.year }} - {{leave.leaveType}}</p>
+                    <span *ngIf="leave.balanceUsed > 0 && leave.leaveType != 'LOP'"><strong> Balance Leaves</strong> - {{leave.balanceLeaves}}</span>
+                    <span *ngIf="leave.balanceUsed > 0 && leave.leaveType != 'LOP'"><strong> Balance Used </strong> - {{leave.balanceUsed}}</span>
+                    <span *ngIf="leave.balanceUsed > 0 && leave.leaveType === 'LOP'"><strong>LOP days</strong> - {{leave.balanceUsed}} </span>
+                  </li>
+                </ul>
+              </div>
+            }
+          </div>
+
+
+          <div class="modal-footer justify-content-center">
+            <button type="button" *ngIf="showCancelButton" class="btn btn-secondary" (click)="onCancel()" data-dismiss="modal">Cancel Request</button>
+            <button type="button" *ngIf="showOkButton" class="btn btn-primary" (click)="onOk()">Okay</button>
+        </div>
+      </div>
+
+</div>

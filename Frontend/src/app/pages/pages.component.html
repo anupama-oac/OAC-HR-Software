@@ -1,0 +1,74 @@
+<mat-sidenav-container [dir]="settings.rtl ? 'rtl' : 'ltr'">
+    @if (settings.menu == 'vertical') {
+        <mat-sidenav [opened]="settings.sidenavIsOpened" [mode]="settings.sidenavIsPinned ? 'side' : 'over'" 
+            #sidenav (openedStart)="showSidenav = !showSidenav" (closedStart)="showSidenav = !showSidenav"
+            class="sidenav mat-elevation-z6">
+            <app-sidenav></app-sidenav>
+        </mat-sidenav>
+    }
+
+    <mat-sidenav-content #mainSidenavContent id="main" (scroll)="onPageScroll($event)">
+            <mat-toolbar class="px-2 theme-primary">
+                <div fxLayout="row" fxLayoutAlign="space-between center" class="w-100">
+                    <div fxLayout="row" fxLayoutAlign="center center">
+                        @if (settings.menu == 'vertical') {
+                            <button mat-icon-button (click)="toggleSidenav()">
+                                <mat-icon>menu</mat-icon>
+                            </button>
+                            <button fxShow="false" fxShow.gt-xs mat-icon-button (click)="settings.sidenavUserBlock = !settings.sidenavUserBlock">
+                                <mat-icon>person</mat-icon>
+                            </button>
+                        }
+                    </div>
+
+                    <div fxLayout="row" fxLayoutAlign="end center">
+                        <button mat-icon-button class="full-screen" (click)="openAnnouncement()">
+                            <mat-icon>campaign</mat-icon>
+                        </button>
+                        @if(announcement){
+                            <div [ngClass]="type">
+                                <p>{{ message }}</p>
+                            </div>
+                        }
+                        <button mat-icon-button class="full-screen" (click)="openTree()">
+                            <mat-icon class="invert-icon">account_tree</mat-icon>
+                        </button>
+
+                        <!-- <div fxLayout="row" fxLayoutAlign="start center" fxShow="false" fxShow.gt-xs class="search-bar">
+                            <form method="get" fxLayout="row" fxLayoutAlign="start center">
+                                <input type="text" placeholder="Type to search..." class="mat-elevation-z3"  [class.show]="toggleSearchBar">
+                                <button mat-icon-button (click)="toggleSearchBar = !toggleSearchBar" type="button">
+                                    <mat-icon>search</mat-icon>
+                                </button>
+                            </form>
+                        </div> -->
+                        <app-fullscreen></app-fullscreen>
+                        @if(admin){
+                            <app-applications fxShow="true" fxShow.gt-sm="true"></app-applications>
+                        }
+                        <app-messages fxShow="true" fxShow.gt-xs></app-messages>
+                        <app-contact-us></app-contact-us>
+                    </div>
+                </div>
+            </mat-toolbar>
+
+            @if (settings.menu == 'horizontal') {
+                <mat-toolbar id="horizontal-menu" color="primary"
+                    class="horizontal-menu px-2 transition-2"
+                    [class.fixed-top]="!settings.fixedHeader">
+                    <div fxLayout="row" fxLayoutAlign="center center" class="w-100">
+                        <app-horizontal-menu [menuParentId]="0"></app-horizontal-menu>
+                    </div>
+                </mat-toolbar>
+            }
+
+            <div #mainContent id="main-content" (scroll)="onPageScroll($event)" class="sidenav-content-inner transition-2" [class.has-footer]="settings.hasFooter" [class.fixed-header]="settings.fixedHeader" [class.no-breadcrumb]="router.url == '/'">
+                <app-breadcrumb></app-breadcrumb>
+                <router-outlet></router-outlet>
+            </div>
+            
+            <div #backToTop fxLayout="row" fxLayoutAlign="center center" class="back-to-top" (click)="scrollToTop()">
+                <mat-icon>arrow_upward</mat-icon>
+            </div>
+    </mat-sidenav-content>
+</mat-sidenav-container>

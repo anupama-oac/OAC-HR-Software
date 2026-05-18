@@ -1,0 +1,130 @@
+@if (leave) {
+  <div class="leave-details-container">
+    <!-- Leave Balance Cards -->
+    <div class="row">
+      @for (leave of userLeaves; track $index) {
+        <div class="col">
+          <mat-card class="leave-card">
+            <mat-card-header>
+              <mat-card-subtitle>{{ leave.leaveType.leaveTypeName }}</mat-card-subtitle>
+              <mat-chip-set style="margin-left: auto;">
+                <mat-chip color="primary" highlighted="true" class="info-chip">
+                  <mat-icon class="icon-sm">numbers</mat-icon>
+                  {{ leave.leaveBalance }}
+                </mat-chip>
+              </mat-chip-set>
+            </mat-card-header>
+          </mat-card>
+        </div>
+      }
+    </div>
+
+    <br>
+
+    <!-- Leave Details Card -->
+    <mat-card class="leave-card">
+      <mat-card-content class="form-wrapper">
+        <!-- Employee and Leave Type -->
+        <div class="detail-row">
+          <div class="detail-column">
+            <strong>Employee:</strong> {{ leave.user.name }}
+          </div>
+          <div class="detail-column">
+            <strong>Leave Type:</strong> {{ leave.leaveType.leaveTypeName }}
+          </div>
+        </div>
+
+        <!-- Start and End Dates -->
+        <div class="detail-row">
+          <div class="detail-column">
+            <strong>Start Date:</strong> {{ leave.startDate | date: 'dd-MM-yyyy' }}
+          </div>
+          <div class="detail-column">
+            <strong>End Date:</strong> {{ leave.endDate | date: 'dd-MM-yyyy' }}
+          </div>
+        </div>
+
+        <!-- No of Days and Reason -->
+        <div class="detail-row">
+          <div class="detail-column">
+            <strong>No Of Days:</strong> {{ leave.noOfDays }}
+          </div>
+          <div class="detail-column">
+            <strong>Reason:</strong> {{ leave.notes }}
+          </div>
+        </div>
+
+        <!-- Admin Notes -->
+        <div class="detail-row">
+          <div class="detail-column">
+            <strong>Notes:</strong> {{ leave.adminNotes }}
+          </div>
+        </div>
+
+        <!-- File Upload for Sick Leave Over 3 Days -->
+        @if (leave.fileUrl) {
+          <div class="col">
+            <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
+              <iframe [src]="leave.fileUrl | safe" width="100%" height="300px"></iframe>
+            </div>
+          </div>
+        }
+
+        <!-- Leave Sessions -->
+        <div>
+          @for (item of leave.leaveDates; track $index) {
+            <div class="leave-session-card">
+              <div class="leave-session-row">
+                <mat-card-title>{{ item.date | date: 'dd-MM-yyyy' }}</mat-card-title>
+                <div><strong>Session 1:</strong> {{ item.session1 ? 'Yes' : 'No' }}</div>
+                <div><strong>Session 2:</strong> {{ item.session2 ? 'Yes' : 'No' }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+
+      <br>
+
+      <!-- Approve/Reject Buttons -->
+      @if (employeeStat) {
+        <td (click)="$event.stopPropagation()">
+          <ng-container>
+            <button
+              mat-fab extended
+              class="approve-button"
+              (click)="openDialog('approve', leave.id)"
+              [disabled]="leave.status === 'Approved' || leave.status === 'AdminApproved' || leave.status === 'Locked'"
+            >
+              Approve
+            </button>
+            &nbsp;
+             @if (leave.status !== 'Approved' && leave.status !== 'AdminApproved' && leave.status !== 'Rejected') {
+                    <button mat-flat-button class="action-btn" style="background-color: #424242; color: white;"
+                      (click)="openDialog('unapproved', leave.id)"
+                      [disabled]="leave.status === 'Locked' || leave.status === 'Unapproved' || leave.notes?.includes('Penalty')">
+                      <mat-icon style="font-size: 18px; margin-right: 4px;">person_off</mat-icon>
+                      Approve with Penalty
+                    </button>
+                    }
+                    &nbsp;
+            <button
+              mat-fab extended
+              class="reject-button"
+              color="warn"
+              (click)="openDialog('reject', leave.id)"
+              [disabled]="leave.status === 'Rejected' || leave.status === 'AdminApproved' || leave.status === 'Locked'"
+            >
+              Reject
+            </button>
+          </ng-container>
+        </td>
+      }
+    </mat-card>
+  </div>
+}
+@if(isLoading) {
+  <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
+      <mat-spinner color="primary"></mat-spinner>
+  </div>
+}

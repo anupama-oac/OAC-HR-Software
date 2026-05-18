@@ -1,0 +1,71 @@
+<div class="ytd-report">
+    <h2>Year-To-Date Report</h2>
+  
+    <!-- Form for selecting the date range -->
+    <form [formGroup]="ytdForm" class="row-form">
+      <div class="form-group">
+        <label for="startDate">Start Date</label>
+        <input id="startDate" type="date" formControlName="startDate" />
+        <div *ngIf="ytdForm.get('startDate')?.touched && ytdForm.get('startDate')?.invalid">
+          Start Date is required.
+        </div>
+      </div>
+    
+      <div class="form-group">
+        <label for="endDate">End Date</label>
+        <input id="endDate" type="date" formControlName="endDate" />
+        <div *ngIf="ytdForm.get('endDate')?.touched && ytdForm.get('endDate')?.invalid">
+          End Date is required.
+        </div>
+      </div>
+    
+      <button type="button" [disabled]="ytdForm.invalid || isLoading" (click)="applyFilters()">
+        Fetch
+      </button>
+    </form>
+    
+  
+    @if(isLoading){
+        <div>Loading...</div>
+    }
+    @if(errorMessage){
+        <div class="error">{{ errorMessage }}</div>
+    }
+
+    @if(!isLoading && mp.length > 0){
+        <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Payed Amount</th>
+                <th>Payed For</th>
+                <th>Payed At</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for ( row of mp; track $index) {
+                <tr>
+                    <td>{{ row.user.name }}</td>
+                    <td>{{ row.toPay }}</td>
+                    <td>{{ row.payedFor }}</td>
+                    <td>{{ row.payedAt }}</td>
+                  </tr>
+              }
+            </tbody>
+
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Total:</td>
+                <td>{{ totalAmount }}</td>
+              </tr>
+            </tfoot>
+          </table>
+    }
+
+    @if (!isLoading && mp.length === 0) {
+        <div>
+            No data available for the selected period.
+        </div>
+    }
+  </div>
+  

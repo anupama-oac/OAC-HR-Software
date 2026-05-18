@@ -1,0 +1,131 @@
+@import '../../../theme/styles/colors';
+
+.horizontal-tabs {
+  width: 100%;
+}
+
+.horizontal-tabs .mat-tab-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+
+.horizontal-tabs .mat-tab-label .mat-icon {
+  font-size: 24px; /* Adjust the icon size as needed */
+}
+
+.horizontal-tabs .mat-tab-labels {
+  display: flex;
+  justify-content: space-evenly;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+.horizontal-tabs .mat-tab-labels::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Chrome, Safari, and Opera */
+}
+
+.horizontal-tabs .mat-tab-label-active .mat-icon {
+  color: $primary-color; /* Change color for the active icon */
+}
+
+.horizontal-tabs .mat-ink-bar {
+  background-color: $secondary-color; /* Customize the underline color */
+}
+
+.user-head { 
+  background-color: $secondary-color;
+}
+
+@media (max-width: 768px) {
+  .horizontal-tabs .mat-tab-label {
+    padding: 8px;
+  }
+
+  .horizontal-tabs .mat-tab-label .mat-icon {
+    font-size: 20px; /* Reduce icon size on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .horizontal-tabs .mat-tab-labels {
+    justify-content: space-around;
+  }
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.col {
+  flex: 1;
+  margin-right: 20px;
+}
+
+@media(max-width:576px)
+{
+    .box{
+        padding: 0px;
+        margin: 0px;
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+span {
+  cursor: pointer;
+}
+
+span:hover{
+  color: #e41010;
+}
+
+
+.text-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: $primary-color;
+}
+
+.user-spinner {
+  position: fixed; /* Ensures the spinner is positioned relative to the viewport */
+  top: 0;
+  left: 0;
+  width: 100%; /* Covers the full screen width */
+  height: 100%; /* Covers the full screen height */
+  display: flex; /* Flexbox to center the spinner */
+  justify-content: center; /* Horizontally center */
+  align-items: center; /* Vertically center */
+  background-color: rgba(0, 0, 0, 0.1); /* Optional: Add a semi-transparent background */
+  z-index: 1000; /* Ensures it appears above other content */
+  color:  $primary-color;
+}
+
+.warning-hint {
+  color: #f44336; /* Material red */
+  font-size: 12px;
+}
+
+.invno-edit-field {
+  min-width: 200px; /* Prevent jumping when hint appears */
+}
+
+/* In your component's CSS */
+mat-error {
+  color: #f44336; /* Material red color */
+  font-size: 12px;
+}
+
+.button {
+  background-color: $primary-color;
+  color: #fff;
+  &:disabled {
+    background-color: #fff;
+    color: #000; // usually better contrast for disabled state
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}

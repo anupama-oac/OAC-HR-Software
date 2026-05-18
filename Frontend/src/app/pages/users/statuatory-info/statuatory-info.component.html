@@ -1,0 +1,167 @@
+<form [formGroup]="form">
+  <mat-card>
+    <mat-card-header><mat-card-title>Statutory Info</mat-card-title></mat-card-header>
+      <div fxLayout="column" class="form-field-outer" style="margin-top:20px;">
+        <!-- First row (3 IDs) -->
+        <div class="row box">
+          @for (field of ['adharNo', 'panNumber', 'pfNumber']; track $index) {
+            <div class="col">
+              <mat-form-field class="w-100" appearance="outline">
+                <mat-label>{{ placeholders[field]?.label || 'ID' }}</mat-label>
+                <input
+                  matInput
+                  [formControlName]="field"
+                  [placeholder]="placeholders[field]?.placeholder || 'ID Name - ID Number'"
+                />
+                @if (form.get(field)?.invalid && (form.get(field)?.dirty || form.get(field)?.touched)) {
+                  <mat-error>Enter in format: ID Name - ID Number</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          }
+        </div>
+
+        <!-- Second row (3 IDs) -->
+        <div class="row box">
+          @for (field of ['esiNumber', 'uanNumber', 'insuranceNumber']; track $index) {
+            <div class="col">
+              <mat-form-field class="w-100" appearance="outline">
+                <mat-label>{{ placeholders[field]?.label || 'ID' }}</mat-label>
+                <input
+                  matInput
+                  [formControlName]="field"
+                  [placeholder]="placeholders[field]?.placeholder || 'ID Name - ID Number'"
+                />
+                @if (form.get(field)?.invalid && (form.get(field)?.dirty || form.get(field)?.touched)) {
+                  <mat-error>Enter in format: ID Name - ID Number</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          }
+        </div>
+      </div>
+
+
+    <!-- <div fxLayout="column" class="form-field-outer" style="margin-top:20px;">
+      <div class="row box">
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 1</mat-label>
+            <input matInput formControlName="adharNo" placeholder="ID Name - ID Number">
+
+            @if (form.get('adharNo')?.invalid && (form.get('adharNo')?.dirty || form.get('adharNo')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+
+          </mat-form-field>
+        </div>
+
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 2</mat-label>
+            <input matInput formControlName="panNumber" >
+            @if (form.get('panNumber')?.invalid && (form.get('panNumber')?.dirty || form.get('panNumber')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 3</mat-label>
+            <input matInput formControlName="pfNumber" >
+            @if (form.get('pfNumber')?.invalid && (form.get('pfNumber')?.dirty || form.get('pfNumber')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="row box">
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 4</mat-label>
+            <input matInput formControlName="esiNumber" >
+            @if (form.get('esiNumber')?.invalid && (form.get('esiNumber')?.dirty || form.get('esiNumber')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 5</mat-label>
+            <input matInput formControlName="uanNumber" >
+            @if (form.get('uanNumber')?.invalid && (form.get('uanNumber')?.dirty || form.get('uanNumber')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="col">
+          <mat-form-field class="w-100" appearance="outline">
+            <mat-label>ID 6</mat-label>
+            <input matInput formControlName="insuranceNumber" >
+            @if (form.get('insuranceNumber')?.invalid && (form.get('insuranceNumber')?.dirty || form.get('insuranceNumber')?.touched)) {
+              <mat-error>
+                Enter in format: ID Name - ID Number
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+    </div> -->
+    <div class="row box">
+      <div class="col">
+        <mat-form-field class="w-100" appearance="outline">
+          <mat-label>Passport Number</mat-label>
+          <input matInput formControlName="passportNumber" >
+        </mat-form-field>
+      </div>
+      <div class="col">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Expiry Date</mat-label>
+          <input matInput [matDatepicker]="dp" formControlName="passportExpiry">
+          <mat-hint>DD/MM/YYYY</mat-hint>
+          <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
+          <mat-datepicker #dp></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="col" style="text-align: right;">
+      <button mat-raised-button class="arrow-button" (click)="triggerPreviousTab()" [disabled]="!form.pristine && !form.invalid && !isNext">
+        <div class="text-with-icon">
+          <mat-icon>arrow_back_ios</mat-icon>
+          <!-- <span>Previous</span> -->
+        </div>
+      </button>
+      <button mat-raised-button class="button" (click)="onSubmit()" [disabled]="form.pristine || form.invalid"
+      style="margin-left: 10px;" >
+        @if (editStatus) {
+            Update
+        } @else {
+            Save
+        }
+      </button>
+      <button mat-raised-button class="button" onclick="history.back()" [disabled]="!form.pristine && !form.invalid && !isNext" style="margin-left: 10px;">
+        Exit
+      </button>
+      <button mat-raised-button class="arrow-button" (click)="triggerNextTab()" style="margin-left: 10px;" [disabled]="!form.pristine && !form.invalid && !isNext">
+        <div class="text-with-icon">
+          <!-- <span>Next</span> -->
+          <mat-icon>arrow_forward_ios</mat-icon>
+        </div>
+      </button>
+    </div>
+  </mat-card>
+</form>

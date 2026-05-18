@@ -1,0 +1,47 @@
+<button mat-icon-button [matMenuTriggerFor]="userMenu" #userMenuTrigger="matMenuTrigger">
+  <mat-icon>account_circle</mat-icon>
+</button>
+<mat-menu #userMenu="matMenu" [overlapTrigger]="false" class="toolbar-dropdown-menu user-menu">
+  <!--<span (mouseleave)="userMenuTrigger.closeMenu()">-->
+  <mat-toolbar color="primary">
+      <div fxLayout="row" fxLayoutAlign="space-around center" class="user-info">
+        @if (user && user.url){
+          <img [src]="url + user.url" class="transition-2" width="80" class="rounded mat-elevation-z6">
+      } @else {
+          <img [src]="userImage" class="transition-2" width="80" class="rounded mat-elevation-z6">
+      }
+
+
+          <ng-container *ngIf="user">
+              <p>{{ user.name }}<br> <small>{{role}}</small></p>
+          </ng-container>
+          <!-- <p>{{ user.name }}<br> <small>{{user.role}}</small></p> -->
+      </div>
+  </mat-toolbar>
+  <a mat-menu-item >
+      <mat-icon>person</mat-icon>
+      <span>Profile</span>
+  </a>
+  <a mat-menu-item >
+      <mat-icon>edit</mat-icon>
+      <span>Edit Profile</span>
+  </a>
+  <a mat-menu-item >
+      <mat-icon>settings</mat-icon>
+      <span>Settings</span>
+  </a>
+  <a mat-menu-item >
+      <mat-icon>lock</mat-icon>
+      <span>Lock screen</span>
+  </a>
+  <a mat-menu-item >
+      <mat-icon>help</mat-icon>
+      <span>Help</span>
+  </a>
+  <div class="divider"></div>
+  <a mat-menu-item   (click)="logout()">
+      <mat-icon>power_settings_new</mat-icon>
+      <span>Log out</span>
+  </a>
+  <!--</span>-->
+</mat-menu>

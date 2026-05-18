@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<body>
+  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
+    <div fxLayout="row" class="col">
+        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
+            <mat-button-toggle value="add" (click)="openRoleDialog(null)"><mat-icon>person_add</mat-icon>
+            </mat-button-toggle>
+            <!-- <mat-button-toggle value="search">
+                <mat-icon>search</mat-icon>
+            </mat-button-toggle> -->
+        </mat-button-toggle-group>
+    </div>
+    <div fxLayout="row" class="col">
+      <form class="user-search" [class.show]="controls.value == 'search'">
+        <!-- <mat-form-field class="user-search-input">
+            <input matInput placeholder="Search role by role name..." name="search" (keyup)="search($event)">
+        </mat-form-field> -->
+      </form>
+    </div>
+  </div>
+
+    <main class="table" id="customers_table">
+        <!-- <section class="table__header">
+            <h1>ROLES</h1>
+        </section> -->
+        <section class="table__body">
+          <table>
+            <thead>
+              <tr>
+                <th> Team Name </th>
+                <th> Leader </th>
+                <th> Members </th>
+                <th> Manage </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (team of teams; track $index) {
+                <tr>
+                  <td> {{ team.teamName }} </td>
+                  <td> 
+                    @for (member of team.team_leaders; track $index) {
+                      <div class="team-member">
+                        {{ member.user.name }}
+                        <mat-divider></mat-divider>
+                      </div>
+                    }
+                   </td>
+                  <td>
+                    @for (member of team.team_members; track $index) {
+                      <div class="team-member">
+                        {{ member.user.name }}
+                        <mat-divider></mat-divider>
+                      </div>
+                    }
+                  </td>
+  
+                  <!-- Manage Column -->
+                  <td>
+                    <button
+                      mat-icon-button
+                      (click)="openRoleDialog(team)">
+                      <mat-icon>mode_edit</mat-icon>
+                    </button>
+      
+                    <button
+                      mat-icon-button
+                      (click)="deleteTeam(team.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+
+            </tbody>
+          </table>
+
+        </section>
+    </main>
+
+    <!-- <div class="tabs">
+     <a routerLink="role">ROLE</a>
+     <a>USER</a>
+ </div> -->
+</body>
+
+</html>

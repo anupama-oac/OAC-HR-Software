@@ -1,0 +1,370 @@
+import { Component, inject, OnDestroy, OnInit, viewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { UsersService } from '@services/users.service';
+import { Subscription } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { CommonModule, DatePipe, UpperCasePipe } from '@angular/common';
+import {MatAccordion, MatExpansionModule} from '@angular/material/expansion';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { StatutoryInfo } from '../../../common/interfaces/users/statutory-info';
+import { UserAccount } from '../../../common/interfaces/users/user-account';
+import { UserAssets } from '../../../common/interfaces/users/user-assets';
+import { UserDocument } from '../../../common/interfaces/users/user-document';
+import { UserPersonal } from '../../../common/interfaces/users/user-personal';
+import { UserPosition } from '../../../common/interfaces/users/user-position';
+import { User } from '../../../common/interfaces/users/user';
+import { PayrollService } from '@services/payroll.service';
+import { PayrollLog } from '../../../common/interfaces/payRoll/payroll-log';
+import { MonthlyPayroll } from '../../../common/interfaces/payRoll/monthlyPayroll';
+import { SafePipe } from "../../../common/pipes/safe.pipe";
+import { UserQualification } from '../../../common/interfaces/users/user-qualification';
+import { Nominee } from '../../../common/interfaces/users/nominee';
+import { MatDialog } from '@angular/material/dialog';
+import { EditUserPersonalComponent } from './edit-user-personal/edit-user-personal.component';
+import { EditUserPositionComponent } from './edit-user-position/edit-user-position.component';
+import { EditUserStatutoryComponent } from './edit-user-statutory/edit-user-statutory.component';
+import { EditUserAccountComponent } from './edit-user-account/edit-user-account.component';
+import { EditUserNomineeComponent } from './edit-user-nominee/edit-user-nominee.component';
+import { EditUserDocumentComponent } from './edit-user-document/edit-user-document.component';
+import { UserAssetsComponent } from '../user-assets/user-assets.component';
+import { AddPayrollComponent } from '../../payroll/add-payroll/add-payroll.component';
+import { SafeResourceUrl, DomSanitizer } from '@angular/platform-browser';
+import { AssetsService } from '@services/assets.service';
+import { UserAssetDetail } from '../../../common/interfaces/users/user-asset-details';
+import { environment } from '../../../../environments/environment';
+
+@Component({
+  selector: 'app-view-user',
+  standalone: true,
+  imports: [MatCardModule, MatDividerModule, MatIconModule, DatePipe, UpperCasePipe, MatButtonModule,
+    MatExpansionModule, CommonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule, SafePipe],
+  templateUrl: './view-user.component.html',
+  styleUrl: './view-user.component.scss',
+  // changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ViewUserComponent implements OnInit, OnDestroy{
+  apiUrl ='https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/';
+  public userImage = 'img/users/default-user.jpg';
+  currentCompany = environment.company
+  companyPlaceholders: any = {
+  oac: {
+    adharNo: { label: 'Aadhar ID', placeholder: 'Aadhar - 1234 5678 9012' },
+    panNumber: { label: 'PAN', placeholder: 'PAN - ABCDE1234F' },
+    pfNumber: { label: 'PF Number', placeholder: 'PF - PF12345' },
+    esiNumber: { label: 'ESI Number', placeholder: 'ESI - ESI12345' },
+    uanNumber: { label: 'UAN Number', placeholder: 'UAN - UAN12345' },
+    insuranceNumber: { label: 'Insurance Number', placeholder: 'Insurance - INS12345' },
+  },
+  leeds: {
+    adharNo: { label: 'Aadhar ID', placeholder: 'SSN - 123-45-6789' },
+    panNumber: { label: 'Emirates ID', placeholder: 'Tax ID - 123456789' },
+    pfNumber: { label: 'Visa Number', placeholder: 'Retirement ID - 789456' },
+    // esiNumber: { label: 'Medical ID', placeholder: 'Medical ID - 456789' },
+    // uanNumber: { label: 'Employee Code', placeholder: 'Employee Code - EMP123' },
+    // insuranceNumber: { label: 'Health Insurance', placeholder: 'Insurance - HINS456' },
+  },
+};
+
+  labels: any = {};
+  accordion = viewChild.required(MatAccordion);
+  ngOnInit(): void {
+    this.getUser();
+    this.labels = this.companyPlaceholders[this.currentCompany];
+  }
+
+  userSub!: Subscription;
+  userService = inject(UsersService);
+  route = inject(ActivatedRoute);
+  user: User;
+  getUser(){
+    this.userSub = this.userService.getUserById(this.route.snapshot.params['id']).subscribe(x => {
+      this.user = x;
+      this.getPersonsalData(x.id);
+      this.getAccountData(x.id);
+      this.getStatutoryData(x.id);
+      this.getPositionData(x.id);
+      this.getDocuments(x.id);
+      this.getAssets(x.id);
+      this.getPayrollLog(x.id);
+      this.getMonthlySalary(x.id);
+      this.getQualData(x.id);
+      this.getNomineeData(x.id);
+    });
+  }
+
+  puSub!: Subscription;
+  userPersonal: UserPersonal;
+  getPersonsalData(id: number){
+    this.puSub = this.userService.getUserPersonalDetailsByUser(id).subscribe(x => {
+      this.userPersonal = x;
+    });
+  }
+
+  suSub!: Subscription;
+  userStat: StatutoryInfo;
+  getStatutoryData(id: number){
+    this.suSub = this.userService.getUserStatutoryuDetailsByUser(id).subscribe(x => {
+      this.userStat = x;
+    })
+  }
+
+  getFieldName(value: string): string {
+    if (!value) return '';
+    const index = value.indexOf('-');
+    if (index === -1) return value.trim(); // no dash, return whole string
+    // console.log(value);
+    
+    return value.substring(0, index).trim(); // everything before first dash
+  }
+
+  getFieldValue(value: string): string {
+    if (!value) return '';
+    const index = value.indexOf('-');
+    if (index === -1) return ''; // no dash, no value
+    return value.substring(index + 1).trim(); // everything after first dash
+  }
+
+
+  auSub!: Subscription;
+  accounts: UserAccount
+  getAccountData(id: number){
+    this.auSub = this.userService.getUserAcoountDetailsByUser(id).subscribe(x => {
+      this.accounts = x;
+    })
+  }
+
+  nomineeSub!: Subscription;
+  nominee: Nominee
+  getNomineeData(id: number){
+    this.nomineeSub = this.userService.getUserNomineeDetailsByUser(id).subscribe(x => {
+      this.nominee = x;
+    })
+  }
+
+
+  posuSub!: Subscription;
+  positions: UserPosition;
+  getPositionData(id: number){
+    this.posuSub = this.userService.getUserPositionDetailsByUser(id).subscribe(x => {
+      this.positions = x;
+      
+    })
+  }
+
+  qualSub!: Subscription;
+  qualifications: UserQualification;
+  getQualData(id: number){
+    this.qualSub = this.userService.getUserQualDetailsByUser(id).subscribe(x => {
+      this.qualifications = x;
+    })
+  }
+
+  docSub!: Subscription;
+  documents: UserDocument[] = [];
+  getDocuments(id: number){
+    this.docSub = this.userService.getUserDocumentsByUser(id).subscribe(x => {
+      this.documents = x
+    });
+  }
+
+  assetSub!: Subscription;
+  assets: UserAssetDetail[];
+  private assetService = inject(AssetsService);
+  getAssets(id: number){
+    this.assetSub = this.assetService.getUserAssetsByUser(id).subscribe(x => {
+      this.assets = x;
+      console.log(this.assets);
+      
+    })
+  }
+
+  payLogSUb!: Subscription;
+  private payrollService = inject(PayrollService);
+  payrollLog: PayrollLog[] = [];
+  getPayrollLog(id: number){
+    this.payLogSUb = this.payrollService.getPayrollLogByUser(id).subscribe(x => {
+      this.payrollLog = x;
+    });
+  }
+
+  monthSalarySub!: Subscription;
+  monthlySalary: MonthlyPayroll[] = [];
+  getMonthlySalary(id: number){
+    this.monthSalarySub = this.payrollService.getMonthlyPayrollByUser(id).subscribe(x => {
+      this.monthlySalary = x;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.userSub?.unsubscribe();
+    this.puSub?.unsubscribe();
+    this.suSub?.unsubscribe();
+    this.auSub?.unsubscribe();
+    this.posuSub?.unsubscribe();
+    this.qualSub?.unsubscribe();
+    this.monthSalarySub?.unsubscribe();
+    this.payLogSUb?.unsubscribe();
+    this.assetSub?.unsubscribe();
+    this.docSub?.unsubscribe();
+    this.nomineeSub?.unsubscribe();
+  }
+
+  private router = inject(Router);
+  openPayroll(id: number){
+    this.router.navigateByUrl('login/payroll/payslip/open/'+ id)
+  }
+
+  private dialog = inject(MatDialog);
+  dialogSub: Subscription;
+  onEditClick(): void {
+    this.router.navigate(['/login/users/edit/' + this.user.id])
+  }
+
+  editPersonal(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserPersonalComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getPersonsalData(this.user.id)
+    });
+  }
+
+  editPosition(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserPositionComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getPositionData(this.user.id)
+    });
+  }
+  editStatutory(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserStatutoryComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getStatutoryData(this.user.id)
+    });
+  }
+
+  editAccount(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserAccountComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getAccountData(this.user.id)
+    });
+  }
+
+  editNominee(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserNomineeComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getNomineeData(this.user.id)
+    });
+  }
+
+  editDocument(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(EditUserDocumentComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getDocuments(this.user.id)
+    });
+  }
+
+  editAssets(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(UserAssetsComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getAssets(this.user.id)
+    });
+  }
+
+  editPayroll(event: MouseEvent){
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(AddPayrollComponent, {
+      width: '90%',
+      maxHeight: '90vh',
+      data: {id: this.user.id},
+    });
+
+    this.dialogSub = dialogRef.afterClosed().subscribe(() => {
+      this.getAssets(this.user.id)
+    });
+  }
+
+    uploadProgress: number | null = null;
+    uploadComplete: boolean = false;
+    file!: any;
+    uploadSub!: Subscription;
+    fileType: string = '';
+    imageUrl: string = '';
+    public safeUrl!: SafeResourceUrl;
+    private sanitizer = inject(DomSanitizer);
+    uploadFile(event: Event) {
+      const input = event.target as HTMLInputElement;
+      this.file = input.files?.[0];
+      this.fileType = this.file.type.split('/')[1];
+      if (this.file) {
+        this.uploadComplete = false;
+  
+        let fileName = this.file.name;
+        if (fileName.length > 12) {
+          const splitName = fileName.split('.');
+          fileName = splitName[0].substring(0, 12) + "... ." + splitName[1];
+        }
+        this.uploadSub = this.userService.uploadImage(this.file).subscribe({
+          next: (invoice) => {
+            const data = { url: invoice.fileUrl }
+            this.userService.updateUserImage(this.user.id, data).subscribe(res => {
+              this.imageUrl = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/${ invoice.fileUrl}`;
+              if (this.imageUrl) {
+                this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.imageUrl);
+              }
+              this.uploadComplete = true; // Set to true when upload is complete
+            })
+          },
+          error: () => {
+            this.uploadComplete = true; // Set to true to remove the progress bar even on error
+          }
+        });
+      }
+    }
+}

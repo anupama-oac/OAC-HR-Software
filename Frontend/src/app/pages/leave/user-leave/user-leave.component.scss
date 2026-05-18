@@ -1,0 +1,57 @@
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+th, td {
+  text-align: left;
+  // padding: 8px;
+  word-wrap: break-word;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+th:nth-child(1), td:nth-child(1) {
+  width: 30%; /* Adjust the width of the first column */
+}
+
+th:nth-child(2), td:nth-child(2),
+th:nth-child(3), td:nth-child(3),
+th:nth-child(4), td:nth-child(4),
+th:nth-child(5), td:nth-child(5) {
+  width: 10%; /* Adjust these as needed */
+}
+.submit {
+  width: 100%;
+  background-color: rgb(8, 71, 138);
+}
+
+.remove {
+  width: 100%;
+  color: rgb(221, 23, 23);
+}
+
+//-------------------------
+/* Styling the Add column */
+/* Standard Blue color for the Add column */
+/* Light dim color for the Add column */
+.add-column {
+  background-color: #d0e7ff; /* Light blue background */
+  color: #0066cc; /* Standard blue color for text */
+  font-weight: bold;
+  text-align: center;
+  border-radius: 4px; /* Optional for rounded corners */
+}
+
+.add-column input {
+  background-color: #cfe2f3; /* Lighter blue for input field */
+  color: #003366; /* Darker text for better contrast */
+  border: 1px solid #b6d7ea; /* Light border to make it soft */
+  border-radius: 4px;
+  padding: 5px;
+}
+
+
