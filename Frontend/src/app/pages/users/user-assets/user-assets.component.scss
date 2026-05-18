@@ -1,0 +1,218 @@
+@import '../../../theme/styles/colors';
+.container {
+    // max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  .title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .form {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: $secondary-color;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .btn:hover {
+    background-color: $primary-color;
+  }
+
+  .remove-btn {
+    background-color: #dc3545;
+  }
+  
+  .remove-btn:hover {
+    background-color: #c82333;
+  }
+  
+  .container {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  
+  .form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+  }
+  
+  .input-field {
+    flex: 1 1 100%; /* Default to full-width */
+  }
+  
+  @media (min-width: 768px) {
+    .input-field {
+      flex: 1 1 calc(50% - 1rem); /* 2 fields per row */
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .input-field {
+      flex: 1 1 calc(25% - 1rem); /* 4 fields per row on large screens */
+    }
+  }
+  
+  .add-icon, .remove-icon {
+    cursor: pointer;
+    margin-left: 0.5rem;
+  }
+  
+  .btn.save-btn {
+    display: block;
+    margin: 1rem auto;
+  }
+  
+  .disabled {
+    color: gray; /* Optional: make the icon appear grayed out */
+    pointer-events: none; /* Prevents clicks */
+    opacity: 0.5; /* Optional: reduce opacity */
+  }
+  
+  .status-false {
+    background-color: #f8d7da; /* Light red background */
+    color: #721c24; /* Dark red text */
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .table-header {
+    background-color: $secondary-color;
+  }
+  
+  .table-header th {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .table-row td {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  
+  @media (max-width: 767px) {
+    .table {
+      display: block;
+      border: none;
+      margin-top: 10px;
+      width: 100%; /* Table takes full width */
+      table-layout: fixed; /* Ensure table's layout is fixed */
+    }
+  
+    .table-header {
+      display: none; /* Hide original headers */
+    }
+  
+    .table-row {
+      display: block;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      width: 100%; /* Ensure rows take full available width */
+    }
+  
+    .table-row td {
+      display: block;
+      padding: 10px;
+      border: none;
+      position: relative;
+      margin-bottom: 10px;
+      background-color: #fafafa;
+      border-radius: 5px;
+      width: 50%;
+      box-sizing: border-box;
+    }
+  
+    .table-row td::before {
+      content: attr(data-label);
+      font-weight: bold;
+      color: #333;
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      font-size: 11px;
+      color: $primary-color;
+      padding-right: 10px;
+    }
+  
+    .table-row td {
+      padding-left: 120px;
+    }
+  
+    .table-row td:last-child {
+      margin-bottom: 0;
+      width: 50%;
+    }
+  
+    .table-row .last-columns {
+      display: flex;
+      justify-content: space-between;
+      padding-left: 0;
+      margin-bottom: 0;
+      width: 100%; /* Ensure last column row takes up full width */
+    }
+  
+    .table-row .last-columns mat-icon {
+      font-size: 18px;
+      color: #3498db;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+  
+    .table-row .last-columns mat-icon:hover {
+      color: #2980b9;
+    }
+  
+    mat-icon {
+      font-size: 18px;
+      color: #3498db;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+  
+    mat-icon:hover {
+      color: #2980b9;
+    }
+  }
+  
+  
+  

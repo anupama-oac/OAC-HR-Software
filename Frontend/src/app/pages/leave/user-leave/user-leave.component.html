@@ -1,0 +1,50 @@
+<div class="reset-password-container">
+  <mat-toolbar class="bg-blue-900">
+    <p style="color:rgb(11, 70, 118)">Update Leave Count for {{data.name}}</p>
+    <mat-icon (click)="onCancelClick()" style="margin-left: auto;">close</mat-icon>
+  </mat-toolbar>
+
+  <form [formGroup]="mainForm" (ngSubmit)="onSubmit()">
+    <mat-card style="width: 100%;">
+      <table>
+        <thead>
+          <tr>
+            <th  style="width: 10%;">Type</th>
+            <th style="width: 5%;">Allotted</th>
+
+            <th style="width: 5%;">Taken</th>
+            <th style="width: 5%;">Balance</th>
+            <th class="add-column" style="width: 2.5%;">Add</th>
+            <!-- <th style="width: 5%;"></th> -->
+          </tr>
+        </thead>
+        <tbody formArrayName="forms">
+          @for (row of newData().controls; let i = $index; track $index) {
+            <tr [formGroupName]="i">
+              <td style="width: 10%;"><input formControlName="typeName"/></td>
+              <td style="width: 5%;"><input formControlName="noOfDays" readonly/></td>
+              <td style="width: 5%;"><input formControlName="takenLeaves" readonly/></td>
+              <td style="width: 5%;"><input formControlName="leaveBalance" readonly/></td>
+              <!-- <td style="width: 5%;">
+                <button type="button" (click)="removeData(i)" class="remove">
+                  <mat-icon>remove_circle_outline</mat-icon>
+                </button>
+              </td> -->
+              @if (row.get('typeName')?.value !== 'LOP') {
+                <td class="add-column" style="width: 2.5%;"> <!-- Input field for addDays -->
+                  <input formControlName="addDays" (input)="updateAllotted(i)" />
+                </td>
+              } @else {
+                <td class="add-column" style="width: 2.5%;"> <!-- Input field for addDays -->
+                  NA
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+      <!-- <button type="button" (click)="addNew()" class="add">Add Row</button> -->
+      <button type="submit" class="submit">Submit</button>
+    </mat-card>
+  </form>
+</div>

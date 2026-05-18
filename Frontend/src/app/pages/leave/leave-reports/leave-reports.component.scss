@@ -1,0 +1,223 @@
+.report-container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 20px auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.report-header h1 {
+  margin: 0;
+}
+
+.search-by-year {
+  display: flex;
+  align-items: center;
+}
+
+.search-by-year label {
+  margin-right: 10px;
+}
+
+.search-by-year select,
+.search-by-year button {
+  margin-left: 10px;
+}
+
+.employee-leave-reports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* Space between employee reports */
+  justify-content: space-between; /* Evenly distribute space */
+}
+
+.employee-report {
+  flex: 1 1 calc(25% - 20px); /* Adjusted to fit 4 in a row with gap */
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  padding: 15px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  position: relative; /* To allow .leave-type-report to sit on top */
+  filter: brightness(0.9); 
+}
+
+.blocked {
+  opacity: 0.5; /* Make the report look "blocked" */
+}
+
+.leave-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Four columns for months */
+  gap: 5px;
+}
+
+.leave-month {
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgba(173, 185, 227, 0.15);;
+  font-size: 0.9em;
+  color: black;
+  font-weight: 600;
+}
+
+.yearly-total {
+  text-align: right;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .employee-report {
+      flex: 1 1 calc(50% - 20px); /* Two in a row on smaller screens */
+  }
+
+  .leave-calendar {
+      grid-template-columns: repeat(2, 1fr); /* Two columns for months on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .employee-report {
+      flex: 1 1 calc(100% - 20px); /* One in a row on very small screens */
+  }
+}
+
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+
+.text-search, .search-by-year {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.text-search label, .search-by-year label {
+  font-size: 16px;
+  color: #555;
+  margin-right: 10px;
+}
+
+.text-search input[type="text"], .search-by-year select {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 200px;
+  margin-right: 10px;
+}
+
+.text-search button, .search-by-year button {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.text-search button:hover, .search-by-year button:hover {
+  background-color: #0056b3;
+}
+
+.employee-name {
+  text-align: center;
+  color: #0b0586;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 50px;
+  border-radius: 10px 10px 0 0; /* Rounded corners on top */
+}
+
+// .employee-name {
+//   text-align: center;
+//   color: #0b0586;
+//   // background-size: contain; /* Ensures the whole image fits within the div */
+//   background-position: center;
+//   background-repeat: no-repeat;
+//   padding: 15px;
+//   height: 50px; /* Adjust this based on your design */
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   border-radius: 10px 10px 0 0;
+// }
+
+.balance-summary {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+  gap: 8px;
+}
+
+.balance-item {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+  background: #f5f5f5;
+}
+
+.balance-label {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: #770606;
+  margin-bottom: 4px;
+}
+
+.balance-value {
+  display: block;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+/* Color coding for different states */
+.balance-item.allocated .balance-value {
+  color: #1976d2; /* Blue for allocated */
+}
+
+.balance-item.used .balance-value {
+  color: #f57c00; /* Orange for used */
+}
+
+.balance-item.remaining .balance-value {
+  color: #388e3c; /* Green for remaining */
+}
+
+.leave-month {
+    cursor: default;
+    padding: 5px;
+    text-align: center;
+}
+
+.leave-month.clickable {
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.leave-month.clickable:hover {
+    background-color: #e0e0e0;
+}

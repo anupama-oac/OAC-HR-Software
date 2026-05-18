@@ -1,0 +1,147 @@
+/* General Styles */
+.leave-details-container {
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.col {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Leave Card Styles */
+.leave-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.leave-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mat-card-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+}
+
+.mat-card-subtitle {
+  font-size: 14px;
+  color: #555;
+}
+
+.mat-chip-set {
+  margin-left: auto;
+}
+
+.mat-chip {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.info-chip {
+  background-color: #ffebee;
+  color: #7a28c6;
+}
+
+.icon-sm {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+/* Leave Details Styles */
+.form-wrapper {
+  padding: 16px;
+}
+
+.detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.detail-column {
+  flex: 1;
+  min-width: 200px;
+}
+
+.detail-column strong {
+  color: #333;
+}
+
+/* Leave Session Styles */
+.leave-session-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.leave-session-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.leave-session-row mat-card-title {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Button Styles */
+.approve-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.reject-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.approve-button:disabled{
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.reject-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column;
+  }
+
+  .detail-row {
+    flex-direction: column;
+  }
+
+  .leave-session-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.user-spinner {
+  position: fixed; /* Ensures the spinner is positioned relative to the viewport */
+  top: 0;
+  left: 0;
+  width: 100%; /* Covers the full screen width */
+  height: 100%; /* Covers the full screen height */
+  display: flex; /* Flexbox to center the spinner */
+  justify-content: center; /* Horizontally center */
+  align-items: center; /* Vertically center */
+  background-color: rgba(0, 0, 0, 0.1); /* Optional: Add a semi-transparent background */
+  z-index: 1000; /* Ensures it appears above other content */
+}

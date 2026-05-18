@@ -1,0 +1,66 @@
+<div class="report-container">
+    <div class="report-header">
+        <h1>Leave Report</h1>
+        <div class="text-search">
+            <label for="searchText">Search by Employee:</label>
+            <input type="text" id="searchText" (keyup)="search($event)">
+            <!-- <button (click)="getReport()">Search</button> -->
+        </div>
+        <div class="search-by-year">
+            <label for="year">Search by Year:</label>
+            <select #yearSelect [(ngModel)]="selectedYear" (ngModelChange)="onYearChange( yearSelect.value )">
+                <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+            </select>
+        </div>
+    </div>
+    <div class="employee-leave-reports">
+        <div *ngFor="let employee of employees" class="employee-report">
+            <div class="employee-name" 
+                [ngStyle]="{ 'background-image': employee.url ? 'url(' + apiUrl + employee.url + ')' : 'url(' + userImage + ')'}">
+                <h1>{{ employee.name }}</h1>
+            </div>
+            <div *ngFor="let leaveType of employee.leaveDetails" class="leave-type-report {{ leaveType.type }}"
+                 [class.blocked]="!employee.status">
+                <h2>{{ leaveType.type }}</h2>
+                
+                <!-- Leave Balance Summary -->
+                <div class="balance-summary">
+                    <div class="balance-item allocated">
+                        <span class="balance-label">Allotted</span>
+                        <span class="balance-value">{{ leaveType.balance.allotted }}</span>
+                    </div>
+                    <div class="balance-item used">
+                        <span class="balance-label">Availed</span>
+                        <span class="balance-value">{{ leaveType.total }}</span>
+                    </div>
+                    <div class="balance-item remaining">
+                        <span class="balance-label">Balance</span>
+                        <span class="balance-value">{{ leaveType.balance.remaining }}</span>
+                    </div>
+                </div>
+                
+                <!-- Monthly Breakdown -->
+                <div class="leave-calendar">
+                    <div *ngFor="let monthData of leaveType.monthlyData; let i = index" class="leave-month"
+                             (click)="openMonthDetails(employee, leaveType, i, monthData)" [class.clickable]="monthData > 0">
+                        <div class="month-name">{{ getMonthName(i) }}</div>
+                        <div class="month-data">{{ monthData }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <mat-paginator class="pagination"
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageIndex]="currentPage - 1"
+        (page)="onPageChanged($event)"
+        [pageSizeOptions]="[10, 20, 30, 40, 50, 100]">
+    </mat-paginator>
+        <!-- <div class="pagination">
+        <button (click)="prevPage()" [disabled]="currentPage <= 1">Previous</button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button (click)="nextPage()" [disabled]="currentPage >= totalPages">Next</button>
+    </div> -->
+</div>
