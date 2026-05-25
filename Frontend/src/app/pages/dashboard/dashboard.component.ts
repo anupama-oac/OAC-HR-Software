@@ -46,8 +46,8 @@ export class DashboardComponent {
     this.user = user.id;
 
     const roleId = user.role
-    this.getRoleById(roleId)
-    this.getUsers()
+    // this.getRoleById(roleId)
+    // this.getUsers()
   }
   roleSub!: Subscription;
   roleName!: string;

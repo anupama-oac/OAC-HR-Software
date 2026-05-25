@@ -20,7 +20,8 @@ import { Nominee } from '../common/interfaces/users/nominee';
 export class UsersService {
 
  
-  private apiUrl = environment.apiUrl;
+  // private apiUrl = environment.apiUrl;
+    private apiUrl = `${environment.apiUrl}/auth/`;
 
   constructor(public http: HttpClient) { }
 
@@ -70,7 +71,7 @@ export class UsersService {
   }
 
   getUserById(id:number):Observable<User>{
-    return this.http.get<User>(this.apiUrl + '/user/findone/'+id)
+    return this.http.get<User>(this.apiUrl + 'auth/user/findone/'+id)
   }
 
   addUserPersonalDetails(data: any): Observable<any> {
@@ -175,7 +176,7 @@ export class UsersService {
   }
 
   resetPassword(id: number, data: any){
-    return this.http.patch(this.apiUrl + '/auth/resetpassword/' + id, data);
+    return this.http.patch(this.apiUrl + '/resetpassword/' + id, data);
   }
 
   updateUserStatus(data: any, id: number): Observable<any> {

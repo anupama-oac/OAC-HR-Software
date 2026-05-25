@@ -15,6 +15,7 @@ router.post('/add', authenticateToken, userController.addUser);
 router.get('/find', authenticateToken, userController.findAllUsers);
 router.get('/search/name', authenticateToken, userController.UserSearchName);
 router.patch('/statusupdate/:id', authenticateToken, userController.updateStatus);
+
 router.get('/findone/:id', authenticateToken, userController.UserFindOne);
 router.patch('/update/:id', authenticateToken, userController.UpdateUser);
 router.patch('/imageupdate/:id', authenticateToken, userController.UpdateImage);

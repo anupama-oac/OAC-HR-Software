@@ -21,7 +21,13 @@ const User = sequelize.define('user', {
   isTemporary: { type: DataTypes.BOOLEAN, defaultValue: true, allowNull: false },
   separated: { type: DataTypes.BOOLEAN, defaultValue: false},
   separationNote: { type: DataTypes.TEXT},
-  separationDate: { type: DataTypes.DATEONLY}
+  separationDate: { type: DataTypes.DATEONLY},
+  // models/user.model.js
+isActive: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: true,
+  field: 'is_active' // Use this if your actual database column name uses underscores!
+}
 },
 {
   freezeTableName: true,
