@@ -70,9 +70,15 @@ export class UsersService {
     return this.http.get<User>(this.apiUrl + '/user/findbyrole/'+id)
   }
 
-  getUserById(id:number):Observable<User>{
-    return this.http.get<User>(this.apiUrl + 'auth/user/findone/'+id)
-  }
+  // getUserById(id:number):Observable<User>{
+  //   return this.http.get<User>(this.apiUrl + 'auth/user/findone/'+id)
+  // }
+
+
+  getUserById(id: number): Observable<User> {
+  // Hardcoding the exact base endpoint cleanly handles it
+  return this.http.get<User>(`http://localhost:4000/api/auth/user/findone/${id}`);
+}
 
   addUserPersonalDetails(data: any): Observable<any> {
     return this.http.post( this.apiUrl + '/personal/add', data);

@@ -66,7 +66,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(){
-    this.initializeComponent()
+    // this.initializeComponent()
   }
 
 

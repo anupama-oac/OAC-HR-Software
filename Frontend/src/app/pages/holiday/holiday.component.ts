@@ -38,7 +38,7 @@ export class HolidayComponent implements OnInit, OnDestroy{
   searchValue: string | null;
 
   ngOnInit(): void {
-    this.getHolidays();
+    // this.getHolidays();
 
     this.currentYear = new Date().getFullYear();
     for (let year = this.currentYear; year >= 2000; year--) {
