@@ -85,7 +85,12 @@ export class LoginService {
   // getUserById(id: number): Observable<User>{
   //   return this._http.get<User>(this.url + '/authnv/user/findone/'+id);
   // }
-  getUserById(id:number):Observable<User>{
-  return this._http.get<User>(this.url + '/user/findone/'+id)
+//   getUserById(id:number):Observable<User>{
+//   return this._http.get<User>(this.url + '/auth/user/findone/'+id)
+// }
+
+getUserById(id: number): Observable<User> {
+  // Hardcoding the exact base endpoint cleanly handles it
+  return this._http.get<User>(`http://localhost:4000/api/auth/user/findone/${id}`);
 }
 }

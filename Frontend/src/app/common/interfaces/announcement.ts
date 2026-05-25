@@ -5,3 +5,5 @@ export interface Announcement {
     fileUrl : string
     dismissible : boolean
 }
+
+
