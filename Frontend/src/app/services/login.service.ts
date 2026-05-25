@@ -82,7 +82,10 @@ export class LoginService {
     return this._http.post(this.url + '/user/add', data)
   }
 
-  getUserById(id: number): Observable<User>{
-    return this._http.get<User>(this.url + '/user/findone/'+id);
-  }
+  // getUserById(id: number): Observable<User>{
+  //   return this._http.get<User>(this.url + '/authnv/user/findone/'+id);
+  // }
+  getUserById(id:number):Observable<User>{
+  return this._http.get<User>(this.url + '/user/findone/'+id)
+}
 }

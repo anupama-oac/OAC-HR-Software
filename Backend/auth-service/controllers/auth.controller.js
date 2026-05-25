@@ -60,26 +60,25 @@ exports.resetPassword = async (req, res) => {
       await user.save();
       
       const userPos = await UserPosition.findOne({ where: {userId: user.id}});
-      const email = userPos.officialMailId;
-      // const emailText = `Hello ${user.name},\n\nYour password has been successfully reset.\n\nUsername: ${user.empNo}\nPassword: ${password}\n\nPlease keep this information safe.\n\nThank you!`;
-      const emailSubject = `Password Reset Successful`;
-      const fromEmail = process.env.EMAIL_USER;
-      const emailPassword = process.env.EMAIL_PASS;    
-      const html = `
-        <p>Dear ${user.name},</p>
-        <p>Your password has been successfully reset!.</p>
-        <p>Here are your login credentials:</p>
-        <p>Username: ${user.empNo}\nPassword: ${password}</p>
-        <p>Please keep this information secure.</p>
-        <p>Thank you!</p>
-      `;
-      const attachments = []
-      const token = req.headers.authorization?.split(' ')[1];
-      try {
-        await sendEmail(token, fromEmail, emailPassword, email, emailSubject ,html, attachments);
-      } catch (emailError) {
-        console.error('Email sending failed:', emailError);
-      }
+      // const email = userPos.officialMailId;
+      // const emailSubject = `Password Reset Successful`;
+      // const fromEmail = process.env.EMAIL_USER;
+      // const emailPassword = process.env.EMAIL_PASS;    
+      // const html = `
+      //   <p>Dear ${user.name},</p>
+      //   <p>Your password has been successfully reset!.</p>
+      //   <p>Here are your login credentials:</p>
+      //   <p>Username: ${user.empNo}\nPassword: ${password}</p>
+      //   <p>Please keep this information secure.</p>
+      //   <p>Thank you!</p>
+      // `;
+      // const attachments = []
+      // const token = req.headers.authorization?.split(' ')[1];
+      // try {
+      //   await sendEmail(token, fromEmail, emailPassword, email, emailSubject ,html, attachments);
+      // } catch (emailError) {
+      //   console.error('Email sending failed:', emailError);
+      // }
 
       //   // Configure Nodemailer for sending emails
       // const transporter = nodemailer.createTransport({
