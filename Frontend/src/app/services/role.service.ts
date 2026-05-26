@@ -11,7 +11,7 @@ import { Role } from '../common/interfaces/users/role';
 export class RoleService {
 
   // private apiUrl = environment.apiUrl;
-    private apiUrl = `${environment.apiUrl}/auth/`;
+    private apiUrl = `${environment.apiUrl}/`;
 
   constructor(private http: HttpClient) { }
 

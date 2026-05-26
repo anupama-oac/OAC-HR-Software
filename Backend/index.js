@@ -1,79 +1,83 @@
 require('dotenv').config();
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
-const { initScheduler } = require('./scheduler/backupTask');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-app.use(cors({ origin: '*' }));
-// app.use(cors({ 
-//   origin: 'https://leeds.aeroassist.in', 
-//   credentials: true 
-// }));
-
 
 app.use(cors({
-  origin: 'http://localhost:4200', // Allow your Angular app
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: 'http://localhost:4200',
   credentials: true
 }));
 
-
-
-// app.use(cors({
-//   origin: 'http://localhost:4200',
-//   credentials: true
-// }));
+// SERVICES
 const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4001';
 const LEAVE_URL = process.env.LEAVE_SERVICE_URL || 'http://localhost:4002';
 const PAYROLL_URL = process.env.PAYROLL_SERVICE_URL || 'http://localhost:4003';
 
+// AUTH SERVICE
+app.use('/api/auth', createProxyMiddleware({
+  target: AUTH_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/auth': '/auth'
+  }
+}));
 
-app.use((req, res, next) => {
-  next();
-});
-app.use('/api/auth', createProxyMiddleware({ target: AUTH_URL,  changeOrigin: true,
-    pathRewrite: {
-      '^/api/auth': ''   // 🔥 REQUIRED
-    }, timeout: 30000, proxyTimeout: 30000
-  })
-);
+// ROLE SERVICE INSIDE AUTH
+app.use('/api/role', createProxyMiddleware({
+  target: AUTH_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/role': '/role'
+  }
+}));
 
+// TEAM
+app.use('/api/team', createProxyMiddleware({
+  target: AUTH_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/team': '/team'
+  }
+}));
 
+// NOTIFICATION
 app.use('/api/notification', createProxyMiddleware({
   target: AUTH_URL,
   changeOrigin: true,
-  // pathRewrite: {
-  //   '^/api/notification': '/notification'
-  // }
   pathRewrite: {
-   '^/api/notification': '/api/notification'
-}
+    '^/api/notification': '/notification'
+  }
 }));
-console.log('Notification Proxy Loaded');
 
+// LEAVE SERVICE
+app.use('/api/leave', createProxyMiddleware({
+  target: LEAVE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/leave': '/leave'
+  }
+}));
 
-app.use('/api/leave', createProxyMiddleware({ target: LEAVE_URL,  changeOrigin: true,
-    pathRewrite: {
-      '^/api/leave': ''   // 🔥 REQUIRED
-    }, timeout: 30000, proxyTimeout: 30000
-  })
-);
-app.use('/api/payroll', createProxyMiddleware({ target: PAYROLL_URL,  changeOrigin: true,
-    pathRewrite: {
-      '^/api/payroll': ''   // 🔥 REQUIRED
-    }, timeout: 30000, proxyTimeout: 30000
-  })
-);
+// PAYROLL SERVICE
+app.use('/api/payroll', createProxyMiddleware({
+  target: PAYROLL_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/payroll': '/payroll'
+  }
+}));
 
+// HEALTH
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API Gateway Running'
+  });
+});
 
-/**
- * ✅ Body parsing ONLY for non-proxied routes
- */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-
+// 404
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -81,20 +85,9 @@ app.use((req, res) => {
   });
 });
 
+const PORT = process.env.PORT || 4000;
 
-/**
- * Health & test routes
- */
-app.get('/health', (req, res) => {
-  res.json({ status: 'API Gateway is running' });
-});
-
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'API Gateway is working!' });
-});
-
-const PORT = process.env.PORT || 3000;
-initScheduler();
 app.listen(PORT, () => {
-  console.log(`🚀 API Gateway running at http://localhost:${PORT}`);
+  console.log(`🚀 API Gateway running on ${PORT}`);
 });
+
