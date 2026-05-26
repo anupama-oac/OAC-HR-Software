@@ -7,7 +7,9 @@ import { Observable, Subject } from 'rxjs';
   providedIn: 'root'
 })
 export class MessagesService {
-  private apiUrl = `${environment.apiUrl}/notification`; // Update to include the notifications endpoint
+  // private apiUrl = `${environment.apiUrl}/notification`; 
+  // Update to include the notifications endpoint
+    private apiUrl = `${environment.apiUrl}/notification`;
   http = inject(HttpClient);
 
 

@@ -53,8 +53,8 @@ app.use((req, res, next) => {
 app.use('/', authRoutes);
 // app.use('/user',userRoutes)
 app.use('/role', roleRoutes);
-app.use('/notification',notRoutes);
 app.use('/team', teamRoutes);
+app.use('/notification', notRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

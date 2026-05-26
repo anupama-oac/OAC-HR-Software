@@ -8,8 +8,14 @@ const UserPersonal = require('./userPersonal');
 const UserPosition = require('./userPosition');
 const StatutoryInfo = require('./statutoryInfo');
 const UserDocument = require('./userDocument');
+const Notification = require('./notification');
+
 
 // --- Organizational Associations ---
+
+ 
+User.hasMany(Notification, { foreignKey: 'userId' });
+Notification.belongsTo(User);
 
 
 Role.hasMany(User, { foreignKey: 'roleId', onUpdate: 'CASCADE' });
@@ -42,5 +48,5 @@ UserDocument.belongsTo(User, { foreignKey: 'userId' });
 
 module.exports = {
   sequelize, User, Role, Designation, Promotion, 
-  UserAccount, UserPersonal, UserPosition, StatutoryInfo, UserDocument
+  UserAccount, UserPersonal, UserPosition, StatutoryInfo, UserDocument, Notification
 };
