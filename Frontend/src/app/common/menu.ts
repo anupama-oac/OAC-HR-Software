@@ -11,7 +11,7 @@ export const verticalMenuItems = [
 
   new Menu(4, 'Team', '/login/team', null, 'groups', null, false, 0),
 
-  new Menu(5, 'Proforma', '', null, 'receipt', null, true, 0),
+  // new Menu(5, 'Proforma', '', null, 'receipt', null, true, 0),
   new Menu(6, 'Add', '/login/viewApproval/addapproval', null, 'add_circle', null, false, 5),
   new Menu(7, 'View', '/login/viewApproval/view', null, 'visibility', null, false, 5),
   new Menu(25, 'Excel', '/login/viewApproval/viewexcel', null, 'backup_table', null, false, 5),
@@ -48,7 +48,7 @@ export const verticalMenuItems = [
 
   new Menu(21, 'Reports', '', null, 'assessment', null, true, 0),
 
-  new Menu(22, 'Proforma', '', null, 'receipt', null, true, 21),
+  // new Menu(22, 'Proforma', '', null, 'receipt', null, true, 21),
   new Menu(29, 'View', '/login/viewApproval/approvalReport', null, 'visibility', null, false, 22),
   new Menu(30, 'Excel', '/login/viewApproval/approvalReport/excellog', null, 'layers', null, false, 22),
 
