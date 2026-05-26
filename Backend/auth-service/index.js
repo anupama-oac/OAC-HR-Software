@@ -8,7 +8,15 @@ const authRoutes = require('./routes/auth.routes');
 const roleRoutes = require('./routes/role.routes');
 const teamRoutes = require('./routes/team.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const initializeSystem = require('./models/initializeSystem');
 
+
+const { connectDB } = require('./config/database');
+
+// connectDB();
+connectDB().then(async () => {
+  await initializeSystem();
+});
 const app = express();
 
 app.use(helmet());

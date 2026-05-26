@@ -32,6 +32,7 @@ const connectDB = async () => {
       await sequelize.sync({ alter: true });
       console.log('🔄 Auth Service: Database tables synced (alter: true).');
     }
+
   } catch (error) {
     console.error('❌ Auth Service: Database connection failed:', error);
     process.exit(1); // Stop the microservice if DB isn't ready
