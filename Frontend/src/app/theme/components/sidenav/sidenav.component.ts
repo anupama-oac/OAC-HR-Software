@@ -154,7 +154,7 @@ users:User;
 
 
       );
-    } else if (role === 'Super Administrator') {
+    } else if (role === 'Quality Super Administrator') {
       this.filteredMenuItems = allMenuItems.filter(item =>
         item.title === 'Dashboard' ||
         (item.title === 'Employee' && !item.parentId) ||

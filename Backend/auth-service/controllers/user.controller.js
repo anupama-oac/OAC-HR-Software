@@ -10,8 +10,8 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { upload } = require('../utils/userImageMulter');
 const s3 = require('../utils/s3bucket');
-const UserLeave = require('../../leave-service/models/userLeave');
-const LeaveType = require('../../leave-service/models/leaveType');
+// const UserLeave = require('../../leave-service/models/userLeave');
+// const LeaveType = require('../../leave-service/models/leaveType');
 const UserPersonal = require('../models/userPersonal');
 const UserPosition = require('../models/userPosition');
 const Designation = require('../models/designation');
@@ -592,37 +592,37 @@ exports.confirmEmployee = async (req, res) => {
     user.isTemporary = false;
     await user.save();
 
-    // 6️⃣ Get leave types
-    const leaveTypes = await LeaveType.findAll();
-    const leaveTypeMap = {};
+ 
+    // const leaveTypes = await LeaveType.findAll();
+    // const leaveTypeMap = {};
 
-    leaveTypes.forEach(lt => {
-      leaveTypeMap[lt.leaveTypeName] = lt.id;
-    });
+    // leaveTypes.forEach(lt => {
+    //   leaveTypeMap[lt.leaveTypeName] = lt.id;
+    // });
 
-    const slId = leaveTypeMap['Sick Leave'];
-    const clId = leaveTypeMap['Casual Leave'];
-    const coId = leaveTypeMap['Comp Off'];
+    // const slId = leaveTypeMap['Sick Leave'];
+    // const clId = leaveTypeMap['Casual Leave'];
+    // const coId = leaveTypeMap['Comp Off'];
 
-    // 7️⃣ Leave data
-    const leaveData = [
-      { leaveTypeId: slId, noOfDays: 1, leaveBalance: 1 },
-      { leaveTypeId: clId, noOfDays: 1, leaveBalance: 1 },
-      { leaveTypeId: coId, noOfDays: 0, leaveBalance: 0 }
-    ];
 
-    // 8️⃣ Create or update leave balances (NO DUPLICATES)
-    for (const leave of leaveData) {
-      if (!leave.leaveTypeId) continue;
+    // const leaveData = [
+    //   { leaveTypeId: slId, noOfDays: 1, leaveBalance: 1 },
+    //   { leaveTypeId: clId, noOfDays: 1, leaveBalance: 1 },
+    //   { leaveTypeId: coId, noOfDays: 0, leaveBalance: 0 }
+    // ];
 
-      await UserLeave.upsert({
-        userId,
-        leaveTypeId: leave.leaveTypeId,
-        year: currentYear,
-        noOfDays: leave.noOfDays,
-        leaveBalance: leave.leaveBalance
-      });
-    }
+   
+    // for (const leave of leaveData) {
+    //   if (!leave.leaveTypeId) continue;
+
+    //   await UserLeave.upsert({
+    //     userId,
+    //     leaveTypeId: leave.leaveTypeId,
+    //     year: currentYear,
+    //     noOfDays: leave.noOfDays,
+    //     leaveBalance: leave.leaveBalance
+    //   });
+    // }
 
     // 9️⃣ Response
     return res.json({
