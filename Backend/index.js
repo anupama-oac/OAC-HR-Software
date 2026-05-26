@@ -38,6 +38,21 @@ app.use('/api/auth', createProxyMiddleware({ target: AUTH_URL,  changeOrigin: tr
     }, timeout: 30000, proxyTimeout: 30000
   })
 );
+
+
+app.use('/api/notification', createProxyMiddleware({
+  target: AUTH_URL,
+  changeOrigin: true,
+  // pathRewrite: {
+  //   '^/api/notification': '/notification'
+  // }
+  pathRewrite: {
+   '^/api/notification': '/api/notification'
+}
+}));
+console.log('Notification Proxy Loaded');
+
+
 app.use('/api/leave', createProxyMiddleware({ target: LEAVE_URL,  changeOrigin: true,
     pathRewrite: {
       '^/api/leave': ''   // 🔥 REQUIRED
@@ -57,6 +72,15 @@ app.use('/api/payroll', createProxyMiddleware({ target: PAYROLL_URL,  changeOrig
  */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
 
 /**
  * Health & test routes
