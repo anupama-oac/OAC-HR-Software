@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const Role = require('../models/role');
-const authenticateToken = require('../middlewares/auth');
+const { authenticateToken } = require('../middlewares/auth');
 const { Op } = require('sequelize');
 const sequelize = require('../utils/config');
 

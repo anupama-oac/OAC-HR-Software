@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../../middleware/authorization');
-const sequelize = require('../../utils/db');
+const { authenticateToken } = require('../middlewares/auth');
+const { sequelize } = require('../config/database');
 const Holiday = require('../models/holiday');
 const { Op, where } = require('sequelize'); 
 const UserLeave = require('../models/userLeave');
 const LeaveType = require('../models/leaveType');
-const ComboOff = require('../models/comboOff');
+const ComboOff = require('../models/compOff');
 const xlsx = require('xlsx');
 const multer = require('multer');
 const moment = require('moment');
@@ -510,5 +510,3 @@ exports.findComboOff = async (req, res) => {
 }
 
 
-
-module.exports = router;

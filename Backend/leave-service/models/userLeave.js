@@ -1,5 +1,5 @@
 const {DataTypes} =  require('sequelize')
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 const LeaveType = require('../models/leaveType');
 const User = require('../../auth-service/models');
 

@@ -14,64 +14,64 @@ export class NewLeaveService {
   constructor(private http: HttpClient) { }
 
   removePenalty(id: number): Observable<any> {
-  return this.http.put(`${this.apiUrl}/newleave/removePenalty/${id}`, {});
+  return this.http.put(`${this.apiUrl}/leave/removePenalty/${id}`, {});
 }
 removeApprovedPenalty(id: number): Observable<any> {
-  return this.http.put(`${this.apiUrl}/newleave/removeApprovedPenalty/${id}`, {});
+  return this.http.put(`${this.apiUrl}/leave/removeApprovedPenalty/${id}`, {});
 }
 
 // Inside your NewLeaveService class
 updateLeaveStatus(id: number, payload: any): Observable<any> {
-  return this.http.put(`${this.apiUrl}/newleave/approveLeave/${id}`, payload);
+  return this.http.put(`${this.apiUrl}/leave/approveLeave/${id}`, payload);
 }
 
 
   getLeavesPaginated(value: string, search?: string, page?: number, pageSize?: number): Observable<any[]> {
-    if(value === 'Not') return this.http.get<any[]>(`${this.apiUrl}/newleave/find/?search=${search}&page=${page}&pageSize=${pageSize}`);
-    else return this.http.get<any[]>(`${this.apiUrl}/newleave/findlocked/?search=${search}&page=${page}&pageSize=${pageSize}`);
+    if(value === 'Not') return this.http.get<any[]>(`${this.apiUrl}/leave/find/?search=${search}&page=${page}&pageSize=${pageSize}`);
+    else return this.http.get<any[]>(`${this.apiUrl}/leave/findlocked/?search=${search}&page=${page}&pageSize=${pageSize}`);
   }
 
   getRequestedLeaves( page?: number, pageSize?: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/newleave/find/requested/?page=${page}&pageSize=${pageSize}`);
+    return this.http.get<any[]>(`${this.apiUrl}/leave/find/requested/?page=${page}&pageSize=${pageSize}`);
   }
 
   getLeaves():Observable<any>{
-    return this.http.get(`${this.apiUrl}/newleave/all/totalleaves`);
+    return this.http.get(`${this.apiUrl}/leave/all/totalleaves`);
   }
 
   getLeavesByUser(value: string, userId: number, search?: string, page?: number, pageSize?: number): Observable<any[]> {
-    if(value === 'Not') return this.http.get<any[]>(`${this.apiUrl}/newleave/user/${userId}?search=${search}&page=${page}&pageSize=${pageSize}`);
-    return this.http.get<any[]>(`${this.apiUrl}/newleave/userlocked/${userId}?search=${search}&page=${page}&pageSize=${pageSize}`);
+    if(value === 'Not') return this.http.get<any[]>(`${this.apiUrl}/leave/user/${userId}?search=${search}&page=${page}&pageSize=${pageSize}`);
+    return this.http.get<any[]>(`${this.apiUrl}/leave/userlocked/${userId}?search=${search}&page=${page}&pageSize=${pageSize}`);
   }
 
   getLeaveBalance(leaveId: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/newleave/leaveBalance/${leaveId}`);
+    return this.http.get(`${this.apiUrl}/leave/leaveBalance/${leaveId}`);
   }
 
   updateApproveLeaveStatus(approvalData: any) {
     const { leaveId, adminNotes } = approvalData;
-    return this.http.put(`${this.apiUrl}/newleave/approveLeave/${leaveId}`, { adminNotes });
+    return this.http.put(`${this.apiUrl}/leave/approveLeave/${leaveId}`, { adminNotes });
   }
 
   updateRejectLeaveStatus(rejectionData: any) {
     const { leaveId, adminNotes } = rejectionData;
-    return this.http.put(`${this.apiUrl}/newleave/rejectLeave/${leaveId}`, { adminNotes });
+    return this.http.put(`${this.apiUrl}/leave/rejectLeave/${leaveId}`, { adminNotes });
   }
 
   updateLeaveFileUrl(leaveId: number, fileUrl: string): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/newleave/updateLeaveFileUrl/${leaveId}`, { fileUrl });
+    return this.http.patch(`${this.apiUrl}/leave/updateLeaveFileUrl/${leaveId}`, { fileUrl });
   }
 
   deleteUntakenLeave(leaveId: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/newleave/untakenLeaveDelete/${leaveId}`);
+    return this.http.delete(`${this.apiUrl}/leave/untakenLeaveDelete/${leaveId}`);
   }
 
   deleteUploadByurl(key: string) {
-    return this.http.delete(`${this.apiUrl}/newleave/delete/filedeletebyurl?key=${key}`);
+    return this.http.delete(`${this.apiUrl}/leave/delete/filedeletebyurl?key=${key}`);
   }
 
   getLeaveById(id: number) {
-    return this.http.get<Leave>(`${this.apiUrl}/newleave/${id}`);
+    return this.http.get<Leave>(`${this.apiUrl}/leave/${id}`);
   }
 
   getUserLeaveByUser(id: number){
@@ -98,34 +98,34 @@ updateLeaveStatus(id: number, payload: any): Observable<any> {
     if (file instanceof File) {
       const formData = new FormData();
       formData.append("file", file, file.name);
-      return this.http.post(`${this.apiUrl}/newleave/fileupload`, formData);
+      return this.http.post(`${this.apiUrl}/leave/fileupload`, formData);
     }
     return throwError(() => new Error("Invalid file type"));
   }
 
   addEmergencyLeave(data:any){
-    return this.http.post(this.apiUrl+'/newleave/emergencyLeave', data)
+    return this.http.post(this.apiUrl+'/leave/emergencyLeave', data)
   }
 
   updatemergencyLeave(data:any, id: number){
-    return this.http.patch(this.apiUrl +'/newleave/updateemergencyLeave/'+ id, data)
+    return this.http.patch(this.apiUrl +'/leave/updateemergencyLeave/'+ id, data)
   }
 
   addLeave(data:any){
-    return this.http.post(this.apiUrl+'/newleave/employeeLeave', data)
+    return this.http.post(this.apiUrl+'/leave/employeeLeave', data)
   }
 
   updateLeave(id: number, data: any): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/newleave/updateemployeeleave/${id}`, data);
+    return this.http.patch(`${this.apiUrl}/leave/updateemployeeleave/${id}`, data);
   }
 
 
   getLeavesPaginatedByRm(rmId: number, search?: string, page?: number, pageSize?: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/newleave/findbyrm/${rmId}?search=${search}&page=${page}&pageSize=${pageSize}`);
+    return this.http.get<any[]>(`${this.apiUrl}/leave/findbyrm/${rmId}?search=${search}&page=${page}&pageSize=${pageSize}`);
   }
 
   getReport(year: number, page?: number, pageSize?: number, search?: string):Observable<any>{
-    return this.http.get(`${this.apiUrl}/newleave/all/report?year=${year}&page=${page}&pageSize=${pageSize}&search=${search}`);
+    return this.http.get(`${this.apiUrl}/leave/all/report?year=${year}&page=${page}&pageSize=${pageSize}&search=${search}`);
   }
 
 
@@ -140,7 +140,7 @@ updateLeaveStatus(id: number, payload: any): Observable<any> {
 
 
   getMonthlyLeaveDays(startDate: any, endDate: any){
-    return this.http.get<any[]>(`${this.apiUrl}/newleave/find/monthlyleavedays?startDate=${startDate}&endDate=${endDate}`);
+    return this.http.get<any[]>(`${this.apiUrl}/leave/find/monthlyleavedays?startDate=${startDate}&endDate=${endDate}`);
   }
 
   getUserLeave(userId: number, typeid: number): Observable<UserLeave> {
@@ -164,7 +164,7 @@ updateLeaveStatus(id: number, payload: any): Observable<any> {
       .set('year', year.toString())
       .set('month', month.toString());
 
-    return this.http.get<Leave[]>(`${this.apiUrl}/newleave/report/month-details`, { params }).pipe(
+    return this.http.get<Leave[]>(`${this.apiUrl}/leave/report/month-details`, { params }).pipe(
       catchError(error => {
         console.error('Error fetching leave balance details:', error);
         return throwError(() => new Error('Failed to fetch leave details'));

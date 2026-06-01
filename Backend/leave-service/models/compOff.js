@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
 const {DataTypes} =  require('sequelize')
-const sequelize = require('../../utils/db')
+const { sequelize } = require('../config/database');
 
- const ComboOff = sequelize.define('comboOff',{
+ const CompOff = sequelize.define('compOff',{
     userId: { type: DataTypes.ARRAY(DataTypes.INTEGER), allowNull: true },
     holidayId : { type : DataTypes.INTEGER, allowNull :true}
  },{
@@ -13,7 +13,7 @@ const sequelize = require('../../utils/db')
  })
 
 
- ComboOff.sync({alter:true})
+ CompOff.sync({alter:true})
 .then(()=>console.log)
 
-module.exports = ComboOff
+module.exports = CompOff

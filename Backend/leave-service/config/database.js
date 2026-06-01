@@ -1,3 +1,4 @@
+// database.js
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
@@ -9,6 +10,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     dialect: 'postgres',
+    // Only log SQL queries in development to keep production logs clean
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
       max: parseInt(process.env.DB_POOL_MAX) || 10,
@@ -19,19 +21,22 @@ const sequelize = new Sequelize(
   }
 );
 
-// Test connection
-async function testConnection() {
+const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Auth Service: Database connection established successfully.');
-    return true;
+    console.log('✅Leave Service: Database connection established.');
+    
+    // SYNC LOGIC HERE
+    if (process.env.NODE_ENV === 'development') {
+      // alter: true updates tables to match models without dropping data
+      await sequelize.sync({ alter: true });
+      console.log('🔄Leave Service: Database tables synced (alter: true).');
+    }
+
   } catch (error) {
-    console.error('Auth Service: Unable to connect to database:', error);
-    return false;
+    console.error('❌Leave Service: Database connection failed:', error);
+    process.exit(1); // Stop the microservice if DB isn't ready
   }
-}
+};
 
-sequelize.testConnection = testConnection; 
-module.exports = sequelize;
-
-// module.exports = { sequelize, testConnection };
+module.exports = { sequelize, connectDB };
