@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../../utils/db');
+const { sequelize } = require('../config/database');
 
 const Holiday = sequelize.define('holiday',{
     name : {type : DataTypes.STRING, allowNull : false},

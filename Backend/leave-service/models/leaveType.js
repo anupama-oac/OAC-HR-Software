@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 
 const LeaveType = sequelize.define('leaveType', {
   leaveTypeName: { type: DataTypes.STRING, allowNull: true },
