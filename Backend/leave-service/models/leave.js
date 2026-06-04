@@ -1,7 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const LeaveType = require('../models/leaveType');
-const User = require('../../users/models/user');
+const { User } = require('../../auth-service/models');
+
 
 const Leave = sequelize.define('leave', {
   userId: {type: DataTypes.INTEGER, allowNull: false},

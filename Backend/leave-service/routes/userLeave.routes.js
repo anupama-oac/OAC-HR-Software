@@ -3,77 +3,16 @@ const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const upload = require('../utils/multer');
 const holidayController = require('../controllers/holiday.controller');
+const userLeaveController = require('../controllers/userLeave.controller');
 
+router.get('/leavecount/:userId/:typeid/:year', authenticateToken, userLeaveController.getLeaveCount);
+router.all('/', authenticateToken, userLeaveController.create);
+router.get('/', authenticateToken, userLeaveController.getAll);
+router.get('/byuserandtype/:userid/:typeid', authenticateToken, userLeaveController.getByUserAndType);
+router.get('/byuser/:userid', authenticateToken, userLeaveController.getByUser);
+router.patch('/update', authenticateToken, userLeaveController.update);
+router.get('/forencashment/:year', authenticateToken, userLeaveController.getForEncashment);
+router.delete('/:id', authenticateToken, userLeaveController.delete);
 
-router.post(
-  '/upload',
-  authenticateToken,
-  upload.single('file'),
-  holidayController.uploadHoliday
-);
-
-router.post(
-  '/save',
-  authenticateToken,
-  holidayController.saveHoliday
-);
-
-router.delete(
-  '/delete/:id',
-  authenticateToken,
-  holidayController.deleteHoliday
-);
-
-router.patch(
-  '/updateholiday/:id',
-  authenticateToken,
-  holidayController.updateHoliday
-);
-
-router.get(
-  '/find',
-  holidayController.findHoliday
-);
-
-router.get(
-  '/findall',
-  holidayController.findAllHoliday
-);
-
-router.get(
-  '/byname',
-  holidayController.findByName
-);
-
-router.get(
-  '/holidaybydate',
-  holidayController.findHolidayByDate
-);
-
-router.get(
-  '/holidaysbyyear',
-  holidayController.findHolidayByYear
-);
-
-router.patch(
-  '/byyear',
-  holidayController.deleteHolidayByYear
-);
-
-router.patch(
-  '/update/:id',
-  holidayController.addComboOff
-);
-
-router.patch(
-  '/updatetheupdated/:id',
-  holidayController.updateComboOff
-);
-
-router.get(
-  '/findcombooff/:id',
-  authenticateToken,
-  holidayController.findComboOff
-);
 
 module.exports = router;

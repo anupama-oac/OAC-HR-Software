@@ -2,78 +2,19 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const upload = require('../utils/multer');
-const holidayController = require('../controllers/holiday.controller');
+const leaveTypeController = require('../controllers/leaveType.controller');
 
 
-router.post(
-  '/upload',
-  authenticateToken,
-  upload.single('file'),
-  holidayController.uploadHoliday
-);
+router.post('/', authenticateToken, leaveTypeController.createLeaveType);
+router.get('/', authenticateToken, leaveTypeController.getLeaveTypes);
+router.get('/find', authenticateToken, leaveTypeController.PaginatedLeaveTypes);
+router.delete('/:id', authenticateToken,leaveTypeController.deleteLeaveType);
+router.patch('/:id', authenticateToken, leaveTypeController.updateLeaveType);
 
-router.post(
-  '/save',
-  authenticateToken,
-  holidayController.saveHoliday
-);
 
-router.delete(
-  '/delete/:id',
-  authenticateToken,
-  holidayController.deleteHoliday
-);
 
-router.patch(
-  '/updateholiday/:id',
-  authenticateToken,
-  holidayController.updateHoliday
-);
 
-router.get(
-  '/find',
-  holidayController.findHoliday
-);
 
-router.get(
-  '/findall',
-  holidayController.findAllHoliday
-);
 
-router.get(
-  '/byname',
-  holidayController.findByName
-);
-
-router.get(
-  '/holidaybydate',
-  holidayController.findHolidayByDate
-);
-
-router.get(
-  '/holidaysbyyear',
-  holidayController.findHolidayByYear
-);
-
-router.patch(
-  '/byyear',
-  holidayController.deleteHolidayByYear
-);
-
-router.patch(
-  '/update/:id',
-  holidayController.addComboOff
-);
-
-router.patch(
-  '/updatetheupdated/:id',
-  holidayController.updateComboOff
-);
-
-router.get(
-  '/findcombooff/:id',
-  authenticateToken,
-  holidayController.findComboOff
-);
 
 module.exports = router;
