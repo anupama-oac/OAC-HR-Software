@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const userPositionController = require('../controllers/userPosition.controller');
 const { authenticateToken } = require('../middlewares/auth');
+const UserAssets = require('../models/userAsset');
 
-router.get('/', authenticateToken, userPositionController.getAll);
 
 module.exports = router

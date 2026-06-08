@@ -4,16 +4,18 @@ const authenticateToken = require('../middlewares/auth');
 const Leave = require('../models/leave');
 const LeaveType = require('../models/leaveType');
 const UserLeave = require('../models/userLeave');
-const upload = require('../utils/leaveDocumentMulter');
-const s3 = require('../utils/s3bucket');
-const config = require('../utils/config');
-const authService = require('../utils/authService');
+// const UserPersonal = require('../../users/models/userPersonal');
+const upload = require('../../utils/leaveDocumentMulter');
+const s3 = require('../../utils/s3bucket');
+const config = require('../../utils/config');
+const UserPosition = require('../../users/models/userPosition');
 const { where } = require('sequelize');
-const { createNotification } = require('../utils/notificationService');
+const { createNotification } = require('../../app/notificationService');
 const { sendEmail } = require('../../app/emailService');
 const { Op } = require('sequelize');
 const sequelize = require('../../utils/db');
 const UserEmail = require('../../users/models/userEmail');
+const Notification = require('../../notification/models/notification');
 const { resolveHostname } = require('nodemailer/lib/shared');
 const TeamLeader = require('../../users/models/teamLeader');
 const Designation = require('../../users/models/designation');
@@ -1074,90 +1076,30 @@ const transaction = await sequelize.transaction();
   }
 }
 
-exports.getLeavesById = async (req, res) => {
-  try {
-    // 1. Fetch the leave record locally, excluding broken cross-service User joins
+exports.getLeavesById = async(req,res)=>{
+     try {
     const leave = await Leave.findByPk(req.params.id, {
       include: [
         {
-          model: LeaveType,
-          as: 'leaveType',
+          model: LeaveType, as: 'leaveType',
           attributes: ['id', 'leaveTypeName'],
+        },
+        {
+          model: User, as: 'user', include: [
+            { model: UserPersonal, as: 'userpersonal', attributes: ['reportingMangerId'] }
+          ],
+          attributes: ['name'],
         },
       ],
     });
 
-    if (!leave) {
-      return res.json({ message: `Leave not found` });
-    }
-
-    // 2. Fetch the user's reporting manager information from the auth microservice
-    const managerContext = await authService.getUserWithReportingManager(leave.userId);
-
-    // 3. Format the response object to preserve your front-end's expected data structure
-    const leaveData = leave.toJSON();
-    leaveData.user = {
-      name: managerContext?.name || "Unknown Employee",
-      userpersonal: {
-        reportingMangerId: managerContext?.reportingManagerId || null
-      }
-    };
-
-    return res.send(leaveData);
-  } catch (error) {
-    return res.send(error.message);
-  }
-};
-
-async function getReportingManagerEmailForUser(userId) {
-  try {
-    // 1. Fetch user personal context via auth microservice wrapper
-    const userPersonal = await authService.getUserPersonal(userId);
-    if (!userPersonal) {
-      return { email: `Personal details are not added` };
-    }
-
-    // Handle potential casing variations from the microservice response payload
-    const reportingMangerId = userPersonal.reportingMangerId || userPersonal.reportingManagerId;
-    if (!reportingMangerId) {
-      return { email: `No reporting manager found for user ${userPersonal.name || userId}` };
-    }
-
-    // 2. Fetch manager's profile using the manager's ID to isolate their official email credentials
-    const managerPersonal = await authService.getUserPersonal(reportingMangerId);
-    
-    // Check fallback targets inside the manager profile payload
-    const officialMail = managerPersonal?.userPosition?.officialMailId || 
-                         managerPersonal?.officialMailId || 
-                         managerPersonal?.email;
-
-    if (officialMail) {
-      return { 
-        email: officialMail, 
-        name: managerPersonal.name || "Reporting Manager" 
-      };
+    if (leave) {
+      res.send(leave);
     } else {
-      return { 
-        email: `Official mail is not added for reportingManger ${managerPersonal?.name || reportingMangerId}` 
-      };
+      res.json({ message: `Leave not found` });
     }
   } catch (error) {
-    return { email: error.message };
-  }
-}
-
-async function getRMId(userId) {
-  try {
-    // Leverage the updated helper to get reporting manager properties instantly
-    const managerContext = await authService.getUserWithReportingManager(userId);
-    
-    if (!managerContext || !managerContext.reportingManagerId) {
-      return `Reporting manager is not found`;
-    }
-
-    return managerContext.reportingManagerId;
-  } catch (error) {
-    return error.message;
+    res.send(error.message)
   }
 }
 
@@ -1306,114 +1248,204 @@ async function formatDate(date) {
 
 async function handleNotificationsAndEmails(req, res, leave, transaction, type, mes) {
   let message = [];
-  
-  // 1. Determine the correct target userId dynamically
-  const targetUserId = req.body.userId ? req.body.userId : leave.userId;
-
-  // 2. Fetch employment/position records via the Auth Microservice utility
-  // Note: 'transaction' is omitted here since this is a network API call, not a local SQL query
-  const userPos = await authService.getUserPosition(targetUserId);
-
-  // 3. Handle missing profiles gracefully
+  const userPos = await UserPosition.findOne({
+    where: { userId: req.body.userId ? req.body.userId : leave.userId },
+    include: [{ model: User, attributes: ['name'] }],
+    transaction,
+  });
   if (!userPos) {
     message.push('Employment details are not added for the employee');
     return message;
   }
 
-  // Rest of your email/notification logic goes here...
-  // Example: userPos.name or userPos.user?.name depending on how your microservice formats the return data.
-  
-  return message;
+  // for (const leave of leaves) {
+  const lt = await LeaveType.findByPk(leave.leaveTypeId);
+
+  if (!lt) message.push(`LeaveType with ID ${leave.leaveTypeId} is not existing`)
+  // Handle Reporting Manager
+  const rmId = await getRMId(req.body.userId ? req.body.userId : leave.userId);
+  if (Number.isInteger(rmId)) {
+    createNotification({
+      id: rmId,
+      me: `leave request has been ${mes}d by ${req.user.name}.`,
+      route: `/login/leave/open/${leave.id}`
+    });
+  } else {
+    message.push(rmId);
+  }
+
+  if (type === 'employee') {
+    const hrId = await getHRId();
+
+    if (Number.isInteger(hrId)) {
+      createNotification({
+        id: hrId,
+        me: `leave request has been ${mes}d by ${req.user.name}.`,
+        route: `/login/leave/open/${leave.id}`
+      });
+    } else {
+      message.push('HR Admin not found');
+    }
+  } else {
+    createNotification({
+      id: req.body.userId ? req.body.userId : leave.userId,
+      me: `leave request has been ${mes}d by ${req.user.name}.`,
+      route: `/login/leave/open/${leave.id}`
+    });
+  }
+
+  // Handle Team Leads
+  try {
+    const teamLeadIds = await getTeamLeads(req.body.userId ? req.body.userId : leave.userId);
+    if (Array.isArray(teamLeadIds)) {
+      for (const tlId of teamLeadIds) {
+        createNotification({
+          id: tlId,
+          me: `leave request has been ${mes}d by ${req.user.name}.`,
+          route: `/login/leave/${leave.id}`
+        });
+      }
+    } else {
+      message.push('Failed to get team leads mail');
+    }
+  } catch (error) {
+    message.push(`Team lead error: ${error.message}`);
+  }
+
+  // Email handling
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let hrEmail;
+  let name;
+  if (type === 'employee') {
+    const hr = await getHREmail();
+
+    hrEmail = hr.mail;
+
+    if (!emailRegex.test(hrEmail)) {
+      message.push(`Invalid HR email: ${hrEmail}`);
+    } else {
+      name = hr.name;
+    }
+  } else {
+    hrEmail = userPos.officialMailId;
+    name = userPos.user.name;
+    if (!hrEmail) {
+      message.push(`Official mail missing for ${userPos.user.name}`);
+    }
+  }
+
+  // Email sending logic
+  try {
+    const rm = await getReportingManagerEmailForUser(req.body.userId ? req.body.userId : leave.userId);
+    let reportingManagerEmail = rm.email
+    let operationalManagerEmail = await getOMEmail();
+    // let operationalManagerEmail = 'anupama@onboardaero.com';
+    let cc = [];
+    if (!emailRegex.test(reportingManagerEmail)) {
+      message.push(`Invalid reporting manager email: ${reportingManagerEmail}`);
+      reportingManagerEmail = hrEmail;
+    } else {
+      cc.push(hrEmail)
+      name = rm.name
+    }
+
+    if (!emailRegex.test(operationalManagerEmail)) {
+      message.push(`Invalid operational manager email: ${operationalManagerEmail}`);
+    } else {
+      cc.push(operationalManagerEmail)
+    }
+    // Get team lead emails
+    const teamLeadEmails = await getTeamLeadEmails(req.body.userId ? req.body.userId : leave.userId);
+    if (Array.isArray(teamLeadEmails)) {
+      cc.push(teamLeadEmails.filter(email => emailRegex.test(email)))
+    }
+    const emailHtml = `
+        <p>Dear ${name},</p>
+        <p>Leave Request has been successfully ${mes}d by ${req.user.name}.</p>
+        <ul>
+          <li>Type: ${lt.leaveTypeName}</li>
+          <li>Dates: ${await formatDate(leave.startDate)} to ${await formatDate(leave.endDate)}</li>
+          <li>Reason: ${leave.notes}</li>
+          <li>Days: ${leave.noOfDays}</li>
+          <li>Status: ${leave.status}</li>
+        </ul>
+      `;
+
+    await sendEmail(
+      req.headers.authorization?.split(' ')[1],
+      process.env.EMAIL_USER,
+      process.env.EMAIL_PASS,
+      reportingManagerEmail,
+      `Leave Application ${mes}d - ${lt.leaveTypeName}`,
+      emailHtml, // Make sure emailHtml is defined
+      [],
+      cc
+    );
+  } catch (emailError) {
+    message.push(`Email failed: ${emailError.message}`);
+  }
+  // }
+
+  return message; // Return the collected messages array
 }
 
 async function getHREmail() {
-  try {
-    // 1. Hit the external authentication microservice instead of querying local DB models
-    const hrAdmin = await authService.getHRDetails();
-    
-    if (!hrAdmin) {
-      return { mail: 'HR Admin user or role not found' };
-    }
+  const hrAdminRole = await Role.findOne({ where: { roleName: 'HR Administrator' } });
 
-    // 2. Extract the official email address safely using fallback field pathways
-    const officialMail = hrAdmin.officialMailId || 
-                         hrAdmin.userPosition?.officialMailId || 
-                         hrAdmin.mail || 
-                         hrAdmin.email;
-
-    if (!officialMail) {
-      return { 
-        mail: 'Official Mail Id not found for HR Admin', 
-        name: hrAdmin.name || 'HR Administrator' 
-      };
-    }
-
-    // 3. Return the exact structural contract to maintain backwards compatibility
-    return { 
-      mail: officialMail, 
-      name: hrAdmin.name || 'HR Administrator' 
-    };
-    
-  } catch (error) {
-    return { mail: error.message };
+  if (!hrAdminRole) {
+    return ({ mail: 'HR Admin role not found' });
   }
+  const hrAdminUser = await User.findOne({ where: { roleId: hrAdminRole.id, status: true } });
+  if (!hrAdminUser) {
+    return ({ mail: 'HR Admin user not found' });
+  }
+  const userPosition = await UserPosition.findOne({ where: { userId: hrAdminUser.id } });
+  if (!userPosition || !userPosition.officialMailId) {
+    return ({ mail: 'Official Mail Id not found for HR Admin', name: hrAdminUser.name });
+  }
+  return { mail: userPosition.officialMailId, name: hrAdminUser.name };
 }
 
 async function getOMEmail() {
-  try {
-    // 1. Fetch the Operations Manager profile directly from the Auth Microservice
-    const omUser = await authService.getUserByDesignation('OPERATIONS MANAGER');
-    
-    if (!omUser) {
-      return 'Operational Manager user or role is not found';
-    }
-
-    // 2. Extract and return the official email address safely checking common fallback fields
-    const officialMail = omUser.userPosition?.officialMailId || 
-                         omUser.officialMailId || 
-                         omUser.email;
-
-    if (!officialMail) {
-      return `Official mail is not added for Operations Manager (${omUser.name || 'Unknown'})`;
-    }
-
-    return officialMail;
-  } catch (error) {
-    return error.message;
+  const om = await Designation.findOne({ where: { designationName: 'OPERATIONS MANAGER' } });
+  if (!om) {
+    return ('Operational Manager role is not found');
   }
+  const omUserPos = await UserPosition.findOne({ where: { designationId: om.id } });
+  if (!omUserPos) {
+    return ('Operational Manager user is not found');
+  }
+
+  return omUserPos.officialMailId;
 }
 
 async function getReportingManagerEmailForUser(userId) {
   try {
-    // 1. Fetch user personal context via auth microservice wrapper
-    const userPersonal = await authService.getUserPersonal(userId);
+    const userPersonal = await UserPersonal.findOne({
+      include: [{ model: User, as: 'user', attributes: ['name'] }],
+      where: { userId },
+      attributes: ['reportingMangerId'],
+    });
     if (!userPersonal) {
-      return { email: `Personal details are not added` };
+      return ({ email: `Personal details are not added` });
     }
 
-    // Handle potential casing variations from the microservice response payload
-    const reportingMangerId = userPersonal.reportingMangerId || userPersonal.reportingManagerId;
+    const reportingMangerId = userPersonal?.reportingMangerId;
+
     if (!reportingMangerId) {
-      return { email: `No reporting manager found for user ${userPersonal.name || userId}` };
+      return ({ email: `No reporting manager found for user ${userPersonal.user.name}` });
     }
 
-    // 2. Fetch manager's profile using the manager's ID to isolate their official email credentials
-    const managerPersonal = await authService.getUserPersonal(reportingMangerId);
-    
-    // Check fallback targets inside the manager profile payload
-    const officialMail = managerPersonal?.userPosition?.officialMailId || 
-                         managerPersonal?.officialMailId || 
-                         managerPersonal?.email;
+    const reportingManagerPosition = await UserPosition.findOne({
+      include: [{ model: User, attributes: ['name'] }],
+      where: { userId: reportingMangerId },
+      attributes: ['officialMailId'],
+    });
 
-    if (officialMail) {
-      return { 
-        email: officialMail, 
-        name: managerPersonal.name || "Reporting Manager" 
-      };
+    if (reportingManagerPosition && reportingManagerPosition.officialMailId) {
+      return { email: reportingManagerPosition.officialMailId, name: reportingManagerPosition.user.name };
     } else {
-      return { 
-        email: `Official mail is not added for reportingManger ${managerPersonal?.name || reportingMangerId}` 
-      };
+      return ({ email: `Official mail is not added for reportingManger ${reportingManagerPosition.user.name}` });
     }
   } catch (error) {
     return { email: error.message };
@@ -1422,33 +1454,37 @@ async function getReportingManagerEmailForUser(userId) {
 
 async function getTeamLeadEmails(userId) {
   try {
-    // 1. Query the Auth Microservice for the employee's team layer records
-    const teamContext = await authService.getTeamLeadsByUserId(userId);
-    
-    if (!teamContext) {
-      return `No team layer details found for user with ID: ${userId}`;
+    const team = await UserPosition.findOne({ where: { userId } });
+    if (!team) {
+      return (`No team found for user with ID: ${userId}`);
     }
 
-    const { teamId, teamLeads } = teamContext;
+    let teamId = team.teamId;
 
-    if (!teamId) {
-      return `User with ID ${userId} is not assigned to an active team context`;
+    if (teamId === null) {
+      const tm = await TeamMember.findOne({ where: { userId } })
+      if (!tm) return
+      teamId = tm.teamId;
     }
+    if (teamId !== null) {
+      const tls = await TeamLeader.findAll({
+        where: { teamId }, include: {
+          model: User, attributes: ['name'],
+          include: {
+            model: UserPosition,
+            attributes: ['officialMailId']
+          }
+        }
+      });
 
-    if (!teamLeads || teamLeads.length === 0) {
-      return `No team leads found for team with ID: ${teamId}`;
+      if (tls.length === 0) {
+        return (`No team leads found for team with ID: ${teamId}`);
+      }
+
+      const tlEmails = tls.map(tl => tl.user.userPosition?.officialMailId).filter(email => email);
+      if (!tlEmails.length) return ("Official MailId is not added for TLs");
+      return tlEmails;
     }
-
-    // 2. Map out the official email addresses, filtering out fallback null values safely
-    const tlEmails = teamLeads
-      .map(tl => tl.userPosition?.officialMailId || tl.officialMailId || tl.email)
-      .filter(email => email);
-
-    if (tlEmails.length === 0) {
-      return "Official MailId is not added for TLs";
-    }
-
-    return tlEmails;
   } catch (error) {
     return error.message;
   }
@@ -1456,16 +1492,23 @@ async function getTeamLeadEmails(userId) {
 
 async function getRMId(userId) {
   try {
-    // Leverage the updated helper to get reporting manager properties instantly
-    const managerContext = await authService.getUserWithReportingManager(userId);
-    
-    if (!managerContext || !managerContext.reportingManagerId) {
-      return `Reporting manager is not found`;
+    const userPersonal = await UserPersonal.findOne({
+      where: { userId },
+      attributes: ['reportingMangerId'], include: { model: User, as: 'user', attributes: ['name'] }
+    });
+    if (!userPersonal || !userPersonal?.reportingMangerId) {
+      return (`Reporting manager is not found`);
     }
 
-    return managerContext.reportingManagerId;
+    const reportingMangerId = userPersonal?.reportingMangerId;
+
+    if (!reportingMangerId) {
+      return (`No reporting manager found for userId ${userId}`);
+    }
+
+    return reportingMangerId;
   } catch (error) {
-    return error.message;
+    return error.message
   }
 }
 
@@ -1487,27 +1530,17 @@ async function getHRId() {
 
 async function getTeamLeads(userId) {
   try {
-    // 1. Fetch team structure context directly from the Auth Microservice wrapper
-    const teamContext = await authService.getTeamLeadsByUserId(userId);
-    
-    if (!teamContext) {
-      return `No team found for user with ID: ${userId}`;
+    const team = await UserPosition.findOne({ where: { userId } });
+    if (!team) {
+      return (`No team found for user with ID: ${userId}`);
     }
+    const teamId = team.id;
 
-    const { teamLeads } = teamContext;
-
-    if (!teamLeads || teamLeads.length === 0) {
-      // Returning an empty array ensures loops iterating over IDs downstream won't break
-      return []; 
-    }
-
-    // 2. Map out only the unique user IDs of the Team Leaders
-    // We check common fallback positions depending on how your microservice nests user sub-objects
-    const tlIds = teamLeads
-      .map(tl => tl.id || tl.userId || tl.user?.id)
-      .filter(id => id !== undefined && id !== null);
-
+    const tls = await TeamLeader.findAll({ where: { teamId }, include: { model: User, attributes: ['id'] } });
+    const tlIds = tls.map(tl => tl.user.id);
     return tlIds;
+
+    // if(!tlEmails.length) return ("Official MailId is not added for TLs");
   } catch (error) {
     return error.message;
   }
@@ -1630,7 +1663,7 @@ try {
 }
 
 exports.updateLeaveFileUrl = async (req, res) => {
-  try {
+ try {
     const leaveId = req.params.leaveId;
     const fileUrl = req.body.fileUrl;
 
@@ -1638,7 +1671,6 @@ exports.updateLeaveFileUrl = async (req, res) => {
       return res.send({ message: 'Leave ID and File URL are required' });
     }
 
-    // 1. Update the local Leave model with the incoming S3/File URL string
     const result = await Leave.update(
       { fileUrl: fileUrl },
       { where: { id: leaveId } }
@@ -1648,46 +1680,54 @@ exports.updateLeaveFileUrl = async (req, res) => {
       return res.send({ message: 'Leave request not found or already updated' });
     }
 
+
     const userId = req.user.id;
     const userName = req.user.name;
 
-    // 2. Fetch HR details from the Auth service to keep workflow integrity
-    const hrAdmin = await authService.getHRDetails();
-    if (!hrAdmin) {
-      return res.send({ message: 'HR Admin user or role not found' });
+    const hrAdminRole = await Role.findOne({ where: { roleName: 'HR Administrator' } });
+    if (!hrAdminRole) {
+      return res.send({ message: 'HR Admin role not found' });
     }
 
-    // 3. Retrieve the reporting manager configuration context using the auth service utility
-    const userProfile = await authService.getUserWithReportingManager(userId);
-    if (!userProfile || !userProfile.reportingManagerId) {
+
+    const hrAdminUser = await User.findOne({ where: { roleId: hrAdminRole.id, status: true } });
+    if (!hrAdminUser) {
+      return res.send({ message: 'HR Admin user not found' });
+    }
+
+    const hrAdminId = hrAdminUser.id;
+    const userPersonal = await UserPersonal.findOne({
+      where: { userId },
+      attributes: ['reportingMangerId'],
+    });
+
+    if (!userPersonal || !userPersonal.reportingMangerId) {
       return res.send({ message: `No reporting manager found for userId ${userId}` });
     }
 
-    const reportingManagerId = userProfile.reportingManagerId;
+    const reportingManagerId = userPersonal.reportingMangerId;
 
-    // 4. Construct payload properties and fire off the local notification emitter engine
     const id = reportingManagerId;
     const me = `Medical Certificate uploaded by ${userName} with id ${leaveId}`;
     const route = `/login/leave/view/${leaveId}`;
-    
     createNotification({ id, me, route });
 
     return res.send({ message: 'Leave file URL updated and notifications sent' });
   } catch (error) {
     return res.send({ message: error.message });
   }
-};
+}
 
 
 exports.approveLeave = async (req, res) => {
-  const leaveId = req.params.id;
-  const { adminNotes, status } = req.body;
+
+const leaveId = req.params.id;
+  const { adminNotes,status } = req.body;
 
   try {
-    // 1. Fetch the local leave record along with local model relations (LeaveType)
-    // Removed direct SQL inner-joins to external User tables
     const leave = await Leave.findByPk(leaveId, {
       include: [
+        { model: User, attributes: ['name', 'email'], as: 'user' },
         { model: LeaveType, attributes: ['leaveTypeName'], as: 'leaveType' }
       ]
     });
@@ -1696,24 +1736,17 @@ exports.approveLeave = async (req, res) => {
       return res.send({ message: 'Leave request not found' });
     }
 
-    const userId = leave.userId;
-
-    // 2. Fetch critical target profile metadata over the network from the Auth Service
-    const employeeProfile = await authService.getUserPersonal(userId);
-    if (!employeeProfile) {
-      return res.send({ message: 'Employee user profile details not found in authentication cluster' });
-    }
-    
-    const employeeName = employeeProfile.name || "Employee";
-    const employeeOfficialEmail = employeeProfile.userPosition?.officialMailId || 
-                                  employeeProfile.officialMailId || 
-                                  employeeProfile.email;
-
-    // Dynamic penalty note computation
+    // Dynamic penalty note: only shows if a penalty actually exists in the DB
     const currentPenalty = parseFloat(leave.penaltyLOP || 0);
     const penaltyNote = currentPenalty > 0 
       ? `<p><strong>Note:</strong> A penalty of ${currentPenalty} day(s) has been applied as LOP for this request.</p>` 
       : '<p><em>Note: No late application penalties were applied.</em></p>';
+
+    const userId = leave.userId;
+    const userPos = await UserPosition.findOne({
+      where: { userId: userId },
+      include: [{ model: User, attributes: ['name', 'email'] }]
+    });
 
     const leaveType = await LeaveType.findByPk(leave.leaveTypeId);
     if (!leaveType) return res.send({ message: 'Leave type not found' });
@@ -1723,11 +1756,12 @@ exports.approveLeave = async (req, res) => {
     const startYear = startDate.getFullYear();
     const endYear = endDate.getFullYear();
 
-    // --- CASE: HANDLE UNAPPROVED LEAVE (Marked as LOP) ---
+    // --- NEW LOGIC: HANDLE UNAPPROVED LEAVE (Marked as LOP) ---
     if (status === 'Unapproved') {
       const lopType = await LeaveType.findOne({ where: { leaveTypeName: 'LOP' } });
       if (!lopType) return res.status(404).send('LOP Leave Type not configured in system');
 
+      // Increment LOP count for the employee
       const [userLOP] = await UserLeave.findOrCreate({
         where: { userId: leave.userId, leaveTypeId: lopType.id, year: startYear },
         defaults: { leaveBalance: 0, takenLeaves: 0, noOfDays: 0 }
@@ -1737,11 +1771,14 @@ exports.approveLeave = async (req, res) => {
       await userLOP.save();
 
       leave.status = 'Unapproved';
-      leave.adminNotes = adminNotes;
-      await leave.save();
-      
-      return res.send({ message: 'Leave marked as Unapproved successfully', leave });
     }
+
+    // CC Recipients Fetching
+    const hr = await getHREmail();
+    const rm = await getReportingManagerEmailForUser(leave.userId);
+    const teamLeads = await getTeamLeadEmails(leave.userId);
+    const omMail = await getOMEmail();
+    const ccRecipients = [hr.mail, rm.email, ...(Array.isArray(teamLeads) ? teamLeads : []), omMail].filter(email => email);
 
     // --- CASE 1: HANDLE LOP LEAVE TYPE ---
     if (leaveType.leaveTypeName === 'LOP') {
@@ -1781,6 +1818,7 @@ exports.approveLeave = async (req, res) => {
         userLeave.takenLeaves += leave.noOfDays;
         await userLeave.save();
       } else {
+        // Multi-year logic for paid leave
         const endOfStartYear = new Date(startYear, 11, 31);
         const startOfEndYear = new Date(endYear, 0, 1);
         const daysInStartYear = calculateDays(startDate, endOfStartYear);
@@ -1802,6 +1840,7 @@ exports.approveLeave = async (req, res) => {
     }
 
     // --- PENALTY APPLICATION (Universal) ---
+    // If penalty was removed via the button, currentPenalty will be 0 and this block is skipped.
     if (currentPenalty > 0) {
       const lopType = await LeaveType.findOne({ where: { leaveTypeName: 'LOP' } });
       if (lopType) {
@@ -1809,6 +1848,7 @@ exports.approveLeave = async (req, res) => {
           where: { userId: leave.userId, leaveTypeId: lopType.id, year: startYear },
           defaults: { leaveBalance: 0, takenLeaves: 0, noOfDays: 0 }
         });
+        // Corrected column name to takenLeaves
         userLOP.takenLeaves += currentPenalty;
         await userLOP.save();
         console.log(`Applied ${currentPenalty} day penalty to takenLeaves`);
@@ -1820,21 +1860,8 @@ exports.approveLeave = async (req, res) => {
     leave.adminNotes = adminNotes;
     await leave.save();
 
-    // 3. CC Recipients Fetching (Refactored to integrate with updated service calls)
-    const hr = await authService.getHRDetails();
-    const rm = await getReportingManagerEmailForUser(leave.userId);
-    const teamLeads = await getTeamLeadEmails(leave.userId);
-    const omMail = await getOMEmail();
-    
-    const ccRecipients = [
-      hr?.mail || hr?.email, 
-      rm?.email, 
-      ...(Array.isArray(teamLeads) ? teamLeads : []), 
-      omMail
-    ].filter(email => email);
-
-    // 4. Notifications and Emails
-    const me = `${employeeName}'s Leave Request Approved by ${req.user.name}`;
+    // Notifications and Emails
+    const me = `${leave.user.name}'s Leave Request Approved by ${req.user.name}`;
     const route = `/login/leave/open/${leave.id}`;
     createNotification({ id: userId, me, route });
 
@@ -1842,7 +1869,7 @@ exports.approveLeave = async (req, res) => {
     const fromEmail = process.env.EMAIL_USER;
     const emailPassword = process.env.EMAIL_PASS;
     const html = `
-      <p>Dear ${employeeName},</p>
+      <p>Dear ${leave.user.name},</p>
       <p>This is to inform you that ${req.user.name} has approved your ${leaveType.leaveTypeName}.</p>
       <p><strong>Admin Note:</strong> ${adminNotes || 'None'}</p>
       ${penaltyNote}
@@ -1851,216 +1878,164 @@ exports.approveLeave = async (req, res) => {
 
     try {
       const token = req.headers.authorization?.split(' ')[1];
-      await sendEmail(token, fromEmail, emailPassword, employeeOfficialEmail, emailSubject, html, [], ccRecipients);
-    } catch (e) { 
-      console.error('Email failed:', e.message); 
-    }
+      await sendEmail(token, fromEmail, emailPassword, userPos.officialMailId, emailSubject, html, [], ccRecipients);
+    } catch (e) { console.error('Email failed:', e.message); }
 
-    return res.send({ message: 'Leave approved successfully', leave });
+    res.send({ message: 'Leave approved successfully', leave });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).send(error.message);
+    res.status(500).send(error.message);
   }
-};
+}
 
-exports.rejectLeave = async (req, res) => {
-  const leaveId = req.params.id;
+exports.rejectLeave = async(req,res)=>{
+ const leaveId = req.params.id;
   const { adminNotes } = req.body;
 
   try {
-    // 1. Fetch the local leave record and its local model relations (LeaveType)
     const leave = await Leave.findByPk(leaveId, {
       include: [
-        { model: LeaveType, attributes: ['leaveTypeName'], as: 'leaveType' }
+        { model: User, attributes: ['name'], as: 'user' }, { model: LeaveType, attributes: ['leaveTypeName'], as: 'leaveType' }
       ]
     });
-    
     if (!leave) {
       return res.send({ message: 'Leave request not found' });
     }
 
-    const userId = leave.userId;
-
-    // 2. Fetch the target employee's profile credentials over the network from the Auth service
-    const employeeProfile = await authService.getUserPersonal(userId);
-    if (!employeeProfile) {
-      return res.send({ message: 'Employee user profile details not found in authentication cluster' });
-    }
-
-    const employeeName = employeeProfile.name || "Employee";
-    const employeeOfficialEmail = employeeProfile.userPosition?.officialMailId || 
-                                  employeeProfile.officialMailId || 
-                                  employeeProfile.email;
-
-    // 3. Balance Reversal: If the leave was previously Approved, refund their days back safely
     if (leave.status === 'Approved' || leave.status === 'AdminApproved') {
-      const ul = await UserLeave.findOne({ 
-        where: { userId: leave.userId, leaveTypeId: leave.leaveTypeId } 
-      });
+      const ul = await UserLeave.findOne({ where: { userId: leave.userId, leaveTypeId: leave.leaveTypeId } });
       if (ul) {
         ul.leaveBalance += leave.noOfDays;
         ul.takenLeaves -= leave.noOfDays;
         await ul.save();
       }
     }
-
-    // Finalize Local State Mutation
     leave.status = 'Rejected';
     leave.adminNotes = adminNotes;
     await leave.save();
 
-    const me = `${employeeName} Leave Request Rejected by ${req.user.name}`;
+    let id = leave.userId;
+    const userPos = await UserPosition.findOne({
+      where: { userId: id },
+      include: [{ model: User, attributes: ['name'] }
+      ]
+    })
+    const me = `${leave.user.name} Leave Request Rejected by ${req.user.name}`;
     const route = `/login/leave/open/${leave.id}`;
 
-    // 4. Dispatch System Notifications
-    // Employee Notification
-    createNotification({ id: userId, me, route });
+    createNotification({ id, me, route });
 
-    // HR Admin Notification
-    const hr = await authService.getHRDetails();
-    const hrId = hr?.id;
-    if (hrId) {
-      createNotification({ id: hrId, me, route });
+    const hrId = getHRId()
+    if (Number.isInteger(hrId)) {
+      let id = hrId;
+      createNotification({ id, me, route });
     }
 
-    // Reporting Manager Notification
-    const rmId = await getRMId(leave.userId);
-    if (rmId && !isNaN(rmId)) {
-      createNotification({ id: Number(rmId), me, route });
+    const rmId = getRMId(leave.userId)
+    if (Number.isInteger(hrId)) {
+      let id = rmId;
+      createNotification({ id, me, route });
     }
 
-    // 5. Gather Email Context & Flatten CC Arrays Safely
-    const hrEmail = hr?.mail || hr?.email;
-    
-    const rmContext = await getReportingManagerEmailForUser(leave.userId);
-    const rmEmail = rmContext?.email;
-    
+    const hr = await getHREmail();
+    const hrEmail = hr.mail;
+    const rm = (await getReportingManagerEmailForUser(leave.userId))
+    const rmEmail = rm.email;
     const teamLeads = await getTeamLeadEmails(leave.userId);
     const omMail = await getOMEmail();
+    console.log(hrEmail, rmEmail, teamLeads, omMail);
 
-    // Spreading (...teamLeads) prevents multi-dimensional nested array pollution
-    const ccRecipients = [
-      hrEmail, 
-      rmEmail, 
-      ...(Array.isArray(teamLeads) ? teamLeads : []), 
-      omMail
-    ].filter(email => email);
-
-    // 6. Build Payload Template and Ship Communication Over the Wire
+    const ccRecipients = [hrEmail, rmEmail, teamLeads, omMail].filter(email => email);
     const emailSubject = `Leave Request is Rejected`;
     const fromEmail = process.env.EMAIL_USER;
     const emailPassword = process.env.EMAIL_PASS;
     const html = `
-      <p>Dear ${employeeName},</p>
-      <p>This is to inform you that ${req.user.name} has rejected your ${leave.leaveType?.leaveTypeName || 'Leave Request'},</p>
-      <p>with notes: <strong>${adminNotes || 'None'}</strong>.</p>
+      <p>Dear ${leave.user.name},</p>
+      <p>This is to inform you that ${req.user.name} has rejected your ${leave.leaveType.leaveTypeName},</p>
+      <p>with notes ${adminNotes}.</p>
       <p>Please review the leave application at your earliest convenience.</p>
       <p>If you have any questions or need further details, feel free to reach out.</p>
     `;
-    
-    const attachments = [];
+    const attachments = []
     const token = req.headers.authorization?.split(' ')[1];
-    
     try {
-      if (employeeOfficialEmail) {
-        await sendEmail(token, fromEmail, emailPassword, employeeOfficialEmail, emailSubject, html, attachments, ccRecipients);
-      } else {
-        console.warn(`Skipping email output for User ID ${userId}: No valid destination email configured.`);
-      }
+      await sendEmail(token, fromEmail, emailPassword, userPos.officialMailId, emailSubject, html, attachments, ccRecipients);
     } catch (emailError) {
-      console.error('Email sending failed:', emailError.message);
+      console.error('Email sending failed:', emailError);
     }
-
-    return res.send({ message: 'Leave rejected successfully', leave });
+    res.send({ message: 'Leave rejected successfully', leave });
   } catch (error) {
-    return res.send({ message: 'An error occurred while rejecting the leave', error: error.message });
+    res.send({ message: 'An error occurred while approving the leave', error: error.message });
   }
-};
+}
 
 
 exports.getLeavesByManager = async (req, res) => {
-  try {
+ try {
     const { reportingManagerId } = req.params;
     const { page = 1, pageSize = 10 } = req.query;
 
     const limit = parseInt(pageSize, 10);
     const offset = (parseInt(page, 10) - 1) * limit;
-
-    // 1. Fetch all active users from the Auth Microservice
-    const allUsers = await authService.getAllActiveUsers();
-
-    // 2. Filter out only the users who report to this manager
-    // We check both target ID formats in case of schema variations (reportingMangerId vs reportingManagerId)
-    const managedUsers = allUsers.filter(u => 
-      Number(u.reportingMangerId) === Number(reportingManagerId) || 
-      Number(u.reportingManagerId) === Number(reportingManagerId)
-    );
-
-    // If this manager has no team members reporting to them, exit early with an empty list
-    if (managedUsers.length === 0) {
-      return res.json({
-        count: 0,
-        items: []
-      });
-    }
-
-    // Map out an array of user IDs to use in our local SQL query array match
-    const managedUserIds = managedUsers.map(u => u.id);
-
-    // Create an easily accessible lookup map for quick in-memory data stitching below
-    const managedUsersMap = {};
-    managedUsers.forEach(user => {
-      managedUsersMap[user.id] = user;
-    });
-
-    // 3. Query the local Leave table for requests matching our team's User IDs
     const leaves = await Leave.findAll({
       limit,
       offset,
-      order: [['id', 'DESC']],
-      where: { 
-        status: 'Requested',
-        userId: { [Op.in]: managedUserIds } // Dynamic array query optimization
-      },
       include: [
         {
-          model: LeaveType, 
-          as: 'leaveType',
-          attributes: ['leaveTypeName']
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name'],
+          required: true, // Ensure only leaves with users are included
+          include: [
+            {
+              model: UserPersonal,
+              as: 'userpersonal',
+              attributes: ['id', 'reportingMangerId'],
+              required: true, // Ensure only userPersonal entries that match are included
+              where: { reportingMangerId: parseInt(reportingManagerId, 10) },
+            },
+          ],
+        },
+        {
+          model: LeaveType, attributes: ['leaveTypeName']
         }
-      ]
+      ],
+      where: { status: 'Requested' }
+    });
+    let totalCount;
+    totalCount = await Leave.count({
+      limit,
+      offset,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name'],
+          required: true, // Ensure only leaves with users are included
+          include: [
+            {
+              model: UserPersonal,
+              as: 'userpersonal',
+              attributes: ['id', 'reportingMangerId'],
+              required: true, // Ensure only userPersonal entries that match are included
+              where: { reportingMangerId: parseInt(reportingManagerId, 10) },
+            },
+          ],
+        },
+      ],
+      where: { status: 'Requested' }
     });
 
-    // 4. Count the total records matching these criteria for correct data table pagination 
-    const totalCount = await Leave.count({
-      where: { 
-        status: 'Requested',
-        userId: { [Op.in]: managedUserIds }
-      }
-    });
-
-    // 5. Transform and format payload, attaching cross-service User info back to the object structure
-    const formattedLeaves = leaves.map(leave => ({
-      ...leave.toJSON(),
-      user: {
-        id: leave.userId,
-        name: managedUsersMap[leave.userId]?.name || "Unknown Employee",
-        userpersonal: {
-          reportingMangerId: parseInt(reportingManagerId, 10)
-        }
-      }
-    }));
-
-    return res.json({
+    const response = {
       count: totalCount,
-      items: formattedLeaves,
-    });
-
+      items: leaves,
+    };
+    res.json(response);
   } catch (error) {
-    return res.status(500).send(error.message);
+    res.send(error.message);
   }
-};
+}
 
 // --------------------------------------------------------REPORT----------------------------------------------------------------
 

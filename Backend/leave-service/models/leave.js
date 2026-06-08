@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const LeaveType = require('../models/leaveType');
-const { User } = require('../../auth-service/models');
+// const { User } = require('../../auth-service/models');
 
 
 const Leave = sequelize.define('leave', {
@@ -46,8 +46,8 @@ const Leave = sequelize.define('leave', {
 // Leave.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 // Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
 
-User.hasMany(Leave,{foreignKey : 'userId', as: 'user', onUpdate : 'CASCADE'})
-Leave.belongsTo(User)
+// User.hasMany(Leave,{foreignKey : 'userId', as: 'user', onUpdate : 'CASCADE'})
+// Leave.belongsTo(User)
 
 LeaveType.hasMany(Leave,{foreignKey : 'leaveTypeId', as: 'leaveType',  onUpdate : 'CASCADE'})
 Leave.belongsTo(LeaveType)
