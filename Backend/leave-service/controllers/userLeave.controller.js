@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../../middleware/authorization');
+const authenticateToken = require('../middlewares/auth');
 const UserLeave = require('../models/userLeave');
 const cron = require('node-cron');
 const LeaveType = require('../models/leaveType');
 const { where } = require('sequelize');
 const Leave = require('../models/leave');
 const { Sequelize, Op } = require('sequelize');
-const { User } = require('../../auth-service/models');
-
+const authService = require('../utils/authService'); 
 
 cron.schedule('0 0 1 1 * *', async () => {
   try {
@@ -25,9 +24,11 @@ cron.schedule('0 0 1 1 * *', async () => {
     if (!leaveTypes.length) return;
 
     // Fetch all active users
-    const users = await User.findAll({
-      where: { status: true }
-    });
+    // const users = await User.findAll({
+    //   where: { status: true }
+    // });
+
+    const users = await authService.getAllActiveUsers();
 
     for (const leaveType of leaveTypes) {
 
@@ -286,7 +287,7 @@ let  data  = req.body;
   }
 }
 
-exports.getForEncashment = async(req,res)=>{
+exports.getForEncashmentOld = async(req,res)=>{
 try {
     const year = req.params.year
     const leaveTypes = await LeaveType.findAll({
@@ -336,6 +337,73 @@ try {
     res.send(error.message);
   }
 }
+
+exports.getForEncashment = async (req, res) => {
+  try {
+    const year = req.params.year;
+    
+    // 1. Fetch target leave type records locally
+    const leaveTypes = await LeaveType.findAll({
+      where: { leaveTypeName: ['Casual Leave', 'Comp Off'] },
+      attributes: ['id', 'leaveTypeName']
+    });
+
+    const cl = leaveTypes.find(type => type.leaveTypeName === 'Casual Leave')?.id;
+    const co = leaveTypes.find(type => type.leaveTypeName === 'Comp Off')?.id;
+    
+    if (!cl || !co) {
+      return res.status(404).send("Required leave types not found");
+    }
+
+    // 2. Query leave metrics ONLY (Association to User removed since table moved)
+    const userLeaves = await UserLeave.findAll({
+      where: { leaveTypeId: [cl, co], year },
+      attributes: ['userId', 'leaveTypeId', 'leaveBalance'],
+    });
+
+    // 3. Request user master details from Auth Service via your custom utility 
+    const externalUsers = await authService.getAllActiveUsers();
+
+    // 4. Index external users into a map for O(1) lightning-fast in-memory lookup
+    const externalUsersMap = {};
+    externalUsers.forEach(user => {
+      externalUsersMap[user.id] = user;
+    });
+
+    const userMap = {};
+
+    // 5. Build and hydrate the encashment report
+    userLeaves.forEach(leave => {
+      const userId = leave.userId;
+      
+      if (!userMap[userId]) {
+        userMap[userId] = { 
+          userId, 
+          // Match the name from our memory-map using the unique ID
+          name: externalUsersMap[userId]?.name || "Unknown User",
+          casualLeave: 0, 
+          combOff: 0, 
+          totalLeave: 0 
+        };
+      }
+
+      if (leave.leaveTypeId === cl) {
+        userMap[userId].casualLeave = leave.leaveBalance;
+      } else if (leave.leaveTypeId === co) {
+        userMap[userId].combOff = leave.leaveBalance;
+      }
+
+      userMap[userId].totalLeave =
+        (userMap[userId].casualLeave || 0) + (userMap[userId].combOff || 0);
+    });
+
+    // 6. Return response array matching your old structure perfectly
+    res.json(Object.values(userMap));
+    
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
 
 exports.delete = async(req,res)=>{
   try {

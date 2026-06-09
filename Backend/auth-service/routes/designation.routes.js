@@ -7,6 +7,7 @@ router.get('/find', designationController.findDesignations);
 router.patch('/update/:id', designationController.updateDesignation);
 router.delete('/delete/:id', designationController.deleteDesignation);
 router.get('/byroleid/:id', designationController.getDesignationsByRoleId);
+router.get('/internal/search/:designationName', designationController.getInternalUserByDesignation);
 
 
 

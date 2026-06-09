@@ -8,7 +8,7 @@ const { connectDB } = require('./config/database');
 
 
 const leaveRoutes = require('./routes/leave.routes');
-const compOffRoutes = require('./routes/compOff.routes');
+// const compOffRoutes = require('./routes/compOff.routes');
 const holidayRoutes = require('./routes/holiday.routes');
 const leaveTypeRoutes = require('./routes/leaveType.routes');
 const userLeaveRoutes = require('./routes/userLeave.routes');
@@ -36,7 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // ROUTES
-app.use('/compOff', compOffRoutes);
+// app.use('/compOff', compOffRoutes);
 app.use('/holiday', holidayRoutes);
 app.use('/leave', leaveRoutes);
 app.use('/leaveType', leaveTypeRoutes);

@@ -165,4 +165,30 @@ exports.deleteDesignation = async (req,res)=>{
 }
 
 
+exports.getInternalUserByDesignation = async (req, res) => {
+  try {
+    const { designationName } = req.params;
+    
+    // Replace hyphens with spaces if passed as 'OPERATIONS-MANAGER'
+    const formattedDesignation = designationName.replace('-', ' ');
+
+    // Query your DB. Find the user assigned to this designation
+    const user = await User.findOne({
+      where: { designation: formattedDesignation }, 
+      include: [{ model: UserPosition, as: 'userPosition' }] // Include relation if officialMail lives there
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: `No user found with designation: ${formattedDesignation}` });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Internal Designation Fetch Error:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+
 
