@@ -376,3 +376,33 @@ exports.getTeamMembersByTeam = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getInternalTeamLeaderByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 1. Find the team this user belongs to
+    const memberRecord = await TeamMember.findOne({ where: { userId } });
+    if (!memberRecord) {
+      return res.status(404).json({ success: false, message: "User is not mapped to any team." });
+    }
+
+    // 2. Find the team leader for that specific team
+    const leaderRecord = await TeamLeader.findOne({ where: { teamId: memberRecord.teamId } });
+    if (!leaderRecord) {
+      return res.status(404).json({ success: false, message: "No leader assigned to this user's team." });
+    }
+
+    // Return the leader's userId back to the Leave Service
+    return res.status(200).json({ 
+      success: true, 
+      leaderUserId: leaderRecord.userId 
+    });
+    
+  } catch (error) {
+    console.error("Internal Team Leader Fetch Error:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};

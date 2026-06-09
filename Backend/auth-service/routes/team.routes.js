@@ -4,6 +4,9 @@ const teamController = require('../controllers/team.controller');
 const { authenticateToken } = require('../middlewares/auth');
 
 router.post('/',authenticateToken, teamController.createTeam);
+
+
+router.get('/internal/user/:userId/team-leader', teamController.getInternalTeamLeaderByUserId);
   
 router.get('/', authenticateToken, teamController.getTeams);
 // --

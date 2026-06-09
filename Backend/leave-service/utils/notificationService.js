@@ -1,35 +1,22 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
-// utils/notification.js
-const Notification = require('../notification/models/notification'); 
+// utils/notification.js (Inside Leave Service)
+const axios = require('axios');
 
-async function createNotification({ id, me, route, transaction }) {
+async function createNotification({ id, me, route }) {
   try {
-    const options = {};
-    if (transaction) {
-      // Only attach transaction if explicitly passed
-      options.transaction = transaction;
-    }
+    // Replace with your actual Auth Service domain/port
+    const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4001'; 
+    
+    const response = await axios.post(`${AUTH_SERVICE_URL}/api/notifications/create`, {
+      id,      // Maps to userId in Auth Service
+      me,      // Maps to message in Auth Service
+      route
+    });
 
-    await Notification.create(
-      {
-        userId: id,
-        message: me,
-        isRead: false,
-        route,
-      },
-      options
-    );
+    return response.data;
   } catch (error) {
-    console.error("Error creating notification:", error);
+    console.error("Failed to send notification via Auth Service:", error.response?.data || error.message);
     throw error;
   }
 }
 
-
-// const id = userIds[0];
-// const me = `Important Announcement - ${message}`;
-// const route = `/login/announcements`;
-
-// createNotification({ id, me, route });
 module.exports = { createNotification };

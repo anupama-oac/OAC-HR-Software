@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../../middleware/authorization');
+const authenticateToken = require('../middlewares/auth');
 const UserLeave = require('../models/userLeave');
 const cron = require('node-cron');
 const LeaveType = require('../models/leaveType');
 const { where } = require('sequelize');
 const Leave = require('../models/leave');
 const { Sequelize, Op } = require('sequelize');
-const authService = require('../../utils/authService'); 
+const authService = require('../utils/authService'); 
 
 cron.schedule('0 0 1 1 * *', async () => {
   try {

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../../middleware/authorization');
+const authenticateToken = require('../middlewares/auth');
 const LeaveType = require('../models/leaveType');
 const { Op, fn, col, where } = require('sequelize');
-const sequelize = require('../../utils/db');
+const { sequelize } = require('../config/database');
 
 
 

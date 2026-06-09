@@ -10,14 +10,14 @@ const config = require('../utils/config');
 const authService = require('../utils/authService');
 const { where } = require('sequelize');
 const { createNotification } = require('../utils/notificationService');
-const { sendEmail } = require('../../app/emailService');
+const { sendEmail } = require('../utils/emailService');
 const { Op } = require('sequelize');
-const sequelize = require('../../utils/db');
-const UserEmail = require('../../users/models/userEmail');
+const { sequelize } = require('../config/database');
+const UserEmail = require('../models/userEmail');
 const { resolveHostname } = require('nodemailer/lib/shared');
-const TeamLeader = require('../../users/models/teamLeader');
-const Designation = require('../../users/models/designation');
-const TeamMember = require('../../users/models/teamMember');
+// const TeamLeader = require('../../users/models/teamLeader');
+// const Designation = require('../../users/models/designation');
+// const TeamMember = require('../../users/models/teamMember');
 const { User } = require('../../auth-service/models');
 
 // --------------------------------------------------------LEAVE REQUESTING------------------------------------------------------------
@@ -1361,14 +1361,19 @@ async function getHREmail() {
 
 async function getOMEmail() {
   try {
-    // 1. Fetch the Operations Manager profile directly from the Auth Microservice
-    const omUser = await authService.getUserByDesignation('OPERATIONS MANAGER');
+    const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:5000';
+
+    // Update this URL to point precisely to your designation base route + our internal path
+    // Example assuming base path is /api/designations
+    const response = await axios.get(`${AUTH_SERVICE_URL}/api/designations/internal/search/OPERATIONS-MANAGER`);
+    
+    const omUser = response.data.user;
     
     if (!omUser) {
       return 'Operational Manager user or role is not found';
     }
 
-    // 2. Extract and return the official email address safely checking common fallback fields
+    // Safely extract the official email address
     const officialMail = omUser.userPosition?.officialMailId || 
                          omUser.officialMailId || 
                          omUser.email;
@@ -1379,7 +1384,7 @@ async function getOMEmail() {
 
     return officialMail;
   } catch (error) {
-    return error.message;
+    return error.response?.data?.message || error.message;
   }
 }
 
