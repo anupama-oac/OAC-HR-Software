@@ -38,9 +38,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // ROUTES
 app.use('/', authRoutes);
-
 app.use('/', roleRoutes);
-app.use('/position', userPositionRoutes);
+// app.use('/position', userPositionRoutes);
 app.use('/', userPersonalRoutes);
 app.use('/', userAccountRoutes);
 app.use('/', userEmailRoutes);

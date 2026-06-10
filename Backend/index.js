@@ -24,6 +24,7 @@ app.use('/api/auth', createProxyMiddleware({
   }
 }));
 
+
 // ROLE SERVICE INSIDE AUTH
 app.use('/api/role', createProxyMiddleware({
   target: AUTH_URL,
