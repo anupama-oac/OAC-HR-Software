@@ -25,9 +25,20 @@ export class UsersService {
 
   constructor(public http: HttpClient) { }
 
-  getUser(search?:string, page?: number, pageSize?: number): Observable<User[]>{
-    return this.http.get<User[]>(this.apiUrl + `/user/find/?search=${search}&page=${page}&pageSize=${pageSize}`);
+  getUserold(search?:string, page?: number, pageSize?: number): Observable<User[]>{
+    return this.http.get<User[]>(this.apiUrl + `user/find/?search=${search}&page=${page}&pageSize=${pageSize}`);
   }
+
+  getUser(search?: string, page: number = 1, pageSize: number = 6): Observable<User[]> {
+  // 1. Clean up the search parameter so it doesn't pass "undefined" as a string
+  const searchTerm = search ? search : '';
+
+  // 2. Remove the leading slash since this.apiUrl already ends with '/auth/'
+  // 3. Also note that your backend route is just '/find', not '/user/find'
+  return this.http.get<User[]>(
+    `${this.apiUrl}find?search=${searchTerm}&page=${page}&pageSize=${pageSize}`
+  );
+}
 
   // addUser(user:User){
   //     return this.http.post(this.apiUrl, user);

@@ -24,17 +24,17 @@ const sequelize = new Sequelize(
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅Leave Service: Database connection established.');
+    console.log('✅Payroll Service: Database connection established.');
     
     // SYNC LOGIC HERE
     if (process.env.NODE_ENV === 'development') {
       // alter: true updates tables to match models without dropping data
       await sequelize.sync({ alter: true });
-      console.log('🔄Leave Service: Database tables synced.');
+      console.log('🔄Payroll Service: Database tables synced');
     }
 
   } catch (error) {
-    console.error('❌Leave Service: Database connection failed:', error);
+    console.error('❌Payroll Service: Database connection failed:', error);
     process.exit(1); // Stop the microservice if DB isn't ready
   }
 };
