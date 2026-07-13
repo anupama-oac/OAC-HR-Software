@@ -10,7 +10,9 @@ import { LeaveType } from '../common/interfaces/leaves/leaveType';
   providedIn: 'root'
 })
 export class NewLeaveService {
-  private apiUrl = environment.apiUrl;
+  // private apiUrl = environment.apiUrl;
+  
+    private apiUrl = `${environment.apiUrl}`;
   constructor(private http: HttpClient) { }
 
   removePenalty(id: number): Observable<any> {

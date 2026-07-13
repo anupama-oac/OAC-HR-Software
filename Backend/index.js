@@ -52,15 +52,37 @@ app.use('/api/notification', createProxyMiddleware({
   }
 }));
 
-// LEAVE SERVICE
-app.use('/api/leave', createProxyMiddleware({
+// Inside API Gateway
+// app.use('/api/leave', createProxyMiddleware({
+//   target: LEAVE_URL, 
+//   changeOrigin: true,
+//     pathRewrite: {
+//     '^/api/leave': '/leave'
+//   }
+
+// }));
+
+// Inside your API Gateway code:
+app.use('/api/userLeave', createProxyMiddleware({
   target: LEAVE_URL,
   changeOrigin: true,
-  pathRewrite: {
-    '^/api/leave': '/leave'
-  }
+  pathRewrite: { '^/api/userLeave': '/userLeave' }
 }));
 
+app.use('/api/leaveType', createProxyMiddleware({
+  target: LEAVE_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/api/leaveType': '/leaveType' }
+}));
+
+// 3. Leave Configuration Types
+app.use('/api/leaveType', createProxyMiddleware({
+  target: LEAVE_URL, // http://localhost:4002
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/leaveType': '/leaveType'
+  }
+}));
 // PAYROLL SERVICE
 app.use('/api/payroll', createProxyMiddleware({
   target: PAYROLL_URL,
