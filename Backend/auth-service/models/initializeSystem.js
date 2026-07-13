@@ -1,30 +1,30 @@
 const bcrypt = require('bcryptjs');
-// CHANGE THESE: Import from the index file, not individual files
 const { Role, User } = require('./index'); 
 
 module.exports = async function initializeSystem() {
   console.log('--- Starting System Initialization ---');
 
+  // 1. Define the required roles
   const requiredRoles = [
     {
       roleName: 'Super Administrator',
       abbreviation: 'SA',
-      description: 'Has all permissions',
+      description: 'Has all permissions across the entire system',
       permissions: ['*'],
       isActive: true
     },
     {
-      roleName: 'Quality Super Administrator',
-      abbreviation: 'QSA',
-      description: 'Full access to quality and compliance modules',
-      permissions: ['QUALITY_ALL', 'DOC_APPROVE', 'AUDIT_ALL'],
+      roleName: 'HR Administrator',
+      abbreviation: 'HR',
+      description: 'Full access to employee management, leaves, and onboarding modules',
+      permissions: ['HR_ALL', 'EMPLOYEE_MANAGEMENT', 'LEAVE_APPROVE'],
       isActive: true
     }
   ];
 
+  // 2. Seed roles into the database
   const roleMap = {};
   for (const roleData of requiredRoles) {
-    // findOrCreate is good, it prevents primary key violations on restart
     let [role] = await Role.findOrCreate({
       where: { roleName: roleData.roleName },
       defaults: roleData
@@ -32,24 +32,32 @@ module.exports = async function initializeSystem() {
     roleMap[roleData.abbreviation] = role.id;
   }
 
-  const hashedPassword = await bcrypt.hash('SuperAdmin@2024', 10);
-  const hashedQualityPassword = await bcrypt.hash('QualityAdmin@2024', 10);
+  // 3. Hash passwords securely
+  const hashedSuperPassword = await bcrypt.hash('SuperAdmin@2024', 10);
+  const hashedHrPassword = await bcrypt.hash('HrAdmin@2024', 10);
 
+  // 4. Define the admin accounts
   const superUsers = [
-  
     {
-      email: 'qualityadmin@leedsaerospace.com',
-      empNo: 'QSA001',
-      password: hashedQualityPassword,
-      name: 'Quality Super Administrator',
-      roleId: roleMap['QSA'],
-      // status: 'approved',
+      email: 'admin@onboarddummy.com', 
+      empNo: 'SA001',
+      password: hashedSuperPassword,
+      name: 'Super Administrator',
+      roleId: roleMap['SA'], 
+      isActive: true
+    },
+    {
+      email: 'hr@onboarddummy.com', 
+      empNo: 'HR001',
+      password: hashedHrPassword,
+      name: 'HR Administrator',
+      roleId: roleMap['HR'], 
       isActive: true
     }
   ];
 
+  // 5. Seed user accounts into the database
   for (const userData of superUsers) {
-    // Double check that roleId was actually found
     if (!userData.roleId) {
       console.error(`Error: Could not find role for user ${userData.name}`);
       continue;

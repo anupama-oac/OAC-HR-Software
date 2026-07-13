@@ -35,8 +35,8 @@ app.use(express.urlencoded({ extended: true }));
 
 
 
+
 // ROUTES
-// app.use('/compOff', compOffRoutes);
 app.use('/holiday', holidayRoutes);
 app.use('/leave', leaveRoutes);
 app.use('/leaveType', leaveTypeRoutes);
@@ -71,8 +71,7 @@ app.use((err, req, res, next) => {
 
 
 
-const PORT = process.env.PORT || 4001;
-
+const PORT = process.env.PORT || 4002;
 
 app.listen(PORT, () => {
   console.log(`🚀 Leave Service running on ${PORT}`);
