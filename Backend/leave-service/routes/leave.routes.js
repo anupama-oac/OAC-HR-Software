@@ -10,7 +10,7 @@ router.post('/employeeLeave', authenticateToken, leaveController.createEmployeeL
 router.put('/removePenalty/:id', authenticateToken, leaveController.removePenalty);
 router.put('/removeApprovedPenalty/:id', authenticateToken, leaveController.removeApprovedPenalty);
 router.patch('/updateemployeeleave/:id',authenticateToken,leaveController.updateEmployeeLeave);
-router.get('/leave/user/:userId',authenticateToken,leaveController.getLeavesByUserId);
+router.get('/user/:userId',authenticateToken,leaveController.getLeavesByUserId);
 router.get('/userlocked/:userId',authenticateToken,leaveController.getLockedLeavesByUserId);
 router.get('/find/requested',authenticateToken,leaveController.getRequestedLeaves);
 router.get('/find',authenticateToken,leaveController.findAllLeaves);
