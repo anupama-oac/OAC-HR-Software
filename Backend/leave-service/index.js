@@ -38,9 +38,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ROUTES
 app.use('/holiday', holidayRoutes);
-app.use('/leave', leaveRoutes);
-app.use('/leaveType', leaveTypeRoutes);
-app.use('/userLeave', userLeaveRoutes);
+app.use('/', leaveRoutes);
+app.use('/', leaveTypeRoutes);
+app.use('/', userLeaveRoutes);
 
 // HEALTH
 app.get('/health', (req, res) => {
