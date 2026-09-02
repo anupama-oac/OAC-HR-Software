@@ -3,12 +3,13 @@
 const express = require("express");
 const router = express.Router();
 const AdvanceSalary = require("../models/advanceSalary");
-const User = require('../../users/models/user');
-const authenticateToken = require('../../middleware/authorization');
+// const User = require('../../users/models/user');
+// const authenticateToken = require('../../middleware/authorization');
 const { Op } = require('sequelize');
-const sequelize = require('../../utils/db');
+const sequelize = require('../config/database');
 
-router.post("/", authenticateToken, async (req, res) => {
+
+  exports.createAdvanceSalary = async (req, res) => {
   try {
     const { userId, scheme,amount, reason, duration, monthlyPay } = req.body;
 
@@ -18,9 +19,10 @@ router.post("/", authenticateToken, async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-});
+}
 
-router.get("/notcompleted", authenticateToken, async (req, res) => {
+exports.getNotCompleted = async (req, res) => {
+// router.get("/notcompleted", authenticateToken, async (req, res) => {
   try {
     let whereClause = { status: true };
     let limit;
@@ -81,11 +83,11 @@ router.get("/notcompleted", authenticateToken, async (req, res) => {
   } catch (error) {
     res.status(500).send(error.message);
   }
-});
+}
 
 
-
-router.get("/findall", authenticateToken, async (req, res) => {
+exports.findAll = async (req, res) => {
+// router.get("/findall", authenticateToken, async (req, res) => {
   try {
     let whereClause = { };
 
@@ -120,9 +122,11 @@ router.get("/findall", authenticateToken, async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-});
+}
 
-router.get("/findbyid/:id", authenticateToken, async (req, res) => {
+
+exports.findById = async (req, res) => {
+// router.get("/findbyid/:id", authenticateToken, async (req, res) => {
   try {
     const advanceSalaryId = req.params.id;
 
@@ -136,9 +140,10 @@ router.get("/findbyid/:id", authenticateToken, async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-});
+}
 
-router.get("/findbyuserid/:id", authenticateToken, async (req, res) => {
+exports.findByUserId = async (req, res) => {
+// router.get("/findbyuserid/:id", authenticateToken, async (req, res) => {
   try {
     const advanceSalary = await AdvanceSalary.findOne({ where: { userId: req.params.id, status: true } });
    
@@ -146,9 +151,10 @@ router.get("/findbyuserid/:id", authenticateToken, async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-});
+}
 
-router.get("/findbyuseridall/:id", authenticateToken, async (req, res) => {
+exports.findByUserIdAll = async (req, res) => {
+// router.get("/findbyuseridall/:id", authenticateToken, async (req, res) => {
   try {
     let whereClause = { userId: req.params.id };
     let limit;
@@ -198,9 +204,10 @@ router.get("/findbyuseridall/:id", authenticateToken, async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-});
+}
 
-router.patch('/update/:id', authenticateToken, async(req,res)=>{
+exports.updateAdvanceSalary = async (req, res) => {
+// router.patch('/update/:id', authenticateToken, async(req,res)=>{
   try {
     const id = parseInt(req.params.id, 10);
     AdvanceSalary.update(req.body, {
@@ -224,9 +231,10 @@ router.patch('/update/:id', authenticateToken, async(req,res)=>{
     res.send(error.message);
 }
 
-})
+}
 
-router.patch('/closeadvance/:id', authenticateToken, async(req, res)=>{
+exports.closeAdvance = async (req, res) => {
+// router.patch('/closeadvance/:id', authenticateToken, async(req, res)=>{
   try {
     let as = await AdvanceSalary.findByPk(req.params.id)
     as.status = false;
@@ -237,9 +245,10 @@ router.patch('/closeadvance/:id', authenticateToken, async(req, res)=>{
   } catch (error) {
     res.send(error.message);
   }
-})
+}
 
-router.delete('/delete/:id', authenticateToken, async(req,res)=>{
+exports.deleteAdvance = async (req, res) => {
+// router.delete('/delete/:id', authenticateToken, async(req,res)=>{
   try {
       const result = await AdvanceSalary.destroy({
           where: { id: req.params.id },
@@ -258,5 +267,5 @@ router.delete('/delete/:id', authenticateToken, async(req,res)=>{
         res.send(error.message);
   }
   
-})
+}
 
