@@ -1,8 +1,8 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { DataTypes } = require('sequelize');
-const sequelize = require('../../utils/db');
-const User = require('../../users/models/user');
+const { sequelize } = require('../config/database');
+// const User = require('../../users/models/user');
 
 const AdvanceSalary = sequelize.define('advanceSalary', {
   userId: {type : DataTypes.INTEGER, allowNull: false },
@@ -20,15 +20,15 @@ const AdvanceSalary = sequelize.define('advanceSalary', {
   timestamps: true,
 });
 
-AdvanceSalary.sync({ force: true })
-  .then(() => {
-    console.log('Tables synced successfully.');
-  })
-  .catch(err => {
-    console.error('Error syncing tables:', err);
-  });
+// AdvanceSalary.sync({ force: true })
+//   .then(() => {
+//     console.log('Tables synced successfully.');
+//   })
+//   .catch(err => {
+//     console.error('Error syncing tables:', err);
+//   });
 
-  User.hasMany(AdvanceSalary, {foreignKey: 'userId', onUpdate: 'CASCADE' });
-  AdvanceSalary.belongsTo(User, {foreignKey: 'userId' });
+  // User.hasMany(AdvanceSalary, {foreignKey: 'userId', onUpdate: 'CASCADE' });
+  // AdvanceSalary.belongsTo(User, {foreignKey: 'userId' });
   
 module.exports = AdvanceSalary;
