@@ -16,8 +16,8 @@ const UserNominee = sequelize.define('usernNominee',{
     timestamps : false
 })
 
-User.hasMany(UserNominee, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-UserNominee.belongsTo(User);
+// User.hasMany(UserNominee, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// UserNominee.belongsTo(User);
 
 // UserNominee.sync({ alter: true })
 //   .then(() => console.log("UserNominee table Sync"))

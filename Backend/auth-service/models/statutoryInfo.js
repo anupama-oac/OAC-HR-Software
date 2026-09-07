@@ -20,12 +20,12 @@ const StatutoryInfo = sequelize.define('statutoryinfo',{
     timestamps : false
 })
 
-User.hasOne(StatutoryInfo, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-StatutoryInfo.belongsTo(User, { foreignKey: 'userId'});
+// User.hasOne(StatutoryInfo, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// StatutoryInfo.belongsTo(User, { foreignKey: 'userId'});
 
-StatutoryInfo.sync({ alter: true })
-  .then(() => console.log("StatutoryInfo table Sync"))
-  .catch((err) => console.log("Error syncing table StatutoryInfo:", err));
+// StatutoryInfo.sync({ alter: true })
+//   .then(() => console.log("StatutoryInfo table Sync"))
+//   .catch((err) => console.log("Error syncing table StatutoryInfo:", err));
 
 
 module.exports = StatutoryInfo;

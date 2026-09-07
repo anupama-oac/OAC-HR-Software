@@ -12,10 +12,10 @@ const User = require('./user');
       timestamps : true
    })
 
-User.hasMany(UserAssets, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-UserAssets.belongsTo(User);
+// User.hasMany(UserAssets, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// UserAssets.belongsTo(User);
 
- UserAssets.sync({alter:true})
-.then(()=>console.log)
+//  UserAssets.sync({alter:true})
+// .then(()=>console.log)
 
 module.exports = UserAssets

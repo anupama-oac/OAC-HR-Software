@@ -295,7 +295,9 @@ const { payrollData, status } = req.body;
                   {
                     model: UserPosition,
                     attributes: ['designationId', 'department', 'location'],
-                    include: [{ model: Designation, attributes: ['designationName'] }]
+                    include: [{ model: Designation,
+                      as: 'designation',
+                       attributes: ['designationName'] }]
                   }
                 ]
               }
@@ -438,7 +440,9 @@ try {
       {model: UserPosition, attributes: ['designationId'], include: {
         model: Designation, attributes: ['designationName']
       }},
-      {model: Role, attributes: ['roleName']}]
+      {model: Role,
+        model: Role,
+         attributes: ['roleName']}]
     });
     
     let designation;
@@ -630,7 +634,8 @@ try {
             {
               model: UserPosition,
               attributes: ["designationId", "department", "location"],
-              include: [{ model: Designation, attributes: ["designationName"] }]
+              include: [{ model: Designation,as: 'designation',
+                 attributes: ["designationName"] }]
             }
           ]
         }

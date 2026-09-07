@@ -15,8 +15,8 @@ const UserQualification = sequelize.define('userQualification',{
 })
 
 
-User.hasOne(UserQualification, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-UserQualification.belongsTo(User, { foreignKey: 'userId' });
+// User.hasOne(UserQualification, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// UserQualification.belongsTo(User, { foreignKey: 'userId' });
 
 // UserQualification.sync({ alter: true })
 //   .then(() => console.log("UserQualification table Sync"))

@@ -14,9 +14,9 @@ const Holiday = sequelize.define('holiday',{
     timestamps : false
 })
 
-Holiday.sync({ alter: true })
-  .then(() => console.log("Holiday table Sync"))
-  .catch((err) => console.log("Error syncing table Holiday:", err));
+// Holiday.sync({ alter: true })
+//   .then(() => console.log("Holiday table Sync"))
+//   .catch((err) => console.log("Error syncing table Holiday:", err));
 
 
 module.exports = Holiday;

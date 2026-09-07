@@ -18,12 +18,15 @@ const UserAccount = sequelize.define('useraccount',{
     timestamps : false
 })
 
-User.hasOne(UserAccount, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-UserAccount.belongsTo(User, { foreignKey: 'userId', as: 'manager'  });
 
-UserAccount.sync({ alter: true })
-  .then(() => console.log("UserAccount table Sync"))
-  .catch((err) => console.log("Error syncing table UserAccount:", err));
+
+
+// User.hasOne(UserAccount, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// UserAccount.belongsTo(User, { foreignKey: 'userId', as: 'manager'  });
+
+// UserAccount.sync({ alter: true })
+//   .then(() => console.log("UserAccount table Sync"))
+//   .catch((err) => console.log("Error syncing table UserAccount:", err));
 
 
 module.exports = UserAccount;

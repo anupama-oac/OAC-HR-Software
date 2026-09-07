@@ -14,9 +14,9 @@ const UserEmail = sequelize.define('userEmail',{
     timestamps : false
 })
 
-UserEmail.sync({ alter: true })
-  .then(() => console.log("Role table Sync"))
-  .catch((err) => console.log("Error syncing table Role:", err));
+// UserEmail.sync({ alter: true })
+//   .then(() => console.log("Role table Sync"))
+//   .catch((err) => console.log("Error syncing table Role:", err));
 
 
 module.exports = UserEmail;

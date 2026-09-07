@@ -67,8 +67,8 @@ const Promotion = sequelize.define(
 // });
 // Designation.hasMany(Promotion, { foreignKey: "oldDesignationId" });
 
-Promotion.sync({ alter: true })
-  .then(() => console.log("Promotion table Sync"))
-  .catch((err) => console.log("Error syncing table Promotion:", err));
+// Promotion.sync({ alter: true })
+//   .then(() => console.log("Promotion table Sync"))
+//   .catch((err) => console.log("Error syncing table Promotion:", err));
 
 module.exports = Promotion;
