@@ -29,14 +29,14 @@ const UserPosition = sequelize.define('userPosition',{
 })
 
 
-User.hasOne(UserPosition, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
-UserPosition.belongsTo(User, { foreignKey: 'userId' });
+// User.hasOne(UserPosition, { foreignKey: 'userId', onUpdate: 'CASCADE', onDelete: 'CASCADE' });
+// UserPosition.belongsTo(User, { foreignKey: 'userId' });
 
 // Team.hasOne(UserPosition, { foreignKey: 'teamId', onUpdate: 'CASCADE' });
 // UserPosition.belongsTo(Team, { foreignKey: 'teamId' });
 
-Designation.hasOne(UserPosition, { foreignKey: 'designationId', onUpdate: 'CASCADE' });
-UserPosition.belongsTo(Designation, { foreignKey: 'designationId', onUpdate: 'CASCADE' });
+// Designation.hasOne(UserPosition, { foreignKey: 'designationId', onUpdate: 'CASCADE' });
+// UserPosition.belongsTo(Designation, { foreignKey: 'designationId', onUpdate: 'CASCADE' });
 
 // UserPosition.sync({ alter: true })
 //   .then(() => console.log("UserPosition table Sync"))

@@ -145,7 +145,9 @@ exports.findAllUsers = async (req, res) => {
         {
           model: UserPosition,
           attributes: ['designationId'],
-          include: [{ model: Designation, attributes: ['designationName'] }]
+          include: [{ model: Designation, 
+            as: 'designation',
+            attributes: ['designationName'] }]
         }
       ],
       limit,
@@ -225,28 +227,47 @@ exports.updateStatus = async (req, res) => {
 // 
 }
 
-exports.UserFindOne = async(req,res)=>{
-// router.get('/findone/:id', authenticateToken, async (req, res) => {
-  
-    let id = req.params.id;
-  
+exports.UserFindOne = async (req, res) => {
+  let id = req.params.id;
+
   try {
     const user = await User.findByPk(id, {
       include: [
-        { model: Role, attributes: ['id', 'roleName'] },
-        { model: UserPosition, attributes: ['designationId'],
-            include: [{ model: Designation, include: {model: Role} }]
+        { 
+          model: Role, 
+          as: 'role', 
+          attributes: ['id', 'roleName'] 
         },
-        { model: UserPersonal, as: 'userpersonal', attributes: ['dateOfBirth'] }
+        { 
+          model: UserPosition, 
+          as: 'userPosition', // Matches profileModels alias
+          attributes: ['designationId'],
+          include: [
+            { 
+              model: Designation, 
+              as: 'designation', 
+              include: [{ model: Role }] 
+            }
+          ]
+        },
+        { 
+          model: UserPersonal, 
+          as: 'userPersonal', // 👈 CHANGED: Capital 'P' to match model definition
+          attributes: ['dateOfBirth'] 
+        }
       ]
     });
-    res.send(user);
-  } catch (error) {
-    res.send(error.message);
-  }
-// });
 
-}
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    res.status(200).send(user);
+  } catch (error) {
+    console.error("UserFindOne Error:", error);
+    res.status(500).send({ message: error.message });
+  }
+};
 
 
 exports.UpdateUser = async(req,res)=>{
@@ -351,7 +372,9 @@ exports.FindRoleByRolename = async(req,res)=>{
  
     try {
     const users = await User.findAll({
-      include: { model: Role, where: [{ roleName: req.params.roleName} ] },
+      include: { model: Role,
+        as: 'role',
+         where: [{ roleName: req.params.roleName} ] },
       where: { separated: false }
     });
 
@@ -382,7 +405,11 @@ exports.FindSeparated = async (req,res)=>{
     try {
     const user = await User.findAll({
       where: { separated: true },
-      include: [{ model: Role, attributes: ['roleName']}]
+      include: [
+        { model: Role,
+          as: 'role',
+           attributes: ['roleName']}
+      ]
     })
     res.send(user);
   } catch (error) {
@@ -523,6 +550,7 @@ exports.underProbation = async (req, res) => {
       include: [
         {
           model: Role,
+          as: 'role',
           attributes: ['roleName']
         },
       ], order: [['name', 'ASC']], 
@@ -540,6 +568,7 @@ exports.confirmed = async (req, res) => {
       include: [
         {
           model: Role,
+          as: 'role',
           attributes: ['roleName']
         },
         {

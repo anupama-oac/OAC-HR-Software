@@ -49,12 +49,17 @@ const Leave = sequelize.define('leave', {
 // User.hasMany(Leave,{foreignKey : 'userId', as: 'user', onUpdate : 'CASCADE'})
 // Leave.belongsTo(User)
 
-LeaveType.hasMany(Leave,{foreignKey : 'leaveTypeId', as: 'leaveType',  onUpdate : 'CASCADE'})
-Leave.belongsTo(LeaveType)
+// LeaveType.hasMany(Leave,{foreignKey : 'leaveTypeId', as: 'leaveType',  onUpdate : 'CASCADE'})
+// Leave.belongsTo(LeaveType)
 
-Leave.sync({ alter: true })
-  .then(() => console.log('Leave table synchronized successfully'))
-  .catch((error) => console.error('Error synchronizing Leave table:', error));
+// LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', as: 'leaves', onUpdate: 'CASCADE' });
+// Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+
+
+
+// Leave.sync({ alter: true })
+//   .then(() => console.log('Leave table synchronized successfully'))
+//   .catch((error) => console.error('Error synchronizing Leave table:', error));
 
 module.exports = Leave;
 

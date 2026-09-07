@@ -8,17 +8,17 @@ const LeaveType = sequelize.define('leaveType', {
   timestamps: true,
 });
 
-const leaveTypeData = [
-  { leaveTypeName: 'Casual Leave' },
-  { leaveTypeName: 'Sick Leave' },
-  { leaveTypeName: 'LOP' },
-  { leaveTypeName: 'Comp Off' },
-];
+// const leaveTypeData = [
+//   { leaveTypeName: 'Casual Leave' },
+//   { leaveTypeName: 'Sick Leave' },
+//   { leaveTypeName: 'LOP' },
+//   { leaveTypeName: 'Comp Off' },
+// ];
 
-const initializeLeaveTypes = async () => {
-  const leaveTypes = await LeaveType.findAll();
-  if (!leaveTypes.length) await LeaveType.bulkCreate(leaveTypeData);
-};
+// const initializeLeaveTypes = async () => {
+//   const leaveTypes = await LeaveType.findAll();
+//   if (!leaveTypes.length) await LeaveType.bulkCreate(leaveTypeData);
+// };
 
 // LeaveType.sync({ alter: true })
 //   .then(initializeLeaveTypes)

@@ -477,10 +477,16 @@ exports.getLockedLeavesByUserId = async(req,res)=>{
   try {
     const userId = req.params.userId;
 
-    const user = await User.findByPk(userId);
+    // const user = await User.findByPk(userId);
+    // if (!user) {
+    //   return res.json({ message: 'User not found' });
+    // }
+
+    const user = await authService.getUserById(userId);
     if (!user) {
       return res.json({ message: 'User not found' });
-    }
+    } 
+
 
     let whereClause = {
       userId: userId,
@@ -583,7 +589,9 @@ exports.getRequestedLeaves = async(req,res)=>{
 
 // ------------------------------------------------------------GET ALL----------------------------------------------------------------------
 
-exports.findAllLeaves = async(req,res)=>{
+
+// ✅ FIXED: Only search fields available inside leave-service
+exports.findAllLeaves = async (req, res) => {
   try {
     let limit;
     let offset;
@@ -599,19 +607,14 @@ exports.findAllLeaves = async(req,res)=>{
     }
 
     const leave = await Leave.findAll({
+      // FIXED: Simplified ordering without referencing unincluded table/model aliases
       order: [
-        [sequelize.literal(`CASE WHEN "leave"."status" = 'Requested' THEN 0 ELSE 1 END`), 'ASC'], // Explicitly reference "Leave"."status"
-        ['id', 'DESC'] // Then order by id in descending order
+        [sequelize.literal(`CASE WHEN Leave.status = 'Requested' THEN 0 ELSE 1 END`), 'ASC'],
+        ['id', 'DESC']
       ],
       limit,
       offset,
       include: [
-        // {
-        //   model: User,
-        //   as: 'user',
-        //   attributes: ['name', 'empNo'],
-        //   required: true,
-        // },
         {
           model: LeaveType,
           as: 'leaveType',
@@ -623,22 +626,18 @@ exports.findAllLeaves = async(req,res)=>{
         [Op.and]: [
           {
             status: {
-              [Op.ne]: 'Locked' // Filter to exclude records where status is 'Locked'
+              [Op.ne]: 'Locked'
             }
           },
           searchTerm
             ? {
-              [Op.or]: [
-                sequelize.where(
-                  sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.name'), ' ', '')),
-                  { [Op.like]: `%${searchTerm}%` }
-                ),
-                sequelize.where(
-                  sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveType.leaveTypeName'), ' ', '')),
-                  { [Op.like]: `%${searchTerm}%` }
-                )
-              ]
-            }
+                [Op.or]: [
+                  sequelize.where(
+                    sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveType.leaveTypeName'), ' ', '')),
+                    { [Op.like]: `%${searchTerm}%` }
+                  )
+                ]
+              }
             : {}
         ]
       }
@@ -647,24 +646,20 @@ exports.findAllLeaves = async(req,res)=>{
     const totalCount = await Leave.count({
       where: {
         status: {
-          [Op.ne]: 'Locked' // Ensure the count also respects the status filter
+          [Op.ne]: 'Locked'
         }
       }
     });
 
     if (typeof req.query.page !== 'undefined' && typeof req.query.pageSize !== 'undefined') {
-      const response = {
-        count: totalCount,
-        items: leave,
-      };
-      res.json(response);
+      res.json({ count: totalCount, items: leave });
     } else {
       res.json(leave);
     }
   } catch (error) {
-    res.send(error.message);
+    res.status(500).json({ error: error.message });
   }
-}
+};
 
 exports.findAllLockedLeaves = async(req,res)=>{
   try {
@@ -686,12 +681,6 @@ exports.findAllLockedLeaves = async(req,res)=>{
       limit,
       offset,
       include: [
-        // {
-        //   model: User,
-        //   as: 'user',
-        //   attributes: ['name', 'empNo'],
-        //   required: true,
-        // },
         {
           model: LeaveType,
           as: 'leaveType',
@@ -704,19 +693,16 @@ exports.findAllLockedLeaves = async(req,res)=>{
           {
             status: 'Locked'
           },
+          // 💡 HIGHLIGHT: Cleaned up search block to target leaveType (since user table is detached)
           searchTerm
             ? {
-              [Op.or]: [
-                sequelize.where(
-                  sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.name'), ' ', '')),
-                  { [Op.like]: `%${searchTerm}%` }
-                ),
-                sequelize.where(
-                  sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveType.leaveTypeName'), ' ', '')),
-                  { [Op.like]: `%${searchTerm}%` }
-                )
-              ]
-            }
+                [Op.or]: [
+                  sequelize.where(
+                    sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveType.leaveTypeName'), ' ', '')),
+                    { [Op.like]: `%${searchTerm}%` }
+                  )
+                ]
+              }
             : {}
         ]
       }
@@ -747,23 +733,26 @@ exports.getEmergencyLeaves = async(req,res)=>{
   try {
     const { userId, leaveTypeId, startDate, endDate, notes, fileUrl, leaveDates, status } = req.body;
 
-    // Validate required fields
     if (!userId || !leaveTypeId || !startDate || !endDate || !leaveDates) {
       await transaction.rollback();
       return res.json({ message: 'Missing required fields' });
     }
 
-    // Fetch leave type
+    // 💡 HIGHLIGHT: Added user validation via Auth microservice
+    const user = await authService.getUserById(userId);
+    if (!user) {
+      await transaction.rollback();
+      return res.json({ message: 'User not found' });
+    }
+
     const leaveType = await LeaveType.findOne({ where: { id: leaveTypeId }, transaction });
     if (!leaveType) {
       await transaction.rollback();
       return res.json({ message: 'Leave type not found' });
     }
 
-    // Sort leaveDates by date
     const sortedLeaveDates = [...leaveDates].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Group leave dates by year
     const datesByYear = new Map();
     for (const dateObj of sortedLeaveDates) {
       const dateYear = new Date(dateObj.date).getFullYear().toString();
@@ -773,17 +762,13 @@ exports.getEmergencyLeaves = async(req,res)=>{
       datesByYear.get(dateYear).push(dateObj);
     }
 
-    // Track UserLeave balances and used days per year
-    const userLeaves = new Map(); // { year: { instance, balance } }
+    const userLeaves = new Map();
     let totalBalanceDays = 0;
 
-    // Check if the leave type is LOP
     const isLOP = leaveType.leaveTypeName === 'LOP';
 
-    // Initialize leaves array to store created leave records
     let leaves;
 
-    // Calculate required days for each date
     for (const [year, dates] of datesByYear) {
       let totalDays = 0;
       for (const dateObj of dates) {
@@ -791,7 +776,6 @@ exports.getEmergencyLeaves = async(req,res)=>{
         totalDays += requiredDays;
       }
 
-      // Initialize UserLeave for the current year
       let userLeave = await UserLeave.findOne({
         where: { userId, leaveTypeId, year },
         transaction,
@@ -813,7 +797,6 @@ exports.getEmergencyLeaves = async(req,res)=>{
         balance: userLeave.leaveBalance,
       });
 
-      // Check if the balance is sufficient
       if (userLeave.leaveBalance < totalDays && !isLOP) {
         await transaction.rollback();
         return res.json({ message: `Insufficient leave balance for year ${year}` });
@@ -828,21 +811,16 @@ exports.getEmergencyLeaves = async(req,res)=>{
         transaction,
       });
 
-      // Check if the balance is sufficient, including pending leaves
       if (userLeave.leaveBalance < (pendingLeaves + totalDays) && !isLOP) {
         await transaction.rollback();
         return res.json({
-          message: `Insufficient leave balance for year ${year}. 
-          employee have already applied for ${pendingLeaves} days of leave,
-          and employees current balance is ${userLeave.leaveBalance} days. 
-          You need an additional ${totalDays} days for this request.`,
+          message: `Insufficient leave balance for year ${year}. Employee has already applied for ${pendingLeaves} days of leave, and current balance is ${userLeave.leaveBalance} days. You need an additional ${totalDays} days for this request.`,
         });
       }
 
       totalBalanceDays += totalDays;
     }
 
-    // Create leave records for each year
     for (const [year, dates] of datesByYear) {
       const { instance: userLeave } = userLeaves.get(year);
       userLeave.takenLeaves += totalBalanceDays;
@@ -851,20 +829,22 @@ exports.getEmergencyLeaves = async(req,res)=>{
       }
       await userLeave.save({ transaction });
 
-      // Create leave record for this year
-      const leave = await createLeaveRecord({
+      // 💡 HIGHLIGHT: Standardized Leave.create directly
+      const leave = await Leave.create({
         userId,
         leaveTypeId,
-        dates: dates,
-        notes: notes,
+        startDate,
+        endDate,
+        noOfDays: totalBalanceDays,
+        notes,
         fileUrl,
-        status,
-        transaction,
-      });
-      leaves = leave
+        status: status || 'Approved',
+        leaveDates: dates,
+      }, { transaction });
+
+      leaves = leave;
     }
 
-    // Prepare leaveDetails for response
     const leaveDetails = [];
     for (const [year, { instance: userLeave }] of userLeaves) {
       leaveDetails.push({
@@ -875,49 +855,51 @@ exports.getEmergencyLeaves = async(req,res)=>{
       });
     }
 
-    // Commit transaction and send response
     const not = await handleNotificationsAndEmails(req, res, leaves, transaction, 'emergency', 'Create');
     await transaction.commit();
+
     res.json({
       not: not,
       message: 'Leave processed successfully',
       totalBalanceDays,
-      leaves, // Include the created leave records in the response
-      details: leaveDetails // Include leave details in the response
+      leaves,
+      details: leaveDetails
     });
   } catch (error) {
     if (!transaction.finished) await transaction.rollback();
     res.json({ message: error.message });
   }
 }
+
 exports.updateEmergencyLeave = async(req,res)=>{
-const transaction = await sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { userId, leaveTypeId, startDate, endDate, notes, fileUrl, leaveDates, status } = req.body;
 
-    // Validate required fields
     if (!userId || !leaveTypeId || !startDate || !endDate || !leaveDates) {
       await transaction.rollback();
       return res.json({ message: 'Missing required fields' });
     }
 
-    // Fetch leave type within transaction
-    const leaveType = await LeaveType.findOne({ where: { id: leaveTypeId }, transaction });
+    // Microservice User Check
+    const user = await authService.getUserById(userId);
+    if (!user) {
+      await transaction.rollback();
+      return res.json({ message: 'User not found' });
+    }
 
+    const leaveType = await LeaveType.findOne({ where: { id: leaveTypeId }, transaction });
     if (!leaveType) {
       await transaction.rollback();
       return res.json({ message: 'Leave type not found' });
     }
 
-    // Fetch existing leave record
     const existingLeave = await Leave.findByPk(req.params.id, { transaction });
-
     if (!existingLeave) {
       await transaction.rollback();
       return res.json({ message: 'Leave record not found' });
     }
 
-    // Check if we need to revert previous balance (only if it was approved)
     const shouldRevertPrevious = ['Approved', 'AdminApproved'].includes(existingLeave.status);
     if (shouldRevertPrevious) {
       const oldYear = new Date(existingLeave.startDate).getFullYear().toString();
@@ -930,17 +912,14 @@ const transaction = await sequelize.transaction();
         transaction,
       });
       if (oldUL) {
-        // Revert the old leave balance
         oldUL.takenLeaves -= existingLeave.noOfDays;
         oldUL.leaveBalance += existingLeave.noOfDays;
         await oldUL.save({ transaction });
       }
     }
 
-    // Sort leaveDates by date
     const sortedLeaveDates = [...leaveDates].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Group leave dates by year
     const datesByYear = new Map();
     for (const dateObj of sortedLeaveDates) {
       const dateYear = new Date(dateObj.date).getFullYear().toString();
@@ -950,110 +929,89 @@ const transaction = await sequelize.transaction();
       datesByYear.get(dateYear).push(dateObj);
     }
 
-    // Track UserLeave balances per year
     const userLeaves = new Map();
-
-    // Check if the leave type is LOP
     const isLOP = leaveType.leaveTypeName === 'LOP';
+    let totalBalanceDays = 0;
 
-    // Calculate required days for each year and check balance
-    // for (const [year, dates] of datesByYear) {
-    //   let totalDays = 0;
-    //   for (const dateObj of dates) {
-    //     const requiredDays = await calculateDays(dateObj);
-    //     totalDays += requiredDays;
-    //   }
-
-    //   // Get or create UserLeave for the year
-    //   let userLeave = await UserLeave.findOne({
-    //     where: { userId, leaveTypeId, year },
-    //     transaction,
-    //   });
-    //   console.log(userLeave,"6666666666666");
-
-    //   if (!userLeave) {
-    //     userLeave = await UserLeave.create({
-    //       userId,
-    //       leaveTypeId,
-    //       year,
-    //       noOfDays: 0,
-    //       leaveBalance: 0,
-    //       takenLeaves: 0,
-    //     }, { transaction });
-    //   }
-
-    //   userLeaves.set(year, {
-    //     instance: userLeave,
-    //     balance: userLeave.leaveBalance,
-    //     days: totalDays
-    //   });
-    //   console.log(userLeaves);
-
-    //   // Calculate pending leaves for the user (excluding current leave if it was pending)
-    //   const pendingWhere = {
-    //     userId,
-    //     leaveTypeId,
-    //     status: 'Requested',
-    //     id: { [Op.ne]: req.params.id } // Exclude current leave from pending calculation
-    //   };
-
-    //   const pendingLeaves = await Leave.sum('noOfDays', {
-    //     where: pendingWhere,
-    //     transaction,
-    //   });
-
-    //   // Check if the balance is sufficient, including pending leaves
-    //   if (userLeave.leaveBalance < (pendingLeaves + totalDays) && !isLOP) {
-    //     await transaction.rollback();
-    //     return res.json({
-    //       message: `Insufficient leave balance for year ${year}. 
-    //       Employee have already applied for ${pendingLeaves} days of leave,
-    //       and employees current balance is ${userLeave.leaveBalance} days. 
-    //       You need an additional ${totalDays} days for this request.`,
-    //     });
-    //   }
-    // }
-
-    // Update UserLeave records only if status is Approved/AdminApproved
-    const shouldUpdateCounts = ['Approved', 'AdminApproved'].includes(status);
-
-    if (shouldUpdateCounts) {
-      for (const [year, { instance: userLeave, days }] of userLeaves) {
-        userLeave.takenLeaves += days;
-        if (!isLOP) {
-          userLeave.leaveBalance -= days;
-        }
-
-        await userLeave.save({ transaction });
+    for (const [year, dates] of datesByYear) {
+      let totalDays = 0;
+      for (const dateObj of dates) {
+        const requiredDays = await calculateDays(dateObj);
+        totalDays += requiredDays;
       }
+
+      let userLeave = await UserLeave.findOne({
+        where: { userId, leaveTypeId, year },
+        transaction,
+      });
+
+      if (!userLeave) {
+        userLeave = await UserLeave.create({
+          userId,
+          leaveTypeId,
+          year,
+          noOfDays: 0,
+          leaveBalance: 0,
+          takenLeaves: 0,
+        }, { transaction });
+      }
+
+      const pendingLeaves = await Leave.sum('noOfDays', {
+        where: {
+          userId,
+          leaveTypeId,
+          status: 'Requested',
+          id: { [Op.ne]: req.params.id }
+        },
+        transaction,
+      }) || 0;
+
+      if (userLeave.leaveBalance < (pendingLeaves + totalDays) && !isLOP) {
+        await transaction.rollback();
+        return res.json({
+          message: `Insufficient leave balance for year ${year}. Employee has already applied for ${pendingLeaves} days of leave, and current balance is ${userLeave.leaveBalance} days. You need ${totalDays} days for this request.`
+        });
+      }
+
+      userLeaves.set(year, { instance: userLeave, days: totalDays });
+      totalBalanceDays += totalDays;
     }
 
-    // Update leave records
-    const updatedLeave = await updateLeaveRecord({
-      leaveId: req.params.id,
+    for (const [year, { instance: userLeave, days }] of userLeaves) {
+      userLeave.takenLeaves += days;
+      if (!isLOP) {
+        userLeave.leaveBalance -= days;
+      }
+      await userLeave.save({ transaction });
+    }
+
+    const updatedLeave = await existingLeave.update({
       userId,
       leaveTypeId,
-      dates: sortedLeaveDates,
+      startDate,
+      endDate,
+      noOfDays: totalBalanceDays,
       notes,
       fileUrl,
-      transaction,
-    });
+      status: status || existingLeave.status,
+      leaveDates,
+    }, { transaction });
 
-    // Send notifications and emails
     const not = await handleNotificationsAndEmails(req, res, updatedLeave, transaction, 'emergency', 'Update');
 
-    // Commit transaction and send response
     await transaction.commit();
-    res.json({
-      leaves: [updatedLeave],
+
+    return res.json({
       not,
-      message: 'Leave updated successfully',
+      message: 'Emergency leave updated successfully',
+      leave: updatedLeave,
     });
+
   } catch (error) {
     if (!transaction.finished) {
       await transaction.rollback();
     }
-    res.json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 }
 

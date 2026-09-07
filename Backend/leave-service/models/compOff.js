@@ -13,7 +13,7 @@ const { sequelize } = require('../config/database');
  })
 
 
- CompOff.sync({alter:true})
-.then(()=>console.log)
+//  CompOff.sync({alter:true})
+// .then(()=>console.log('CompOff table synchronized successfully'))
 
 module.exports = CompOff
