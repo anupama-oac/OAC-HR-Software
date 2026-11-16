@@ -16,12 +16,6 @@
                   <span>Assets</span>
                 </button>
               </mat-grid-tile>
-               <mat-grid-tile>
-                  <button mat-button (click)="openBackup()">
-                    <mat-icon class="muted-text">backup</mat-icon>
-                    <span>Backup</span>
-                  </button>
-                </mat-grid-tile>
 
 
 <!-- 
@@ -31,6 +25,13 @@
                   <span>Company</span>
                 </button>
               </mat-grid-tile> -->
+              
+              <mat-grid-tile>
+                <button mat-button (click)="openRole()">
+                  <mat-icon class="muted-text">verified_user</mat-icon>
+                  <span>Designation</span>
+                </button>
+              </mat-grid-tile>
 
               <mat-grid-tile>
                 <button mat-button (click)="openTeam()">
@@ -40,14 +41,6 @@
               </mat-grid-tile>
             </mat-grid-list>
             <mat-grid-list cols="3" rowHeight="1:1">
-
-              <!-- <mat-grid-tile>
-                <button mat-button (click)="openRole()">
-                  <mat-icon class="muted-text">verified_user</mat-icon>
-                  <span>Designation</span>
-                </button>
-              </mat-grid-tile> -->
-
               <mat-grid-tile>
                 <button mat-button (click)="openHoliday()">
                   <mat-icon class="muted-text">celebration</mat-icon>

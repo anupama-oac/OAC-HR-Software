@@ -1,23 +1,663 @@
-<mat-card>
-    <mat-card-header>
-        <mat-card-title>ORGANIZATION CHART</mat-card-title>
-    </mat-card-header>
-    <div class="tree-container">
-        <div class="tree">
-            <ul>
-                <ng-container *ngFor="let director of directors; let i = index;">
-                    <li>
-                        <a>
-                            <img
-                                [src]="director.url ? (s3 + director.url) : userImage"
-                                alt="Director Image"
-                            />
-                            <span>{{ director.name }}</span>
-                        </a>
-                        <div [innerHTML]="renderNodes(director.id, 1, 6)"></div>
-                    </li>
-                </ng-container>
-            </ul>
+<div class="org-chart-wrapper" [class.is-fullscreen]="isFullscreen">
+  <!-- Top Executive Header & KPI Banner -->
+  <div class="chart-header-card">
+    <div class="header-left">
+      <div class="header-icon-badge">
+        <mat-icon>account_tree</mat-icon>
+      </div>
+      <div class="header-text-group">
+        <div class="title-row">
+          <h1 class="page-title">Organization Chart</h1>
+          <span class="badge-live-tag">
+            <span class="pulse-dot"></span> Active Hierarchy
+          </span>
         </div>
+        <p class="page-subtitle">
+          Executive board of directors, reporting lines, and department teams across Onboard Aero Consultant.
+        </p>
+      </div>
     </div>
-</mat-card>
+
+    <!-- Live KPI Summary Metric Chips -->
+    <div class="header-stats-row">
+      <div class="stat-pill">
+        <mat-icon class="stat-icon icon-gold">workspace_premium</mat-icon>
+        <div class="stat-meta">
+          <span class="stat-val">{{ directorsCount }}</span>
+          <span class="stat-lbl">Directors</span>
+        </div>
+      </div>
+
+      <div class="stat-pill">
+        <mat-icon class="stat-icon">groups</mat-icon>
+        <div class="stat-meta">
+          <span class="stat-val">{{ totalHeadcount }}</span>
+          <span class="stat-lbl">Connected Staff</span>
+        </div>
+      </div>
+
+      <div class="stat-pill">
+        <mat-icon class="stat-icon icon-emerald">apartment</mat-icon>
+        <div class="stat-meta">
+          <span class="stat-val">{{ departmentsCount }}</span>
+          <span class="stat-lbl">Departments</span>
+        </div>
+      </div>
+
+      <div class="stat-pill">
+        <mat-icon class="stat-icon icon-indigo">layers</mat-icon>
+        <div class="stat-meta">
+          <span class="stat-val">{{ maxDepth }}</span>
+          <span class="stat-lbl">Tiers</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Toolbar -->
+  <div class="chart-toolbar-card">
+    <!-- Search Bar -->
+    <div class="toolbar-search-box">
+      <mat-icon class="search-prefix-icon">search</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchText"
+        (input)="onSearchChange()"
+        placeholder="Search employee, designation, dept, or ID..."
+        class="search-input"
+        autocomplete="off" />
+
+      @if (searchText) {
+        <button mat-icon-button class="btn-clear-search" (click)="clearSearch()" matTooltip="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+
+      @if (searchText && searchMatchCount > 0) {
+        <span class="search-count-pill">{{ searchMatchCount }} found</span>
+      }
+    </div>
+
+    <!-- Director Division Filter Pills (when multiple directors exist) -->
+    @if (rootNodes.length > 1) {
+      <div class="dept-filter-group">
+        <button
+          type="button"
+          class="dept-pill director-filter-pill"
+          [class.active]="focusedRootId === null"
+          (click)="filterByRootDirector(null)">
+          <mat-icon>corporate_fare</mat-icon>
+          <span>All Directors ({{ rootNodes.length }})</span>
+        </button>
+        @for (dir of rootNodes; track dir.id) {
+          <button
+            type="button"
+            class="dept-pill director-filter-pill"
+            [class.active]="focusedRootId === dir.id"
+            (click)="filterByRootDirector(dir.id)">
+            <mat-icon>workspace_premium</mat-icon>
+            <span>{{ dir.name }}</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- Department Quick Filter Pills -->
+      <div class="dept-filter-group">
+        @for (dept of departments; track dept) {
+          <button
+            type="button"
+            class="dept-pill"
+            [class.active]="selectedDepartment === dept"
+            (click)="filterByDepartment(dept)">
+            <span>{{ dept === 'ALL' ? 'All Departments' : dept }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- View & Canvas Controls -->
+    <div class="toolbar-actions-group">
+      <!-- View Mode Switcher -->
+      <div class="view-mode-segmented">
+        <button
+          type="button"
+          class="seg-btn"
+          [class.active]="viewMode === 'tree'"
+          (click)="setViewMode('tree')"
+          matTooltip="Interactive Connected Hierarchy Tree">
+          <mat-icon>account_tree</mat-icon>
+          <span>Tree View</span>
+        </button>
+        <button
+          type="button"
+          class="seg-btn"
+          [class.active]="viewMode === 'directory'"
+          (click)="setViewMode('directory')"
+          matTooltip="Structured Executive Division Cards">
+          <mat-icon>grid_view</mat-icon>
+          <span>Board View</span>
+        </button>
+      </div>
+
+      <!-- Expand / Collapse All -->
+      <div class="btn-group-pill">
+        <button
+          mat-icon-button
+          class="tool-btn"
+          (click)="expandAll(true)"
+          matTooltip="Expand all branches">
+          <mat-icon>unfold_more</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          class="tool-btn"
+          (click)="expandAll(false)"
+          matTooltip="Collapse to Directors">
+          <mat-icon>unfold_less</mat-icon>
+        </button>
+      </div>
+
+      @if (viewMode === 'tree') {
+        <!-- Zoom Controls -->
+        <div class="btn-group-pill zoom-group">
+          <button
+            mat-icon-button
+            class="tool-btn"
+            (click)="zoomOut()"
+            [disabled]="zoomLevel <= 0.4"
+            matTooltip="Zoom Out">
+            <mat-icon>zoom_out</mat-icon>
+          </button>
+          <span class="zoom-level-text">{{ (zoomLevel * 100) | number: '1.0-0' }}%</span>
+          <button
+            mat-icon-button
+            class="tool-btn"
+            (click)="zoomIn()"
+            [disabled]="zoomLevel >= 1.8"
+            matTooltip="Zoom In">
+            <mat-icon>zoom_in</mat-icon>
+          </button>
+        </div>
+
+        <button
+          mat-icon-button
+          class="tool-btn-single"
+          (click)="fitToScreen()"
+          matTooltip="Fit & center tree on screen">
+          <mat-icon>fit_screen</mat-icon>
+        </button>
+      }
+
+      <button
+        mat-icon-button
+        class="tool-btn-single"
+        (click)="toggleFullscreen()"
+        matTooltip="Toggle Fullscreen">
+        <mat-icon>{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        class="tool-btn-single"
+        (click)="printChart()"
+        matTooltip="Print organization chart">
+        <mat-icon>print</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW 1: Interactive Connected Hierarchy Tree -->
+  @if (viewMode === 'tree') {
+    <div
+      class="chart-viewport"
+      #chartContainer
+      (mousedown)="onMouseDown($event)"
+      (mousemove)="onMouseMove($event)"
+      (mouseup)="onMouseUp()"
+      [class.panning]="isPanning">
+
+      @if (isLoading) {
+        <div class="canvas-loading-overlay">
+          <mat-spinner diameter="48"></mat-spinner>
+          <h3>Loading Organization Hierarchy...</h3>
+          <p>Structuring reporting lines and executive nodes.</p>
+        </div>
+      } @else if (displayedRootNodes.length === 0) {
+        <div class="canvas-empty-overlay">
+          <div class="empty-icon-box">
+            <mat-icon>group_off</mat-icon>
+          </div>
+          <h3>No Organization Data Found</h3>
+          <p>No active directors or reporting hierarchy found.</p>
+          <button mat-flat-button color="primary" (click)="loadOrganizationTree()">
+            <mat-icon>refresh</mat-icon>
+            <span>Reload Hierarchy</span>
+          </button>
+        </div>
+      } @else {
+        <!-- Scalable Canvas Container -->
+        <div
+          class="tree-canvas"
+          #chartCanvas
+          [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoomLevel + ')'">
+
+          <div class="org-tree-wrapper">
+            <!-- Top Corporate Crest Root -->
+            <div class="company-crest-root">
+              <div class="crest-card">
+                <div class="crest-emblem">
+                  <mat-icon>flight_takeoff</mat-icon>
+                </div>
+                <div class="crest-info">
+                  <span class="crest-eyebrow">CORPORATE HIERARCHY</span>
+                  <h2 class="crest-title">Onboard Aero Consultant</h2>
+                </div>
+                <span class="crest-count-badge">{{ totalHeadcount }} Members</span>
+              </div>
+              <div class="crest-stem-line"></div>
+            </div>
+
+            <!-- Directors & Reporting Hierarchy -->
+            <ul class="root-tree-level" [class.single-root]="displayedRootNodes.length === 1">
+              @for (root of displayedRootNodes; track root.id) {
+                <ng-container
+                  *ngTemplateOutlet="nodeTemplate; context: { node: root, isRoot: true }">
+                </ng-container>
+              }
+            </ul>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- VIEW 2: Structured Executive Board View (No Horizontal Scroll Needed) -->
+  @if (viewMode === 'directory') {
+    <div class="board-view-container">
+      @for (director of displayedRootNodes; track director.id) {
+        <div class="director-division-panel">
+          <!-- Director Division Header -->
+          <div class="division-header" (click)="selectEmployee(director, $event)">
+            <div class="division-director-left">
+              <div class="division-avatar-wrap">
+                @if (director.avatarUrl) {
+                  <img [src]="director.avatarUrl" [alt]="director.name" class="division-avatar-img" (error)="director.avatarUrl = ''" />
+                } @else {
+                  <div class="division-avatar-initials">{{ director.initials }}</div>
+                }
+                <span class="director-crown-badge"><mat-icon>workspace_premium</mat-icon></span>
+              </div>
+
+              <div class="division-director-info">
+                <div class="dir-top-line">
+                  <span class="dir-role-badge">EXECUTIVE DIRECTOR</span>
+                  <span class="dir-emp-code">#{{ director.empNo }}</span>
+                </div>
+                <h2 class="dir-name">{{ director.name }}</h2>
+                <span class="dir-desig">{{ director.designation }} · {{ director.department }}</span>
+              </div>
+            </div>
+
+            <div class="division-stats-right">
+              <div class="div-stat-box">
+                <span class="div-stat-num">{{ director.directReportsCount }}</span>
+                <span class="div-stat-lbl">Direct Reports</span>
+              </div>
+              <div class="div-stat-box">
+                <span class="div-stat-num">{{ director.totalSubordinatesCount }}</span>
+                <span class="div-stat-lbl">Total Division</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Division Reporting Members Grid -->
+          @if (director.children.length > 0) {
+            <div class="division-body">
+              <div class="division-cards-grid">
+                @for (member of director.children; track member.id) {
+                  <div
+                    class="board-member-card"
+                    [class.has-subteam]="member.children.length > 0"
+                    [class.highlighted]="member.highlighted"
+                    (click)="selectEmployee(member, $event)">
+                    <div class="bm-top">
+                      <div class="bm-avatar">
+                        @if (member.avatarUrl) {
+                          <img [src]="member.avatarUrl" [alt]="member.name" (error)="member.avatarUrl = ''" />
+                        } @else {
+                          <span>{{ member.initials }}</span>
+                        }
+                      </div>
+                      <div class="bm-info">
+                        <h4 class="bm-name">{{ member.name }}</h4>
+                        <span class="bm-desig">{{ member.designation }}</span>
+                        <span class="bm-dept">{{ member.department }} · {{ member.empNo }}</span>
+                      </div>
+                      @if (member.children.length > 0) {
+                        <button
+                          type="button"
+                          class="bm-expand-btn"
+                          (click)="toggleNode(member, $event)">
+                          <mat-icon>{{ member.expanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+                          <span>{{ member.children.length }}</span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (member.children.length > 0 && member.expanded) {
+                      <div class="bm-subteam-box" (click)="$event.stopPropagation()">
+                        <div class="subteam-label">
+                          <mat-icon>subdirectory_arrow_right</mat-icon>
+                          <span>Reports to {{ member.name }} ({{ member.children.length }})</span>
+                        </div>
+                        <div class="subteam-chips">
+                          @for (sub of member.children; track sub.id) {
+                            <div class="subteam-chip" (click)="selectEmployee(sub, $event)">
+                              <span class="sub-chip-initials">{{ sub.initials }}</span>
+                              <div class="sub-chip-text">
+                                <span class="sub-chip-name">{{ sub.name }}</span>
+                                <span class="sub-chip-role">{{ sub.designation }}</span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Recursive Angular Node Template -->
+  <ng-template #nodeTemplate let-node="node" let-isRoot="isRoot">
+    <li
+      class="tree-branch-node"
+      [class.is-root-node]="isRoot"
+      [class.has-children]="node.children?.length > 0"
+      [class.branch-collapsed]="!node.expanded">
+
+      <!-- Employee Card -->
+      <div
+        class="org-card"
+        [id]="'node-card-' + node.id"
+        [ngClass]="node.departmentClass"
+        [class.highlighted]="node.highlighted"
+        [class.is-director]="node.director"
+        [class.is-manager]="!node.director && node.directReportsCount > 0"
+        (click)="selectEmployee(node, $event)">
+
+        <!-- Accent Top Bar -->
+        <div class="card-accent-bar"></div>
+
+        <!-- Tier Badge (Director or Team Lead) -->
+        @if (node.director) {
+          <div class="badge-director" matTooltip="Board of Directors / Executive Leadership">
+            <mat-icon>workspace_premium</mat-icon>
+            <span>Director</span>
+          </div>
+        } @else if (node.directReportsCount > 0) {
+          <div class="badge-manager" matTooltip="Team Lead / Reporting Manager">
+            <mat-icon>supervisor_account</mat-icon>
+            <span>Manager</span>
+          </div>
+        }
+
+        <!-- Card Content Body -->
+        <div class="card-body">
+          <div class="avatar-wrap">
+            @if (node.avatarUrl) {
+              <img [src]="node.avatarUrl" [alt]="node.name" class="avatar-img" (error)="node.avatarUrl = ''" />
+            } @else {
+              <div class="avatar-initials">
+                {{ node.initials }}
+              </div>
+            }
+            <span class="status-indicator-dot" matTooltip="Active Employee"></span>
+          </div>
+
+          <div class="card-info">
+            <h4 class="emp-name" [matTooltip]="node.name">{{ node.name }}</h4>
+            <span class="emp-designation" [matTooltip]="node.designation">{{ node.designation }}</span>
+
+            <div class="emp-meta-tags">
+              <span class="tag-dept">
+                <mat-icon>{{ getDepartmentIcon(node.department) }}</mat-icon>
+                {{ node.department }}
+              </span>
+              <span class="tag-empno">{{ node.empNo }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footer Info & Quick Actions -->
+        <div class="card-footer">
+          <div class="reports-summary">
+            @if (node.directReportsCount > 0) {
+              <span class="badge-report-count">
+                <mat-icon>groups</mat-icon>
+                {{ node.directReportsCount }} Direct
+                @if (node.totalSubordinatesCount > node.directReportsCount) {
+                  · {{ node.totalSubordinatesCount }} Total
+                }
+              </span>
+            } @else {
+              <span class="badge-ic-contributor">
+                <mat-icon>verified_user</mat-icon>
+                Team Member
+              </span>
+            }
+          </div>
+
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <button
+              mat-icon-button
+              class="btn-card-action"
+              (click)="navigateToUser(node.id)"
+              matTooltip="Open full employee record">
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Branch Toggle Button (+ / - count) -->
+      @if (node.children?.length > 0) {
+        <button
+          type="button"
+          class="branch-toggle-btn"
+          [class.collapsed]="!node.expanded"
+          (click)="toggleNode(node, $event)"
+          [matTooltip]="node.expanded ? 'Collapse branch (' + node.children.length + ' direct reports)' : 'Expand branch (' + node.children.length + ' direct reports)'">
+          <mat-icon class="toggle-icon">{{ node.expanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          <span class="toggle-count">{{ node.children.length }}</span>
+        </button>
+
+        <!-- Recursive Children Branch Level -->
+        @if (node.expanded) {
+          <ul
+            class="branch-children-level"
+            [class.grid-branch-layout]="useGridForChildren(node)">
+            @if (useGridForChildren(node)) {
+              <li class="team-pod-header-row">
+                <div class="pod-title-pill">
+                  <mat-icon>groups</mat-icon>
+                  <span>{{ node.name }}'s Direct Team ({{ node.children.length }} Members)</span>
+                </div>
+              </li>
+            }
+            @for (child of node.children; track child.id) {
+              <ng-container
+                *ngTemplateOutlet="nodeTemplate; context: { node: child, isRoot: false }">
+              </ng-container>
+            }
+          </ul>
+        }
+      }
+    </li>
+  </ng-template>
+
+  <!-- Employee Quick Profile Slide-Over Drawer -->
+  @if (selectedEmployee) {
+    <div class="drawer-backdrop" (click)="closeEmployeeDrawer()"></div>
+    <aside class="employee-drawer-panel">
+      <!-- Drawer Header -->
+      <div class="drawer-header">
+        <div class="drawer-header-title">
+          <mat-icon>badge</mat-icon>
+          <span>Employee Profile</span>
+        </div>
+        <button mat-icon-button class="btn-drawer-close" (click)="closeEmployeeDrawer()" aria-label="Close drawer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Drawer Content -->
+      <div class="drawer-body">
+        <!-- Hero Profile Banner -->
+        <div class="drawer-hero-banner" [ngClass]="selectedEmployee.departmentClass">
+          <div class="drawer-avatar-wrap">
+            @if (selectedEmployee.avatarUrl) {
+              <img [src]="selectedEmployee.avatarUrl" [alt]="selectedEmployee.name" class="drawer-avatar-img" (error)="selectedEmployee.avatarUrl = ''" />
+            } @else {
+              <div class="drawer-avatar-initials">
+                {{ selectedEmployee.initials }}
+              </div>
+            }
+          </div>
+
+          <h2 class="drawer-name">{{ selectedEmployee.name }}</h2>
+          <p class="drawer-desig">{{ selectedEmployee.designation }}</p>
+
+          <div class="drawer-tags-row">
+            <span class="drawer-dept-tag">
+              <mat-icon>{{ getDepartmentIcon(selectedEmployee.department) }}</mat-icon>
+              {{ selectedEmployee.department }}
+            </span>
+            <span class="drawer-code-tag">{{ selectedEmployee.empNo }}</span>
+            @if (selectedEmployee.director) {
+              <span class="drawer-director-tag">
+                <mat-icon>stars</mat-icon> Director
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Quick Metrics -->
+        <div class="drawer-metrics-grid">
+          <div class="metric-box">
+            <span class="metric-num">{{ selectedEmployee.level }}</span>
+            <span class="metric-lbl">Hierarchy Level</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-num">{{ selectedEmployee.directReportsCount }}</span>
+            <span class="metric-lbl">Direct Reports</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-num">{{ selectedEmployee.totalSubordinatesCount }}</span>
+            <span class="metric-lbl">Total Team</span>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="drawer-section">
+          <h3 class="section-title">
+            <mat-icon>contact_mail</mat-icon>
+            <span>Contact Information</span>
+          </h3>
+
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-key">Official Email</span>
+              <a [href]="'mailto:' + selectedEmployee.email" class="info-val link-val">
+                {{ selectedEmployee.email || 'Not configured' }}
+              </a>
+            </div>
+
+            <div class="info-row">
+              <span class="info-key">Phone Number</span>
+              <span class="info-val">{{ selectedEmployee.phoneNumber || 'Not provided' }}</span>
+            </div>
+
+            <div class="info-row">
+              <span class="info-key">System Role</span>
+              <span class="info-val">{{ selectedEmployee.role || 'Employee' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reporting Manager -->
+        @if (selectedEmployee.parentId && allNodesMap.has(selectedEmployee.parentId)) {
+          <div class="drawer-section">
+            <h3 class="section-title">
+              <mat-icon>supervisor_account</mat-icon>
+              <span>Reports Directly To</span>
+            </h3>
+
+            <div
+              class="manager-card"
+              (click)="openManagerProfile(selectedEmployee.parentId)">
+              <div class="manager-avatar-initials">
+                {{ computeInitials(selectedEmployee.parentName) }}
+              </div>
+              <div class="manager-meta">
+                <h4 class="manager-name">{{ selectedEmployee.parentName }}</h4>
+                <span class="manager-role">
+                  {{ allNodesMap.get(selectedEmployee.parentId)?.designation }}
+                </span>
+              </div>
+              <mat-icon class="manager-arrow">arrow_forward</mat-icon>
+            </div>
+          </div>
+        }
+
+        <!-- Direct Reportees Sub-Team -->
+        @if (selectedEmployee.children && selectedEmployee.children.length > 0) {
+          <div class="drawer-section">
+            <h3 class="section-title">
+              <mat-icon>groups</mat-icon>
+              <span>Direct Subordinates ({{ selectedEmployee.children.length }})</span>
+            </h3>
+
+            <div class="team-cards-list">
+              @for (sub of selectedEmployee.children; track sub.id) {
+                <div class="sub-team-card" (click)="selectEmployee(sub)">
+                  <div class="sub-avatar-initials">
+                    {{ sub.initials }}
+                  </div>
+                  <div class="sub-meta">
+                    <span class="sub-name">{{ sub.name }}</span>
+                    <span class="sub-desig">{{ sub.designation }}</span>
+                  </div>
+                  <mat-icon class="sub-arrow">chevron_right</mat-icon>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Drawer Footer Actions -->
+      <div class="drawer-footer">
+        <button
+          mat-stroked-button
+          class="btn-drawer-cancel"
+          (click)="closeEmployeeDrawer()">
+          <span>Close</span>
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          class="btn-drawer-view"
+          (click)="navigateToUser(selectedEmployee.id)">
+          <mat-icon>person</mat-icon>
+          <span>View Full Profile</span>
+        </button>
+      </div>
+    </aside>
+  }
+</div>

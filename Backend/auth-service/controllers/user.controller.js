@@ -1,40 +1,46 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable no-undef */
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const Role = require('../models/role')
 const { Op } = require('sequelize');
-const { sequelize } = require('../config/database');
+const { sequelize, syncAllPostgresSequences } = require('../config/database');
 const { upload } = require('../utils/userImageMulter');
 const s3 = require('../utils/s3bucket');
-// const UserLeave = require('../../leave-service/models/userLeave');
-// const LeaveType = require('../../leave-service/models/leaveType');
 const UserPersonal = require('../models/userPersonal');
 const UserPosition = require('../models/userPosition');
 const Designation = require('../models/designation');
 const StatutoryInfo = require('../models/statutoryInfo');
 const UserDocument = require('../models/userDocument');
+const UserAccount = require('../models/userAccount');
+const UserNominee = require('../models/userNominee');
+const UserQualification = require('../models/userQualification');
 const { sendEmail } = require('../utils/emailService');
 const config = require('../utils/config');
 const { assign } = require('nodemailer/lib/shared');
 
 exports.addUser = async (req, res) => {
 
-// router.post('/add', authenticateToken, async (req, res) => {
   const { name, email, phoneNumber, password, status, userImage, url, empNo, director, officialMailId } = req.body;
 
   try {
+    if (typeof syncAllPostgresSequences === 'function') {
+      await syncAllPostgresSequences();
+    }
+
     let roleId = req.body.roleId;
-    if(roleId === '' || roleId === null || roleId === undefined){
-      try {
-        const role = await Role.findOne({ where: {roleName: 'Employee'}})
-        roleId = role.id;
-      } catch (error) {
-        res.send(error.message)
+    if (!roleId) {
+      let role = await Role.findOne({ where: { roleName: 'Employee' } });
+      if (!role) {
+        [role] = await Role.findOrCreate({
+          where: { roleName: 'Employee' },
+          defaults: { roleName: 'Employee', abbreviation: 'EMP', status: true, department: 'General' }
+        });
       }
+      roleId = role?.id;
     }
 
     const userExist = await User.findOne({
@@ -88,15 +94,14 @@ exports.addUser = async (req, res) => {
     res.send(error.message);
   }
 }
-// });
+
 exports.findAllUsers = async (req, res) => {
-// router.get('/find/', authenticateToken, async (req, res) => {
   try {
     let whereClause = { separated: false, status: true };
     let limit;
     let offset;
 
-    if (req.query.search && req.query.search !== 'undefined') {
+    if (req.query.search && req.query.search !== 'undefined' && req.query.search.trim() !== '') {
       const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
       whereClause = {
         [Op.and]: [
@@ -107,19 +112,15 @@ exports.findAllUsers = async (req, res) => {
                 { [Op.like]: `%${searchTerm}%` }
               ),
               sequelize.where(
+                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('empNo'), ' ', '')),
+                { [Op.like]: `%${searchTerm}%` }
+              ),
+              sequelize.where(
                 sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('phoneNumber'), ' ', '')),
                 { [Op.like]: `%${searchTerm}%` }
               ),
               sequelize.where(
                 sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('email'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              ),
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('statutoryinfo.adharNo'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              ),
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('statutoryinfo.panNumber'), ' ', '')),
                 { [Op.like]: `%${searchTerm}%` }
               )
             ]
@@ -128,61 +129,60 @@ exports.findAllUsers = async (req, res) => {
           { separated: false }
         ]
       };
-    } else {
-      if (req.query.pageSize && req.query.page && req.query.pageSize !== 'undefined' && req.query.page !== 'undefined') {
-        limit = parseInt(req.query.pageSize, 10);
-        offset = (parseInt(req.query.page, 10) - 1) * limit;
-      }
     }
 
-    // Fetch paginated data
+    if (req.query.pageSize && req.query.page && req.query.pageSize !== 'undefined' && req.query.page !== 'undefined') {
+      limit = parseInt(req.query.pageSize, 10);
+      offset = (parseInt(req.query.page, 10) - 1) * limit;
+    }
+
     const users = await User.findAll({
       where: whereClause,
-      order: [['id']],
+      order: [['id', 'ASC']],
       include: [
-        { model: Role, as: 'role', attributes: ['id', 'roleName'] },
-        { model: StatutoryInfo, as: 'statutoryinfo', required: false }, // Ensure alias matches the association
+        { model: Role, as: 'role', attributes: ['id', 'roleName'], required: false },
         {
           model: UserPosition,
-          attributes: ['designationId'],
-          include: [{ model: Designation, 
-            as: 'designation',
-            attributes: ['designationName'] }]
+          as: 'userPosition',
+          required: false,
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        },
+        {
+          model: UserPersonal,
+          as: 'userPersonal',
+          required: false,
+          attributes: ['id', 'reportingMangerId', 'dateOfJoining', 'bloodGroup', 'gender']
         }
       ],
       limit,
-      offset
+      offset,
+      subQuery: false
     });
-
-    // Count total records that match the search condition
+    
     const totalCount = await User.count({
-      where: whereClause,
-      include: [
-        { model: StatutoryInfo, as: 'statutoryinfo', required: false } // Ensure consistent inclusion
-      ]
+      where: whereClause
     });
 
-    // Return the response
-    if (req.query.page !== 'undefined' && req.query.pageSize !== 'undefined') {
+    if (req.query.page && req.query.pageSize && req.query.page !== 'undefined' && req.query.pageSize !== 'undefined') {
       const response = {
         count: totalCount,
-        items: users // Paginated data
+        items: users
       };
-
       res.json(response);
     } else {
       res.send(users);
     }
   } catch (error) {
-    res.send(error.message);
+    console.error("Error in findAllUsers:", error);
+    res.status(500).json({ error: error.message });
   }
-// 
 }
 
 
 exports.UserSearchName = async (req, res) => {
-
-// router.get('/search/name', authenticateToken, async (req, res) => {
   try {
     let whereClause = {};
     if (req.query.search) {
@@ -204,17 +204,15 @@ exports.UserSearchName = async (req, res) => {
       order: [["id", "ASC"]]
     });
 
-    res.send(result); // Send the results to the client
+    res.send(result);
   } catch (error) {
     res.send(error.message);
   }
-// 
 }
 
 
 
 exports.updateStatus = async (req, res) => {
-// router.patch('/statusupdate/:id', authenticateToken, async (req, res) => {
   try {
     let status = req.body.status;
     let result = await User.findByPk(req.params.id);
@@ -224,7 +222,6 @@ exports.updateStatus = async (req, res) => {
   } catch (error) {
     res.send(error.message);
   }
-// 
 }
 
 exports.UserFindOne = async (req, res) => {
@@ -240,7 +237,7 @@ exports.UserFindOne = async (req, res) => {
         },
         { 
           model: UserPosition, 
-          as: 'userPosition', // Matches profileModels alias
+          as: 'userPosition',
           attributes: ['designationId'],
           include: [
             { 
@@ -252,7 +249,7 @@ exports.UserFindOne = async (req, res) => {
         },
         { 
           model: UserPersonal, 
-          as: 'userPersonal', // 👈 CHANGED: Capital 'P' to match model definition
+          as: 'userPersonal',
           attributes: ['dateOfBirth'] 
         }
       ]
@@ -271,9 +268,7 @@ exports.UserFindOne = async (req, res) => {
 
 
 exports.UpdateUser = async(req,res)=>{
-// router.patch('/update/:id', async(req,res)=>{
   const { name, email, phoneNumber, url, empNo} = req.body;
-  // const pass = await bcrypt.hash(password, 10);
   try {
     let result = await User.findByPk(req.params.id);
     result.name = name;
@@ -286,14 +281,10 @@ exports.UpdateUser = async(req,res)=>{
   } catch (error) {
     res.send(error.message);
   }
-// })
 
 }
 
 exports.UpdateImage = async (req,res)=>{
-// router.patch('/imageupdate/:id', authenticateToken, async(req,res)=>{
- 
- 
     const {url} = req.body;
   try {
     let result = await User.findByPk(req.params.id);
@@ -304,12 +295,9 @@ exports.UpdateImage = async (req,res)=>{
   } catch (error) {
     res.send(error.message);
   }
-// })
 }
 
 exports.DeleteUser = async (req,res)=>{
-// router.delete('/delete/:id',  authenticateToken, async (req, res) => {
-  
     const id = req.params.id
   try {
     const user = await User.findByPk(id)
@@ -317,8 +305,8 @@ exports.DeleteUser = async (req,res)=>{
 
     if(fileKey){
       const deleteParams = {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: fileKey
+        Bucket: process.env.AWS_BUCKET_NAME || 'aerohr-uploads',
+        Key: fileKey.replace(/^https?:\/\/[^\/]+\//, '')
       };
       await s3.deleteObject(deleteParams).promise();
     }
@@ -327,11 +315,13 @@ exports.DeleteUser = async (req,res)=>{
     if(userDoc.length > 0){
         for(let i = 0; i < userDoc.length; i++) {
           const docKey = userDoc[i].docUrl;
-          const deleteParams = {
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: docKey
-          };
-          await s3.deleteObject(deleteParams).promise();
+          if (docKey) {
+            const deleteParams = {
+              Bucket: process.env.AWS_BUCKET_NAME || 'aerohr-uploads',
+              Key: docKey.replace(/^https?:\/\/[^\/]+\//, '')
+            };
+            await s3.deleteObject(deleteParams).promise();
+          }
         }
     }
 
@@ -349,7 +339,6 @@ exports.DeleteUser = async (req,res)=>{
   } catch (error) {
     res.send(error.message)
   }
-// })
 }
 
 exports.FindByRole = async (req,res)=>{
@@ -362,14 +351,8 @@ exports.FindByRole = async (req,res)=>{
     res.send(error.message)
   }
 }
-// router.get('/findbyrole/:id', authenticateToken, async (req, res) => {
-  
-
-// })
 
 exports.FindRoleByRolename = async(req,res)=>{
-// router.get('/findbyroleName/:roleName', authenticateToken, async (req, res) => {
- 
     try {
     const users = await User.findAll({
       include: { model: Role,
@@ -382,58 +365,91 @@ exports.FindRoleByRolename = async(req,res)=>{
   } catch (error) {
     res.send(error.message );
   }
-// });
 }
 
-
-
-exports.FindDirectors = async (req,res)=>{
-// router.get('/getdirectors', authenticateToken, async (req, res) => {
-  
-    try {
+exports.FindDirectors = async (req, res) => {
+  try {
     const user = await User.findAll({
-      where: { director: true }
-    })
+      where: { director: true, separated: false },
+      include: [
+        { model: Role, as: 'role', attributes: ['id', 'roleName'], required: false },
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          required: false,
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        }
+      ]
+    });
     res.send(user);
   } catch (error) {
-    res.send(error.message)
+    res.status(500).send(error.message);
   }
-// 
-}
+};
 
-exports.FindSeparated = async (req,res)=>{
-    try {
+exports.FindSeparated = async (req, res) => {
+  try {
     const user = await User.findAll({
       where: { separated: true },
       include: [
-        { model: Role,
+        {
+          model: Role,
           as: 'role',
-           attributes: ['roleName']}
+          attributes: ['id', 'roleName'],
+          required: false
+        },
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          required: false,
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          include: [
+            {
+              model: Designation,
+              as: 'designation',
+              required: false,
+              attributes: ['id', 'designationName', 'abbreviation']
+            }
+          ]
+        }
       ]
-    })
+    });
     res.send(user);
   } catch (error) {
-    res.send(error.message)
+    res.status(500).send(error.message);
   }
-}
+};
 
-exports.findReportingManager = async (req,res)=>{
+exports.findReportingManager = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
 
     const users = await User.findAll({
       where: {
-        separated: false, // Filter users who are not separated
+        separated: false,
       },
       include: [
         {
           model: UserPersonal,
-          as: 'userpersonal',
-          required: true, // Ensures only users with a UserPersonal record are included
+          as: 'userPersonal',
+          required: true,
           where: {
-            reportingMangerId: id, // Filter by reporting manager ID
+            reportingMangerId: id,
           },
         },
+        { model: Role, as: 'role', attributes: ['id', 'roleName'], required: false },
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          required: false,
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        }
       ],
     });
 
@@ -441,43 +457,42 @@ exports.findReportingManager = async (req,res)=>{
   } catch (error) {
     res.status(500).send(error.message);
   }
-}
+};
 
 
 exports.fileUpload = async (req, res) => {
   try {
     if (!req.file) {
-      return res.send('No file uploaded or invalid file type');
+      return res.status(400).json({ message: 'No file uploaded or invalid file type' });
     }
 
-    // Sanitize the original file name by removing special characters and spaces
-    const sanitizedFileName = req.file.originalname.replace(/[^a-zA-Z0-9]/g, '_');
+    const sanitizedFileName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const bucket = process.env.AWS_BUCKET_NAME || 'aerohr-uploads';
+    const key = `oac/Users/Images/${Date.now()}_${sanitizedFileName}`;
 
-    // Create S3 upload parameters
     const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `Users/Images/${Date.now()}_${sanitizedFileName}`, // File path with sanitized name
+      Bucket: bucket,
+      Key: key,
       Body: req.file.buffer,
-      ContentType: req.file.mimetype,
-      ACL: 'public-read' // Optional: make file publicly accessible
+      ContentType: req.file.mimetype
     };
 
     const data = await s3.upload(params).promise();
 
-    const fileUrl = data.Location ? data.Location : '';
+    const fileUrl = data.Key || key;
 
-    // Replace only if fileUrl is valid
-    const key = fileUrl ? fileUrl.replace(`https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`, '') : null;
-
-    res.status(200).send({
+    res.status(200).json({
       message: 'File uploaded successfully',
       file: req.file,
-      fileUrl: key // S3 URL of the uploaded file
+      fileUrl: fileUrl,
+      url: data.Location
     });
   } catch (error) {
-    res.send(error.message );
+    console.error('File upload error:', error);
+    res.status(500).json({ message: error.message || 'File upload failed' });
   }
 }
+
 exports.fileDelete = async (req, res) => {
   const id = req.query.id;
   let fileKey;
@@ -496,51 +511,50 @@ exports.fileDelete = async (req, res) => {
 
     if (!fileKey) {
       const key = req.query.key;
-      fileKey = key ? key.replace(`https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`, '') : null;
+      fileKey = key;
     }
 
     if (!fileKey) {
       return res.json({ message: "File key is missing" });
     }
 
-    // Set S3 delete parameters
+    fileKey = fileKey.replace(/^https?:\/\/[^\/]+\//, '');
+
     const deleteParams = {
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: process.env.AWS_BUCKET_NAME || 'aerohr-uploads',
       Key: fileKey,
     };
 
-    // Delete the file from S3
     await s3.deleteObject(deleteParams).promise();
 
     res.json({ message: "File deleted successfully" });
   } catch (error) {
     console.error("File delete error:", error);
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
-// 
 }
 
 exports.fileDeleteByURL = async (req, res) => {
-    key = req.query.key;
-    fileKey = key ? key.replace(`https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`, '') : null;
-    try {
-      if (!fileKey) {
-        return res.send({ message: 'No file key provided' });
-      }
-
-      // Set S3 delete parameters
-      const deleteParams = {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: fileKey
-      };
-
-      // Delete the file from S3
-      await s3.deleteObject(deleteParams).promise();
-
-      res.send( 'File deleted successfully' );
-    } catch (error) {
-      res.send(error.message );
+  try {
+    const key = req.query.key;
+    if (!key) {
+      return res.status(400).json({ message: 'No file key provided' });
     }
+
+    const fileKey = key.replace(/^https?:\/\/[^\/]+\//, '');
+
+    const deleteParams = {
+      Bucket: process.env.AWS_BUCKET_NAME || 'aerohr-uploads',
+      Key: fileKey
+    };
+
+    await s3.deleteObject(deleteParams).promise();
+
+    res.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('File delete by URL error:', error);
+    res.status(500).json({ message: error.message });
+  }
 }
 
 
@@ -551,14 +565,29 @@ exports.underProbation = async (req, res) => {
         {
           model: Role,
           as: 'role',
-          attributes: ['roleName']
+          attributes: ['id', 'roleName'],
+          required: false
         },
-      ], order: [['name', 'ASC']], 
-      where: { isTemporary: true, separated: false }
-    })
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          required: false,
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        }
+      ],
+      order: [['name', 'ASC']],
+      where: {
+        isTemporary: true,
+        separated: false
+      }
+    });
     res.send(user);
   } catch (error) {
-    res.send(error.message)
+    console.error("Error in underProbation:", error);
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -569,100 +598,97 @@ exports.confirmed = async (req, res) => {
         {
           model: Role,
           as: 'role',
-          attributes: ['roleName']
+          attributes: ['id', 'roleName'],
+          required: false
         },
         {
-          model: UserPosition,  
-          attributes: ['officialMailId'], // Include official email
-        },
+          model: UserPosition,
+          as: 'userPosition',
+          attributes: ['id', 'designationId', 'officialMailId', 'department'],
+          required: false,
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        }
       ],
-      where: { isTemporary: false, separated: false }, order: [['name', 'ASC']], 
-    })
+      where: {
+        isTemporary: false,
+        separated: false
+      },
+      order: [['name', 'ASC']],
+    });
     res.send(user);
   } catch (error) {
-    res.send(error.message)
+    console.error("Error in confirmed:", error);
+    res.status(500).json({ error: error.message });
   }
-
 }
 
 exports.confirmEmployee = async (req, res) => {
   try {
     const userId = req.params.id;
-    const currentYear = new Date().getFullYear();
 
-    // 1️⃣ Get employee
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // 2️⃣ Get employment details
     const post = await UserPosition.findOne({
       where: { userId }
     });
 
-    if (!post) {
-      return res
-        .status(400)
-        .json({ message: `Employment data is not added for ${user.name}` });
+    const note = req.query.note || req.body?.note || '';
+    const statusParam = (req.query.status || req.body?.status || req.body?.targetStatus || '').toLowerCase();
+    const isTempParam = req.query.isTemporary !== undefined 
+      ? (req.query.isTemporary === 'true') 
+      : (req.body?.isTemporary !== undefined ? !!req.body.isTemporary : undefined);
+
+    let setToProbation = false;
+    if (statusParam === 'probation' || isTempParam === true) {
+      setToProbation = true;
+    } else if (statusParam === 'confirmation' || statusParam === 'confirmed' || isTempParam === false) {
+      setToProbation = false;
+    } else {
+      setToProbation = !user.isTemporary;
     }
 
-    // 3️⃣ Prevent reconfirming
-    if (!user.isTemporary) {
-      return res.json({ message: "Employee is already confirmed." });
+    if (setToProbation) {
+      user.isTemporary = true;
+      await user.save();
+
+      if (post) {
+        post.probationNote = note || post.probationNote;
+        post.confirmationDate = null;
+        await post.save();
+      }
+
+      return res.json({
+        success: true,
+        message: `${user.name} status changed to probation successfully.`,
+        isTemporary: true
+      });
+    } else {
+      user.isTemporary = false;
+      await user.save();
+
+      if (post) {
+        post.probationNote = note || post.probationNote;
+        post.confirmationDate = req.query.date || req.body?.date || new Date();
+        await post.save();
+      }
+
+      return res.json({
+        success: true,
+        message: `${user.name} is confirmed successfully.`,
+        isTemporary: false
+      });
     }
-
-    // 4️⃣ Update employment details
-    post.probationNote = req.query.note || null;
-    post.confirmationDate = new Date();
-    await post.save();
-
-    // 5️⃣ Confirm employee
-    user.isTemporary = false;
-    await user.save();
-
- 
-    // const leaveTypes = await LeaveType.findAll();
-    // const leaveTypeMap = {};
-
-    // leaveTypes.forEach(lt => {
-    //   leaveTypeMap[lt.leaveTypeName] = lt.id;
-    // });
-
-    // const slId = leaveTypeMap['Sick Leave'];
-    // const clId = leaveTypeMap['Casual Leave'];
-    // const coId = leaveTypeMap['Comp Off'];
-
-
-    // const leaveData = [
-    //   { leaveTypeId: slId, noOfDays: 1, leaveBalance: 1 },
-    //   { leaveTypeId: clId, noOfDays: 1, leaveBalance: 1 },
-    //   { leaveTypeId: coId, noOfDays: 0, leaveBalance: 0 }
-    // ];
-
-   
-    // for (const leave of leaveData) {
-    //   if (!leave.leaveTypeId) continue;
-
-    //   await UserLeave.upsert({
-    //     userId,
-    //     leaveTypeId: leave.leaveTypeId,
-    //     year: currentYear,
-    //     noOfDays: leave.noOfDays,
-    //     leaveBalance: leave.leaveBalance
-    //   });
-    // }
-
-    // 9️⃣ Response
-    return res.json({
-      message: `${user.name} is confirmed successfully.`
-    });
 
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
   }
-}
+};
 
 exports.findTotalAllUsers = async (req, res) => {
   try {
@@ -709,4 +735,84 @@ exports.editNote = async (req, res) => {
   }
 }
 
+exports.exportAllEmployees = async (req, res) => {
+  try {
+    const whereClause = {};
+    if (req.query.includeSeparated !== 'true') {
+      whereClause.separated = false;
+    }
 
+    const users = await User.findAll({
+      where: whereClause,
+      order: [['empNo', 'ASC'], ['name', 'ASC']],
+      include: [
+        { model: Role, as: 'role', attributes: ['id', 'roleName'], required: false },
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          required: false,
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        },
+        {
+          model: UserPersonal,
+          as: 'userPersonal',
+          required: false,
+          include: [
+            { model: User, as: 'ReportingManager', required: false, attributes: ['id', 'name', 'empNo'] }
+          ]
+        },
+        { model: UserAccount, as: 'userAccount', required: false },
+        { model: StatutoryInfo, as: 'statutoryInfo', required: false },
+        { model: UserNominee, as: 'userNominee', required: false },
+        { model: UserQualification, as: 'userQualification', required: false }
+      ]
+    });
+
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error("Error in exportAllEmployees:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.exportSingleEmployee = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findByPk(id, {
+      include: [
+        { model: Role, as: 'role', attributes: ['id', 'roleName'], required: false },
+        {
+          model: UserPosition,
+          as: 'userPosition',
+          required: false,
+          include: [
+            { model: Designation, as: 'designation', required: false, attributes: ['id', 'designationName', 'abbreviation'] }
+          ]
+        },
+        {
+          model: UserPersonal,
+          as: 'userPersonal',
+          required: false,
+          include: [
+            { model: User, as: 'ReportingManager', required: false, attributes: ['id', 'name', 'empNo'] }
+          ]
+        },
+        { model: UserAccount, as: 'userAccount', required: false },
+        { model: StatutoryInfo, as: 'statutoryInfo', required: false },
+        { model: UserNominee, as: 'userNominee', required: false },
+        { model: UserQualification, as: 'userQualification', required: false }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in exportSingleEmployee:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};

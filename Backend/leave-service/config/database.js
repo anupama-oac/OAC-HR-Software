@@ -1,6 +1,6 @@
 // database.js
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,

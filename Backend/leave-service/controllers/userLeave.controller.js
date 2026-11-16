@@ -2,84 +2,12 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middlewares/auth');
 const UserLeave = require('../models/userLeave');
-const cron = require('node-cron');
 const LeaveType = require('../models/leaveType');
 const { where } = require('sequelize');
 const Leave = require('../models/leave');
 const { Sequelize, Op } = require('sequelize');
 const authService = require('../utils/authService'); 
-
-cron.schedule('0 0 1 1 * *', async () => {
-  try {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const isJanuary = today.getMonth() === 0; // Jan = 0
-    // Fetch SL & CL
-    const leaveTypes = await LeaveType.findAll({
-      where: {
-        leaveTypeName: ['Sick Leave', 'Casual Leave']
-      }
-    });
-
-    if (!leaveTypes.length) return;
-
-    // Fetch all active users
-    // const users = await User.findAll({
-    //   where: { status: true }
-    // });
-
-    const users = await authService.getAllActiveUsers();
-
-    for (const leaveType of leaveTypes) {
-
-      // 🔹 JAN 1 → Create fresh records
-      if (isJanuary) {
-        for (const user of users) {
-
-          const exists = await UserLeave.findOne({
-            where: {
-              userId: user.id,
-              leaveTypeId: leaveType.id,
-              year: currentYear
-            }
-          });
-
-          if (!exists) {
-            await UserLeave.create({
-              userId: user.id,
-              leaveTypeId: leaveType.id,
-              noOfDays: 1,
-              takenLeaves: 0,
-              leaveBalance: 1,
-              year: currentYear
-            });
-          }
-        }
-      }
-
-      // 🔹 Other months → Increment existing records
-      else {
-        const userLeaves = await UserLeave.findAll({
-          where: {
-            leaveTypeId: leaveType.id,
-            year: currentYear
-          }
-        });
-
-        for (const userLeave of userLeaves) {
-          userLeave.noOfDays += 1;
-          userLeave.leaveBalance = Math.max(
-            userLeave.noOfDays - userLeave.takenLeaves,
-            0
-          );
-          await userLeave.save();
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error updating leave balances:', error);
-  }
-});
+const { notifyEmployeesAboutLeave } = require('../utils/notificationService');
 
 exports.getLeaveCount = async (req, res) => {
      try {
@@ -208,6 +136,98 @@ try {
     res.status(500).send({ error: error.message });
   }
 }
+
+exports.grantSelectedEmployees = async (req, res) => {
+  const { userIds } = req.body;
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ message: 'Select at least one employee.' });
+  }
+
+  if (!userIds.every((userId) => Number.isInteger(userId) && userId > 0)) {
+    return res.status(400).json({ message: 'Employee IDs must be positive integers.' });
+  }
+
+  const selectedUserIds = [...new Set(userIds)];
+  const year = new Date().getFullYear();
+
+  try {
+    const confirmedEmployees = await authService.getConfirmedEmployees(req.headers.authorization);
+    const eligibleEmployeeIds = new Set(
+      confirmedEmployees.map((user) => Number(user.id))
+    );
+
+    if (selectedUserIds.some((userId) => !eligibleEmployeeIds.has(userId))) {
+      return res.status(400).json({
+        message: 'Leave can only be granted to confirmed employees.'
+      });
+    }
+
+    const leaveTypes = await LeaveType.findAll({
+      where: { leaveTypeName: ['Sick Leave', 'Casual Leave'] },
+      attributes: ['id', 'leaveTypeName']
+    });
+    const requiredTypes = ['Sick Leave', 'Casual Leave'];
+    const typesByName = new Map(leaveTypes.map((leaveType) => [leaveType.leaveTypeName, leaveType]));
+    const missingTypes = requiredTypes.filter((name) => !typesByName.has(name));
+
+    if (missingTypes.length > 0) {
+      return res.status(404).json({
+        message: `Required leave types not found: ${missingTypes.join(', ')}.`
+      });
+    }
+
+    await UserLeave.sequelize.transaction(async (transaction) => {
+      for (const userId of selectedUserIds) {
+        for (const leaveTypeName of requiredTypes) {
+          const leaveType = typesByName.get(leaveTypeName);
+          const userLeave = await UserLeave.findOne({
+            where: { userId, leaveTypeId: leaveType.id, year },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+          });
+
+          if (userLeave) {
+            userLeave.noOfDays = Number(userLeave.noOfDays || 0) + 1;
+            userLeave.leaveBalance = Math.max(
+              userLeave.noOfDays - Number(userLeave.takenLeaves || 0),
+              0
+            );
+            await userLeave.save({ transaction });
+          } else {
+            await UserLeave.create({
+              userId,
+              leaveTypeId: leaveType.id,
+              noOfDays: 1,
+              takenLeaves: 0,
+              leaveBalance: 1,
+              year
+            }, { transaction });
+          }
+        }
+      }
+    });
+
+    const notificationFailures = await notifyEmployeesAboutLeave({
+      employeeIds: selectedUserIds,
+      message: `1 Sick Leave and 1 Casual Leave were granted to you for ${year}.`,
+      route: '/login/leave/leave-balance',
+      authorization: req.headers.authorization
+    });
+
+    return res.json({
+      message: notificationFailures.length
+        ? `Leave granted, but notifications could not be delivered to ${notificationFailures.length} employee(s).`
+        : `Granted 1 Sick Leave and 1 Casual Leave to ${selectedUserIds.length} employee(s).`,
+      grantedEmployees: selectedUserIds.length,
+      year,
+      notificationFailures: notificationFailures.length
+    });
+  } catch (error) {
+    console.error('Error granting selected employees leave:', error);
+    return res.status(500).json({ message: 'Failed to grant leave to selected employees.' });
+  }
+};
 
 exports.getAll = async(req,res)=>{
 try {
@@ -425,5 +445,3 @@ exports.delete = async(req,res)=>{
   }
   
 }
-
-

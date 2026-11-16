@@ -3,18 +3,17 @@ import { ExpenseStatus } from "./expense-status"
 export interface Expense {
     id: number
     piNo: string
-    exNo : string
+    expenseNumber : string
     url: string
     bankSlip : string
     status: string
     count: number
     notes:  string
     currency: string,
-    totalAmount: number
+    amount: number
 
     userId: number
-    amId: number
-    accountantId : number
+    paymentMode: string
 
     user: User
     manager: User

@@ -248,8 +248,24 @@ export class UpdatePIComponent {
   ma: boolean = false;
   admin: boolean =false;
   getRoleById(id: number){
+    const token: any = localStorage.getItem('token');
+    if (token) {
+      try {
+        const u = JSON.parse(token);
+        const d = (u.designationName || u.roleName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin')) {
+          this.roleName = 'Super Administrator';
+          this.admin = true;
+          return;
+        }
+      } catch (e) {}
+    }
     this.roleSub = this.invoiceService.getRoleById(id).subscribe(role => {
       this.roleName = role.roleName;
+      const rLower = (this.roleName || '').toLowerCase().trim();
+      if (rLower === 'hr & administration manager' || rLower === 'hr & admin manager') {
+        this.roleName = 'Super Administrator';
+      }
       if(this.roleName === 'Sales Executive') this.sp = true;
       if(this.roleName === 'Key Account Manager') this.kamb = true;
       if(this.roleName === 'Manager') this.am = true;

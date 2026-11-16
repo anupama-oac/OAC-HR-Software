@@ -1,0 +1,298 @@
+@if (currentItem) {
+  <div class="celebration-dialog-shell" [class.theme-anniversary]="currentItem.type === 'anniversary'" [class.theme-birthday]="currentItem.type === 'birthday'">
+    
+    <!-- Top Festive Hero Header -->
+    <div class="dialog-hero-header">
+      <div class="hero-confetti-bg"></div>
+      <div class="hero-top-row">
+        <div class="hero-type-pill">
+          <mat-icon>{{ currentItem.type === 'anniversary' ? 'emoji_events' : 'cake' }}</mat-icon>
+          <span>
+            {{ currentItem.type === 'anniversary' ? 'WORK ANNIVERSARY CELEBRATION' : 'BIRTHDAY CELEBRATION' }}
+          </span>
+          @if (currentItem.isToday) {
+            <span class="today-tag">TODAY</span>
+          }
+        </div>
+
+        <button type="button" mat-icon-button class="btn-close-hero" (click)="closeDialog()" matTooltip="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Multi-Celebration Pill Switcher (shown only in view popup when multiple wishes exist) -->
+      @if (items.length > 1) {
+        <div class="celebration-switcher-bar">
+          @for (it of items; track $index; let idx = $index) {
+            <button
+              type="button"
+              class="switcher-chip"
+              [class.active]="idx === currentIndex"
+              (click)="selectItem(idx)">
+              <mat-icon>{{ it.type === 'anniversary' ? 'emoji_events' : 'cake' }}</mat-icon>
+              <span>{{ it.name }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Employee Spotlight Row -->
+      <div class="employee-spotlight">
+        <div class="spotlight-avatar-wrap">
+          @if (currentItem.avatarUrl) {
+            <img [src]="resolveImageUrl(currentItem.avatarUrl)" [alt]="currentItem.name" class="spotlight-avatar-img" (error)="currentItem.avatarUrl = ''" />
+          } @else {
+            <div class="spotlight-avatar-initials">
+              {{ getInitials(currentItem.name) }}
+            </div>
+          }
+          <div class="spotlight-badge-ring">
+            <mat-icon>{{ currentItem.type === 'anniversary' ? 'military_tech' : 'celebration' }}</mat-icon>
+          </div>
+        </div>
+
+        <div class="spotlight-info">
+          <h2 class="spotlight-title">{{ isEditing ? (editTitle || getDefaultTitle(currentItem)) : (currentItem.title || getDefaultTitle(currentItem)) }}</h2>
+          <div class="spotlight-meta-row">
+            @if (currentItem.empNo) {
+              <span class="meta-pill">#{{ currentItem.empNo }}</span>
+            }
+            <span class="meta-pill">
+              <mat-icon>event</mat-icon>
+              @if (currentItem.type === 'anniversary') {
+                Joined {{ currentItem.date | date:'MMMM d, y' }}
+                @if (currentItem.years && currentItem.years > 0) {
+                  • {{ currentItem.years }} {{ currentItem.years === 1 ? 'Year' : 'Years' }}
+                }
+              } @else {
+                Birthday: {{ currentItem.date | date:'MMMM d' }}
+              }
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Dialog Body -->
+    <div class="dialog-scroll-body" #scrollBody>
+
+      <!-- Hidden File Input for Celebration Image Upload -->
+      <input
+        type="file"
+        #wishImageInput
+        hidden
+        accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+        (change)="onImageFileSelected($event)" />
+
+      <!-- Wish Message Card (View Mode vs Row-Click Upload/Edit Mode) -->
+      @if (!allowUploadAndEdit || !isEditing) {
+        @if (currentItem.imageUrl) {
+          <div class="wish-poster-container">
+            <img
+              [src]="resolveImageUrl(currentItem.imageUrl)"
+              alt="Celebration Wish Card"
+              class="wish-poster-img" />
+          </div>
+        }
+
+        <div class="wish-message-card">
+          <div class="quote-mark-icon">
+            <mat-icon>format_quote</mat-icon>
+          </div>
+          <p class="wish-message-text">{{ currentItem.message || getDefaultMessage(currentItem) }}</p>
+          <div class="wish-card-footer">
+            <span class="wish-signature">
+              <mat-icon>favorite</mat-icon>
+              Warmest wishes from {{ currentItem.createdBy || 'Team Onboard Aero Consultant' }}
+            </span>
+            @if (allowUploadAndEdit) {
+              <button type="button" mat-stroked-button class="btn-customize-wish" (click)="toggleEditMode()">
+                <mat-icon>{{ isGraphicDesigner ? 'add_photo_alternate' : 'edit_note' }}</mat-icon>
+                <span>{{ isGraphicDesigner ? 'Upload / Change Poster' : 'Edit Wish & Image' }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="wish-editor-box">
+          <div class="editor-header">
+            <span class="editor-title">
+              <mat-icon>auto_awesome</mat-icon>
+              {{ currentItem.type === 'anniversary' ? 'Work Anniversary' : 'Birthday' }} Wish & Image for {{ currentItem.name }}
+            </span>
+          </div>
+
+          @if (isGraphicDesigner) {
+            <div class="designer-notice-banner">
+              <mat-icon>palette</mat-icon>
+              <span><strong>Graphic Designer Mode:</strong> Greeting copy is managed by HR/Admin. You can attach, replace, or remove celebration poster artwork.</span>
+            </div>
+          }
+
+          <!-- Celebration Poster Section (Always displayed right here in the dialog) -->
+          <div class="editor-poster-section">
+            <div class="poster-section-header">
+              <div class="poster-section-title">
+                <mat-icon>image</mat-icon>
+                <span>Celebration Poster / Greeting Card Image</span>
+              </div>
+              @if (editImageUrl || currentItem.imageUrl) {
+                <span class="poster-status-chip attached">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Poster Attached</span>
+                </span>
+              } @else {
+                <span class="poster-status-chip none">
+                  <mat-icon>info</mat-icon>
+                  <span>No image attached yet</span>
+                </span>
+              }
+            </div>
+
+            <!-- Uploaded Celebration Image Preview Card -->
+            @if (editImageUrl || currentItem.imageUrl) {
+              <div class="editor-poster-preview-card">
+                <div class="preview-img-wrapper">
+                  <img
+                    [src]="resolveImageUrl(editImageUrl || currentItem.imageUrl)"
+                    alt="Celebration Poster Preview"
+                    class="editor-poster-img" />
+                </div>
+                <div class="preview-actions-bar">
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    class="btn-preview-action"
+                    (click)="wishImageInput.click()">
+                    <mat-icon>photo_camera</mat-icon>
+                    <span>Change / Replace Image</span>
+                  </button>
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    class="btn-preview-remove"
+                    (click)="removeUploadedImage()">
+                    <mat-icon>delete_outline</mat-icon>
+                    <span>Remove</span>
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- Dropzone when no image has been uploaded -->
+              <div class="editor-upload-dropzone" (click)="wishImageInput.click()">
+                <div class="dropzone-icon-circle">
+                  @if (isUploadingImage) {
+                    <mat-spinner diameter="24"></mat-spinner>
+                  } @else {
+                    <mat-icon>cloud_upload</mat-icon>
+                  }
+                </div>
+                <div class="dropzone-text">
+                  <span class="dropzone-title">Upload {{ currentItem.type === 'anniversary' ? 'Anniversary' : 'Birthday' }} Wish Poster / Graphic</span>
+                  <span class="dropzone-sub">Click to attach a festive greeting card, poster, or photo (PNG, JPG, WEBP, GIF)</span>
+                </div>
+                <button
+                  type="button"
+                  mat-stroked-button
+                  class="btn-browse-poster"
+                  (click)="$event.stopPropagation(); wishImageInput.click()">
+                  <mat-icon>add_photo_alternate</mat-icon>
+                  <span>Browse Image</span>
+                </button>
+              </div>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100" [class.field-locked]="isGraphicDesigner">
+            <mat-label>Greeting Headline</mat-label>
+            <input matInput [(ngModel)]="editTitle" [disabled]="isGraphicDesigner" [readonly]="isGraphicDesigner" placeholder="e.g. Happy Birthday, {{ currentItem.name }}! 🎂" />
+            @if (isGraphicDesigner) {
+              <mat-icon matSuffix class="field-lock-icon" title="Only HR / Super Admin can edit greeting copy">lock</mat-icon>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100" [class.field-locked]="isGraphicDesigner">
+            <mat-label>Wish Message</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [(ngModel)]="editMessage"
+              [disabled]="isGraphicDesigner"
+              [readonly]="isGraphicDesigner"
+              placeholder="Write your birthday or work anniversary wish..."></textarea>
+            @if (isGraphicDesigner) {
+              <mat-icon matSuffix class="field-lock-icon" title="Only HR / Super Admin can edit greeting copy">lock</mat-icon>
+            }
+          </mat-form-field>
+
+          <div class="editor-options-row">
+            @if (!isGraphicDesigner) {
+              <label class="announce-checkbox">
+                <input type="checkbox" [(ngModel)]="postToAnnouncements" />
+                <span>Also broadcast this wish in Company Announcements</span>
+              </label>
+            } @else {
+              <div class="designer-badge">
+                <mat-icon>brush</mat-icon>
+                <span>Celebration Artwork & Poster Mode</span>
+              </div>
+            }
+
+            <div class="editor-btn-group">
+              @if (!editImageUrl && !currentItem.imageUrl) {
+                <button
+                  type="button"
+                  mat-stroked-button
+                  (click)="wishImageInput.click()">
+                  <mat-icon>image</mat-icon>
+                  <span>Upload Image</span>
+                </button>
+              }
+
+              <button
+                type="button"
+                mat-flat-button
+                class="btn-save-wish"
+                [disabled]="isSaving"
+                (click)="saveCurrentWish()">
+                @if (isSaving) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                  <span>Saving...</span>
+                } @else {
+                  <mat-icon>{{ isGraphicDesigner ? 'cloud_upload' : 'send' }}</mat-icon>
+                  <span>{{ isGraphicDesigner ? 'Save Poster' : 'Save & Publish Wish' }}</span>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+
+    <!-- Dialog Footer Bar -->
+    <div class="dialog-footer-bar">
+      <div class="footer-left">
+        @if (items.length > 1) {
+          <button type="button" mat-stroked-button class="btn-nav-item" [disabled]="currentIndex === 0" (click)="prevItem()">
+            <mat-icon>chevron_left</mat-icon>
+            <span>Previous</span>
+          </button>
+          <span class="item-counter">{{ currentIndex + 1 }} of {{ items.length }}</span>
+          <button type="button" mat-stroked-button class="btn-nav-item" [disabled]="currentIndex === items.length - 1" (click)="nextItem()">
+            <span>Next</span>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="footer-right">
+        <button type="button" mat-flat-button class="btn-footer-done" (click)="closeDialog()">
+          <mat-icon>check</mat-icon>
+          <span>{{ allowUploadAndEdit ? 'Close' : 'Thank You!' }}</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+}

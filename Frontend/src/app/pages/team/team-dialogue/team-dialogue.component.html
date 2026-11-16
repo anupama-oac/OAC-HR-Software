@@ -1,70 +1,140 @@
-<mat-toolbar class="bg-blue-900">
-  <p style="color:rgb(11, 70, 118)"> ADD TEAM</p>
-  <button mat-mini-fab color="primary" type="button" style="margin-left: auto;"
-    aria-label="Example icon button with a home icon" class="d-block mr-0 ml-auto" (click)="onCancelClick()">
-    <mat-icon>close</mat-icon>
-  </button>
-</mat-toolbar>
+<div class="team-dialog-modal">
+  <!-- Modal Header -->
+  <div class="modal-header">
+    <div class="header-icon-box">
+      <mat-icon>{{ team ? 'edit' : 'group_add' }}</mat-icon>
+    </div>
+    <div class="header-titles">
+      <h2 class="dialog-title">{{ team ? 'Edit Team Details' : 'Create New Team' }}</h2>
+      <p class="dialog-subtitle">
+        {{ team ? 'Update team identity, assigned leaders, and team members' : 'Configure a new team squad, designate leads, and assign members' }}
+      </p>
+    </div>
+    <button
+      type="button"
+      class="close-button"
+      (click)="onCancelClick()"
+      matTooltip="Close dialog"
+      matTooltipPosition="below"
+      aria-label="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-<form [formGroup]="teamForm" (ngSubmit)="onSubmit()">
+  <!-- Modal Form -->
+  <form [formGroup]="teamForm" (ngSubmit)="team ? edit(team.id) : onSubmit()" class="modal-form">
+    <!-- Team Name Field -->
+    <div class="form-section">
+      <label class="section-label">
+        Team Name <span class="required-star">*</span>
+      </label>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-icon matPrefix class="field-prefix-icon">groups</mat-icon>
+        <input matInput placeholder="e.g. Corporate Sales Squad, Regional Sales Team" formControlName="teamName">
+        @if (teamForm.controls['teamName'].hasError('required') && teamForm.controls['teamName'].touched) {
+          <mat-error>Team name is required.</mat-error>
+        }
+      </mat-form-field>
+    </div>
 
-  <mat-card class="background">
-    <mat-card-content>
-      <div class="row box">
-        <div class="col">
-          <mat-form-field class="full-width" appearance="outline">
-            <input matInput placeholder="Team name" formControlName="teamName">
-            @if (teamForm.controls['teamName'].hasError('required')) {
-              <mat-error>
-                Name <strong>required</strong>
-              </mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="full-width" appearance="outline">
-            <mat-label>Team Leads</mat-label>
-            <mat-select placeholder="Team Leads" formControlName="teamLeaders" multiple>
-              &nbsp;&nbsp; &nbsp;&nbsp;<span class="material-icons" style="font-size: 30px; color: rgb(30,58,138);"
-                (click)="manageUser()">playlist_add</span>
-              @for (item of users; track item) {
-                @if (item.name !== 'HR Admin' && item.name !== 'Approval Admin' && item.name !== 'Super Admin') {
-                  <mat-option [value]="item.id">
-                    {{ item.name }}
-                  </mat-option>
-                }
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field appearance="fill" class="full-width" appearance="outline">
-            <mat-label>Members</mat-label>
-            <mat-select formControlName="teamMembers" multiple>
-              @for (item of users; track item) {
-                @if (item.name !== 'HR Admin' && item.name !== 'Approval Admin' && item.name !== 'Super Admin') {
-                  <mat-option [value]="item.id">
-                    {{ item.name }}
-                  </mat-option>
-                }
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
+    <!-- Team Leaders Selector (Team Leader Only) -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label class="section-label">
+          Team Leaders <span class="role-scope-tag">Team Leader only</span>
+        </label>
       </div>
-    </mat-card-content>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-icon matPrefix class="field-prefix-icon">workspace_premium</mat-icon>
+        <mat-select placeholder="Select team leader(s)" formControlName="teamLeaders" multiple panelClass="user-select-panel">
+          @for (item of teamLeaderList; track item.id) {
+            <mat-option [value]="item.id">
+              <div class="user-select-option">
+                <span class="user-name-text">{{ item.name }}</span>
+                <span class="user-desig-tag leader-desig">
+                  {{ getUserRoleOrDesignation(item) }}
+                </span>
+              </div>
+            </mat-option>
+          }
+          @if (teamLeaderList.length === 0) {
+            <mat-option disabled>
+              No employees with Team Leader designation found
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          {{ teamLeaderList.length > 0 ? 'Showing only employees with Team Leader (TL) designation' : 'No Team Leaders found in employees list' }}
+        </mat-hint>
+      </mat-form-field>
+    </div>
 
-    <mat-card-actions>
-      @if (team) {
-        <button color="primary" mat-raised-button type="button" [disabled]="!teamForm.valid" (click)="edit(team.id)">UPDATE</button>&nbsp;&nbsp;
-      }
-      @else if (!team) {
-        <button mat-raised-button color="primary" type="submit">ADD</button>&nbsp;&nbsp;
-      }
+    <!-- Team Members Selector (Sales Associate & Senior Sales Associate) -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label class="section-label">
+          Team Members <span class="role-scope-tag">Sales Associate & Senior Sales Associate</span>
+        </label>
+      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-icon matPrefix class="field-prefix-icon">badge</mat-icon>
+        <mat-select placeholder="Select team members" formControlName="teamMembers" multiple panelClass="user-select-panel">
+          @for (item of salesMemberList; track item.id) {
+            <mat-option [value]="item.id">
+              <div class="user-select-option">
+                <span class="user-name-text">{{ item.name }}</span>
+                <span class="user-desig-tag member-desig">
+                  {{ getUserRoleOrDesignation(item) }}
+                </span>
+              </div>
+            </mat-option>
+          }
+          @if (salesMemberList.length === 0) {
+            <mat-option disabled>
+              No Sales Associates or Senior Sales Associates found
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>
+          {{ salesMemberList.length > 0 ? 'Showing Sales Associates and Senior Sales Associates' : 'No Sales Associates or Senior Sales Associates found' }}
+        </mat-hint>
+      </mat-form-field>
+    </div>
 
-      <button color="primary" mat-raised-button type="button" (click)="clear()">CLEAR</button>&nbsp;&nbsp;
-    </mat-card-actions>
-  </mat-card>
-</form>
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer">
+      <button
+        type="button"
+        mat-stroked-button
+        class="btn-cancel"
+        (click)="onCancelClick()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="btn-clear"
+        (click)="clear()"
+        matTooltip="Reset form fields"
+        [disabled]="isSubmitting">
+        Clear
+      </button>
+
+      <button
+        type="submit"
+        mat-flat-button
+        color="primary"
+        class="btn-save"
+        [disabled]="!teamForm.valid || isSubmitting">
+        @if (isSubmitting) {
+          <mat-spinner diameter="18" color="accent" class="save-spinner"></mat-spinner>
+        } @else {
+          <mat-icon>{{ team ? 'check' : 'add' }}</mat-icon>
+        }
+        <span>{{ isSubmitting ? 'Saving...' : (team ? 'Update Team' : 'Create Team') }}</span>
+      </button>
+    </div>
+  </form>
+</div>

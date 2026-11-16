@@ -163,6 +163,11 @@ export const routes: Routes = [
         loadChildren: () => import('./kpi/kpi.routes').then(p => p.routes),
         data: { breadcrumb: 'Holiday' }, canActivate: [AuthGuard]
       },
+      {
+        path: 'petty-cash',
+        loadComponent: () => import('./petty-cash/petty-cash.component').then(c => c.PettyCashComponent),
+        data: { breadcrumb: 'Petty Cash' }, canActivate: [AuthGuard]
+      }
     ]
   },
 

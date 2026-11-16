@@ -1,48 +1,128 @@
 
 
-<div class="reset-password-container">
-  <mat-toolbar class="bg-blue-900">       
-    @if(data.type === 'update'){Update Separation } @else {Confirm Separation}  
-    <mat-icon (click)="onCancel()" style="margin-left: auto;" >close</mat-icon>
-  </mat-toolbar>
-  <form [formGroup]="separationForm" style="padding: 20px;">
-    <div mat-dialog-content>
-      <p style="font-size: 16px; margin-bottom: 15px;">
-        @if(data.type === 'update'){
-          <strong>{{ data.name }}({{data.empNo}})</strong> is separated,
-          Are you sure you want to update separation details?
-        }@else {
-          Are you sure you want to separate <strong>{{ data.name }}({{data.empNo}})</strong>?
-        }
+<div class="separation-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div
+      class="header-icon-box"
+      [class.update-accent]="data.type === 'update'"
+      [class.separation-accent]="data.type !== 'update'"
+    >
+      <mat-icon>{{ data.type === 'update' ? 'edit_calendar' : 'person_remove' }}</mat-icon>
+    </div>
+    <div class="header-titles">
+      <h2 class="dialog-title">
+        {{ data.type === 'update' ? 'Update Separation Details' : 'Employee Separation' }}
+      </h2>
+      <p class="dialog-subtitle">
+        {{ data.type === 'update' ? 'Modify separation records for' : 'Initiate offboarding process for' }}
+        <strong>{{ data.name }}</strong> ({{ data.empNo }})
       </p>
+    </div>
+    <button mat-icon-button type="button" class="close-btn" (click)="onCancel()" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-      <!-- Separation Note with Reactive Form Control -->
-      <mat-form-field appearance="fill" style="width: 100%;">
-        <mat-label>Separation Note</mat-label>
-        <textarea matInput formControlName="note" rows="3" placeholder="Enter the reason for separation" ></textarea>
-        @if(separationForm.controls['note'].invalid){
-          <mat-error>
-            Separation note is required.
-          </mat-error>
+  <!-- Dialog Body -->
+  <div class="dialog-body">
+    <!-- Callout Alert Banner -->
+    <div
+      class="action-alert-banner"
+      [class.banner-update]="data.type === 'update'"
+      [class.banner-danger]="data.type !== 'update'"
+    >
+      <mat-icon class="alert-icon">{{ data.type === 'update' ? 'info' : 'warning_amber' }}</mat-icon>
+      <div class="alert-text">
+        @if (data.type === 'update') {
+          Updating the separation date or reason will refresh the official exit records for <strong>{{ data.name }}</strong>.
+        } @else {
+          Separating <strong>{{ data.name }}</strong> ({{ data.empNo }}) will deactivate their login access and move their profile to the separated employees list.
         }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="half-width">
-        <mat-label>Separation Date</mat-label>
-        <input matInput [matDatepicker]="startDatePicker" formControlName="separationDate" placeholder="Separation Date" required >
-        <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
-        <mat-datepicker #startDatePicker></mat-datepicker>
-      </mat-form-field>
+      </div>
     </div>
 
-    <div mat-dialog-actions style="justify-content: space-between;">
-      <button mat-button color="warn" (click)="onConfirm()" [disabled]="separationForm.invalid">
-        @if(data.type === 'update'){
-          Update
-        }@else {
-          Confirm
-        }
-      </button>
-    </div>
-  </form>
+    <!-- Separation Form -->
+    <form [formGroup]="separationForm" class="dialog-form">
+      <!-- Separation Reason Selection -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="modern-field w-100">
+          <mat-label>Separation Reason</mat-label>
+          <mat-icon matPrefix class="field-icon">category</mat-icon>
+          <mat-select formControlName="reason" placeholder="Select separation category" required>
+            @for (item of separationReasons; track item.value) {
+              <mat-option [value]="item.value">
+                <div class="option-row">
+                  <mat-icon class="option-icon">{{ item.icon }}</mat-icon>
+                  <span>{{ item.label }}</span>
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>Primary reason or category for employment exit</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Separation Date with Quick Picks -->
+      <div class="form-row date-row">
+        <mat-form-field appearance="outline" class="modern-field w-100">
+          <mat-label>Separation Date (Last Working Day)</mat-label>
+          <mat-icon matPrefix class="field-icon">event</mat-icon>
+          <input
+            matInput
+            [matDatepicker]="datePicker"
+            formControlName="separationDate"
+            placeholder="DD/MM/YYYY"
+            required
+          />
+          <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
+          <mat-datepicker #datePicker></mat-datepicker>
+          <mat-hint>Official last working date recorded in the system</mat-hint>
+          @if (separationForm.get('separationDate')?.invalid && separationForm.get('separationDate')?.touched) {
+            <mat-error>Separation date is required</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="quick-date-chips">
+          <span class="chips-label">Quick select:</span>
+          <button type="button" class="date-chip" (click)="setToday()">Today</button>
+          <button type="button" class="date-chip" (click)="setEndOfMonth()">End of Month</button>
+        </div>
+      </div>
+
+      <!-- Separation Note / Remarks -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="modern-field w-100">
+          <mat-label>Notes & Handover Remarks</mat-label>
+          <mat-icon matPrefix class="field-icon">edit_note</mat-icon>
+          <textarea
+            matInput
+            formControlName="note"
+            rows="3"
+            placeholder="Add handover remarks, exit interview notes, or special considerations..."
+          ></textarea>
+          <mat-hint>Optional remarks recorded alongside this separation</mat-hint>
+        </mat-form-field>
+      </div>
+    </form>
+  </div>
+
+  <!-- Dialog Footer -->
+  <div class="dialog-footer">
+    <button mat-stroked-button type="button" class="btn-cancel" (click)="onCancel()">
+      Cancel
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="btn-submit"
+      [class.btn-update]="data.type === 'update'"
+      [class.btn-danger]="data.type !== 'update'"
+      (click)="onConfirm()"
+      [disabled]="separationForm.invalid"
+    >
+      <mat-icon>{{ data.type === 'update' ? 'save' : 'person_remove' }}</mat-icon>
+      <span>{{ data.type === 'update' ? 'Update Details' : 'Confirm Separation' }}</span>
+    </button>
+  </div>
 </div>

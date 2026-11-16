@@ -1,343 +1,614 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<body>
-  <div fxLayout="row" class="legend col debug-large" fxFlex="30" fxHide.xs>
-    <div fxLayout="row" fxLayout.xs="column" fxLayoutAlign="space-between center" class="row">
-      <!-- First Column: Calendar Button -->
-      <div fxLayout="row" class="col" fxFlex="20" fxFlex.xs="100">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy"
-          hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openCalendar()">
-            <mat-icon style="color: green;">edit_calendar</mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+<div class="leave-page-container">
+  <!-- Top Executive Header & Action Bar -->
+  <div class="leave-header-card">
+    <div class="header-left">
+      <div class="header-icon-badge">
+        <mat-icon>{{ employeeStat ? 'date_range' : 'event_note' }}</mat-icon>
       </div>
-
-      <!-- Second Column: Search Form -->
-      <div fxLayout="row" class="col" fxFlex="40" fxFlex.xs="100">
-        <form class="user-search" [class.show]="controls.value == 'search'">
-          <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search leave by leave type..." name="search" (keyup)="search($event)">
-          </mat-form-field>
-        </form>
-      </div>
-
-      <!-- Third Column: Legend (Visible only on large screens) -->
-      <div fxLayout="row" class="legend col" fxFlex="30" fxHide.xs>
-        <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-          <div style="display: flex; align-items: center; margin-right: 20px;">
-            <span style="color: green; font-weight: bold; font-size:xx-large;">●</span>
-            <span style="margin-left: 5px;">Approved</span>
-          </div>
-          <div style="display: flex; align-items: center; margin-right: 20px;">
-            <span style="color: red; font-weight: bold; font-size:xx-large;">●</span>
-            <span style="margin-left: 5px;">Rejected</span>
-          </div>
-          <div style="display: flex; align-items: center; margin-right: 20px;">
-            <span style="color: black; font-weight: bold; font-size:xx-large;">●</span>
-            <span style="margin-left: 5px;">Pending</span>
-          </div>
+      <div class="header-text-group">
+        <div class="title-row">
+          <h1 class="page-title">
+            {{ employeeStat ? 'My Leave Applications' : 'Leave Management & Approvals' }}
+          </h1>
+          <span class="badge-role-tag">
+            <span class="pulse-dot"></span>
+            {{ employeeStat ? 'Employee Portal' : 'HR Management' }}
+          </span>
         </div>
+        <p class="page-subtitle">
+          {{ employeeStat
+            ? 'Track your applied leaves, approval statuses, medical certificates, and leave history.'
+            : 'Review corporate time-off requests, manage approvals, administer LOP penalties, and oversee leave calendar.' }}
+        </p>
       </div>
+    </div>
 
-      <!-- Fourth Column: Leave Calendar Button -->
-      @if(!employeeStat){
-      <div fxLayout="row" fxFlex="10" fxFlex.xs="100" fxLayoutAlign="end center">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy"
-          hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openLeaveCalendar()">
-            <mat-icon style="color: green;">event_available</mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
-      </div>
+    <!-- Header Quick Actions -->
+    <div class="header-right-actions">
+      @if (!employeeStat) {
+        <button
+          mat-stroked-button
+          class="btn-calendar-header"
+          (click)="openLeaveCalendar()"
+          matTooltip="View full company leave calendar">
+          <mat-icon>event_available</mat-icon>
+          <span>Company Calendar</span>
+        </button>
       }
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-apply-header"
+        (click)="openCalendar()"
+        matTooltip="Submit a new leave application">
+        <mat-icon>add_circle</mat-icon>
+        <span>Apply for Leave</span>
+      </button>
     </div>
   </div>
-  <div fxLayout="row" class="legend col debug-small" fxFlex="100" fxHide fxShow.xs>
-    <div fxLayout="row" fxLayout.xs="column" fxLayoutAlign="space-between center" class="row">
-      <!-- First Column: Calendar Button -->
-      <div fxLayout="row" class="col" fxFlex="20" fxFlex.xs="100">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy"
-          hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openCalendar()">
-            <mat-icon style="color: green;">edit_calendar</mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
-      </div>
 
-      <!-- Second Column: Search Form -->
-      <div fxLayout="row" class="col" fxFlex="40" fxFlex.xs="100">
-        <form class="user-search" [class.show]="controls.value == 'search'">
-          <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search leave by leave type..." name="search" (keyup)="search($event)">
-          </mat-form-field>
-        </form>
+  <!-- KPI Metric Summary Cards -->
+  <div class="kpi-metrics-grid">
+    <div class="kpi-card card-total">
+      <div class="kpi-icon-wrap">
+        <mat-icon>all_inbox</mat-icon>
       </div>
-      <!-- Fourth Column: Leave Calendar Button -->
-      @if(!employeeStat){
-      <div fxLayout="row" fxFlex="10" fxFlex.xs="100" fxLayoutAlign="end center">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy"
-          hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openLeaveCalendar()">
-            <mat-icon style="color: green;">event_available</mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+      <div class="kpi-meta">
+        <span class="kpi-value">{{ totalItems }}</span>
+        <span class="kpi-label">Total Requests</span>
       </div>
-      }
     </div>
-    <div fxLayout="row" class="legend col" fxFlex="100" fxHide fxShow.xs fxLayoutAlign="space-between center">
-      <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-        <div style="display: flex; align-items: center; margin-right: 20px;">
-          <span style="color: green; font-weight: bold; font-size:xx-large;">●</span>
-          <span style="margin-left: 5px;">Approved</span>
-        </div>
-        <div style="display: flex; align-items: center; margin-right: 20px;">
-          <span style="color: red; font-weight: bold; font-size:xx-large;">●</span>
-          <span style="margin-left: 5px;">Rejected</span>
-        </div>
-        <div style="display: flex; align-items: center; margin-right: 20px;">
-          <span style="color: black; font-weight: bold; font-size:xx-large;">●</span>
-          <span style="margin-left: 5px;">Pending</span>
-        </div>
+
+    <div class="kpi-card card-approved">
+      <div class="kpi-icon-wrap">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">{{ totalApproved }}</span>
+        <span class="kpi-label">Approved</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-pending">
+      <div class="kpi-icon-wrap">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">{{ totalPending }}</span>
+        <span class="kpi-label">Pending Review</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-penalty">
+      <div class="kpi-icon-wrap">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">{{ totalPenalty }}</span>
+        <span class="kpi-label">Penalty (LOP)</span>
       </div>
     </div>
   </div>
 
+  <!-- Command Toolbar & Search -->
+  <div class="leave-toolbar-card">
+    <div class="toolbar-left">
+      <!-- Search Input -->
+      <div class="search-input-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          (input)="search($event)"
+          placeholder="Search by leave type, employee name, or reason..."
+          class="search-field"
+          autocomplete="off" />
+        @if (searchText) {
+          <button mat-icon-button class="btn-clear-search" (click)="clearSearch()" matTooltip="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
 
-  <mat-tab-group (selectedTabChange)="onTabChange($event.index)">
-    <mat-tab label="Leaves">
-      <main class="table" id="other_leaves_table">
-        <section class="table__body">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Leave Date</th>
-                <th>Leave Type</th>
-                @if(!employeeStat){
-                <th>User</th>
-                }
-                <th>Reason</th>
-                <th>Created At</th>
-                <th>Uploads</th>
-                @if(!employeeStat){
-                <th>Penalty</th>
-                }
-                <th>Action</th>
-                
-                <th>Manage</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of filteredLeaves; track $index) {
-              <tr [ngClass]="{
-      'text-green': (item.status === 'Approved' || item.status === 'AdminApproved') && !(item.notes && item.notes.includes('Penalty')), 
-      'text-red': item.status === 'Rejected',
-      'text-gray': item.status === 'Locked',
-      'text-orange': item.notes && item.notes.includes('Penalty'),
-      'penalty-row': item.notes && item.notes.includes('Penalty')
-    }" [routerLink]="['/login/leave/open/', item.id]">
-                <td> {{item.id}} </td>
-                <td>
-                  <ng-container *ngFor="let date of item.leaveDates">
-                    {{ date.date | date: 'dd-MM-yyyy' }}<br>
-                    @if(date.session1==true){
-                    session 1<br>
-                    }
-                    @if(date.session2==true){
-                    session 2<br>
-                    }
-                  </ng-container>
-                </td>
-                <!-- <td>{{ item.leaveType.leaveTypeName }}</td> -->
-                <!-- <td>
-                  @if (item.notes && item.notes.includes('Penalty')) {
-                  <strong style="color: #ef6c00;">LOP</strong>
-                  } @else {
-                  {{ item.leaveType.leaveTypeName }}
+      <!-- Quick Status Filter Pills -->
+      <div class="status-filter-pills">
+        <button
+          type="button"
+          class="status-pill"
+          [class.active]="selectedStatusFilter === 'ALL'"
+          (click)="setStatusFilter('ALL')">
+          <span>All</span>
+          <span class="pill-count">{{ totalItems }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="status-pill pill-pending"
+          [class.active]="selectedStatusFilter === 'PENDING'"
+          (click)="setStatusFilter('PENDING')">
+          <mat-icon>hourglass_top</mat-icon>
+          <span>Pending</span>
+          <span class="pill-count">{{ totalPending }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="status-pill pill-approved"
+          [class.active]="selectedStatusFilter === 'APPROVED'"
+          (click)="setStatusFilter('APPROVED')">
+          <mat-icon>check_circle</mat-icon>
+          <span>Approved</span>
+          <span class="pill-count">{{ totalApproved }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="status-pill pill-rejected"
+          [class.active]="selectedStatusFilter === 'REJECTED'"
+          (click)="setStatusFilter('REJECTED')">
+          <mat-icon>cancel</mat-icon>
+          <span>Rejected</span>
+          <span class="pill-count">{{ totalRejected }}</span>
+        </button>
+
+        @if (totalPenalty > 0) {
+          <button
+            type="button"
+            class="status-pill pill-penalty"
+            [class.active]="selectedStatusFilter === 'PENALTY'"
+            (click)="setStatusFilter('PENALTY')">
+            <mat-icon>warning</mat-icon>
+            <span>Penalty</span>
+            <span class="pill-count">{{ totalPenalty }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Status Legend Tags -->
+    <div class="toolbar-right-legend">
+      <div class="legend-badge badge-approved">
+        <span class="legend-dot"></span>
+        <span>Approved</span>
+      </div>
+      <div class="legend-badge badge-pending">
+        <span class="legend-dot"></span>
+        <span>Pending</span>
+      </div>
+      <div class="legend-badge badge-rejected">
+        <span class="legend-dot"></span>
+        <span>Rejected</span>
+      </div>
+      <div class="legend-badge badge-penalty">
+        <span class="legend-dot"></span>
+        <span>Penalty</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modern Table Container with Tabs -->
+  <div class="table-card-container">
+    <mat-tab-group
+      animationDuration="200ms"
+      class="modern-tab-group"
+      (selectedTabChange)="onTabChange($event.index)">
+
+      <!-- TAB 1: ACTIVE LEAVES -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-label-wrap">
+            <mat-icon>pending_actions</mat-icon>
+            <span>Active Leave Requests</span>
+          </div>
+        </ng-template>
+
+        <div class="tab-content-area">
+          <div class="table-responsive">
+            <table class="modern-leave-table">
+              <thead>
+                <tr>
+                  <th class="th-id">ID</th>
+                  <th class="th-dates">Leave Dates & Sessions</th>
+                  <th class="th-type">Leave Type</th>
+                  @if (!employeeStat) {
+                    <th class="th-user">Employee</th>
                   }
-                  <td> -->
-                    <td>
-                @if (item.notes && item.notes.includes('Penalty') && !item.notes.includes('Waived')) {
-                <strong style="color: #ef6c00;">LOP</strong>
-                }
-                @else {
-                {{ item.leaveType.leaveTypeName }}
-                }
-                </td>
-   
-                @if(!employeeStat){
-                <td>{{ item.user?.name }} {{item.user?.empNo}}</td>
-                }
-                <td>{{ item.notes }}</td>
-                <td>{{ item.createdAt | date: 'dd/MM/yyyy, HH:mm'}}</td>
-                <td (click)="$event.stopPropagation()">
-                  <div class="popup-message">
-                    @if(item.leaveType?.leaveTypeName === 'Sick Leave'){
-                    @if(item.fileUrl){
-                    <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center" style="position: relative;">
-                      <iframe [src]="item.fileUrl | safe" class="custom-iframe" scrolling="no"></iframe>
-                    </div>
-                    }@else {
-                    <button class="icon-btn upload-btn" mat-icon-button color="primary"
-                      (click)="upload('approve', item.id)">
-                      <mat-icon>cloud_upload</mat-icon>
-                    </button>
-                    }
-                    }
-                  </div>
-                </td>
-                <td (click)="$event.stopPropagation()">
-                  @if(!employeeStat) {
-                  <ng-container>
-                    @if (item.status === 'Requested' && item.penaltyLOP > 0 && !item.notes?.includes('Waived')) {
-                    <button mat-fab extended class="penalty-button" style="background-color: #ff9800; color: white;"
-                      (click)="removePenalty(item)">
-                      <mat-icon>money_off</mat-icon>
-                      Remove Penalty
-                    </button>
-                    }
-
-                    @if (['Approved', 'Admin Approved'].includes(item.status) && item.penaltyLOP > 0 &&
-                    !item.notes?.includes('Waived')) {
-                    <button mat-fab extended class="penalty-button" style="background-color: #e91e63; color: white;"
-                      (click)="waiveApprovedPenalty(item)">
-                      <mat-icon>settings_backup_restore</mat-icon>
-                      Waive & Revert LOP
-                    </button>
-                    }
-                  </ng-container>
+                  <th class="th-reason">Reason</th>
+                  <th class="th-created">Requested On</th>
+                  <th class="th-upload">Medical Doc</th>
+                  @if (!employeeStat) {
+                    <th class="th-penalty">Penalty Adjustment</th>
+                    <th class="th-workflow">Approval Workflow</th>
                   }
-                </td>
-                @if(!employeeStat){
-                <td (click)="$event.stopPropagation()">
-                  <ng-container>
-                    <button mat-fab extended class="approve-button" color="primary"
-                      (click)="openDialog('approve', item.id)"
-                      [disabled]="item.status === 'Approved' || item.status === 'AdminApproved' || item.status === 'Locked' || item.status === 'Unapproved'">
-                      Approve
-                    </button>
-                    &nbsp;
+                  <th class="th-manage">Actions</th>
+                </tr>
+              </thead>
 
-                @if (item.status !== 'Approved' && 
-     item.status !== 'AdminApproved' && 
-     item.status !== 'Rejected' && 
-     !(item.penaltyLOP > 0)) {
-  <button mat-flat-button class="action-btn" 
-    style="background-color: #424242; color: white;"
-    (click)="openDialog('unapproved', item.id)"
-    [disabled]="item.status === 'Locked' || item.status === 'Unapproved'">
-    <mat-icon style="font-size: 18px; margin-right: 4px;">person_off</mat-icon>
-    Approve with penalty
-  </button>
-}
-                    &nbsp;
-
-                    <button mat-fab extended class="reject-button" color="warn" (click)="openDialog('reject', item.id)"
-                      [disabled]="item.status === 'Rejected' || item.status === 'AdminApproved' || item.status === 'Locked'">
-                      Reject
-                    </button>
-                    &nbsp;
-                  </ng-container>
-
-                  <ng-template #disabledIcon>
-                    <mat-icon color="disabled">block</mat-icon>
-                  </ng-template>
-                </td>
+              <tbody>
+                @if (filteredLeaves.length === 0 && !isLoading) {
+                  <tr>
+                    <td [attr.colspan]="!employeeStat ? 10 : 7" class="td-empty">
+                      <div class="empty-state-box">
+                        <div class="empty-icon-wrap">
+                          <mat-icon>event_busy</mat-icon>
+                        </div>
+                        <h3>No Leave Records Found</h3>
+                        <p>No active leave applications match the selected filters.</p>
+                        <button mat-flat-button color="primary" (click)="openCalendar()">
+                          <mat-icon>add</mat-icon>
+                          <span>Apply for Leave</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 }
-                <td (click)="$event.stopPropagation()">
-                  @if(!employeeStat || (item.status === 'Requested' || item.status === 'Rejected')){
-                  <ng-container>
-                    <button mat-icon-button color="primary" class="edit-button" (click)="onEditLeave(item.id)"
-                      [disabled]=" item.status === 'Locked'">
-                      <mat-icon>mode_edit</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn" class="delete-button" (click)="onDeleteLeave(item.id)"
-                      [disabled]=" item.status === 'Locked'">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                    &nbsp;
-                  </ng-container>
-                  }
-                </td>
-              </tr>
-              }
-            </tbody>
-          </table>
-          <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-            (page)="onPageChange($event)" [pageSizeOptions]="[10, 20, 30, 40, 50, 100]">
+
+                @for (item of filteredLeaves; track item.id) {
+                  <tr
+                    class="leave-row"
+                    [class.penalty-highlight-row]="item.notes && item.notes.includes('Penalty') && !item.notes.includes('Waived')"
+                    [routerLink]="['/login/leave/open/', item.id]">
+
+                    <!-- ID -->
+                    <td class="td-id">
+                      <span class="id-pill">#{{ item.id }}</span>
+                    </td>
+
+                    <!-- Dates & Sessions -->
+                    <td class="td-dates">
+                      <div class="dates-list">
+                        @for (d of item.leaveDates; track $index) {
+                          <div class="date-chip-item">
+                            <span class="date-text">
+                              <mat-icon class="date-icon">calendar_today</mat-icon>
+                              {{ d.date | date: 'dd MMM yyyy' }}
+                            </span>
+
+                            <div class="session-badges">
+                              @if (d.session1 && d.session2) {
+                                <span class="badge-session session-full">Full Day</span>
+                              } @else {
+                                @if (d.session1) {
+                                  <span class="badge-session session-am">Session 1 (AM)</span>
+                                }
+                                @if (d.session2) {
+                                  <span class="badge-session session-pm">Session 2 (PM)</span>
+                                }
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </td>
+
+                    <!-- Leave Type & Status -->
+                    <td class="td-type">
+                      <div class="type-cell-content">
+                        @if (item.notes && item.notes.includes('Penalty') && !item.notes.includes('Waived')) {
+                          <span class="type-badge badge-lop-penalty">
+                            <mat-icon>warning</mat-icon>
+                            <span>LOP (Penalty)</span>
+                          </span>
+                        } @else {
+                          <span class="type-badge" [ngClass]="getLeaveTypeBadgeClass(item.leaveType?.leaveTypeName)">
+                            <mat-icon>{{ getLeaveTypeIcon(item.leaveType?.leaveTypeName) }}</mat-icon>
+                            <span>{{ item.leaveType?.leaveTypeName || 'Leave' }}</span>
+                          </span>
+                        }
+
+                        <span class="status-chip" [ngClass]="getStatusBadgeClass(item)">
+                          <mat-icon>{{ getStatusIcon(item) }}</mat-icon>
+                          {{ getStatusLabel(item) }}
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- User (for Admin) -->
+                    @if (!employeeStat) {
+                      <td class="td-user">
+                        <div class="user-cell-meta">
+                          <div class="user-avatar-circle">
+                            {{ getUserInitials(item.user?.name) }}
+                          </div>
+                          <div class="user-text-meta">
+                            <span class="user-name" [matTooltip]="item.user?.name || ''">{{ item.user?.name || 'Staff' }}</span>
+                            <span class="user-empno">{{ item.user?.empNo || 'N/A' }}</span>
+                          </div>
+                        </div>
+                      </td>
+                    }
+
+                    <!-- Reason -->
+                    <td class="td-reason">
+                      <span class="reason-text" [matTooltip]="item.notes || 'No comments provided'">
+                        {{ item.notes || '—' }}
+                      </span>
+                    </td>
+
+                    <!-- Created At -->
+                    <td class="td-created">
+                      <div class="created-meta">
+                        <span class="created-date">{{ item.createdAt | date: 'dd MMM yyyy' }}</span>
+                        <span class="created-time">{{ item.createdAt | date: 'hh:mm a' }}</span>
+                      </div>
+                    </td>
+
+                    <!-- Medical Uploads -->
+                    <td class="td-upload" (click)="$event.stopPropagation()">
+                      @if (item.leaveType?.leaveTypeName === 'Sick Leave') {
+                        @if (item.fileUrl) {
+                          <div class="doc-preview-wrapper" matTooltip="Medical Certificate Uploaded">
+                            <iframe [src]="item.fileUrl | safe" class="custom-iframe-preview" scrolling="no"></iframe>
+                          </div>
+                        } @else {
+                          <button
+                            mat-stroked-button
+                            class="btn-upload-doc"
+                            (click)="upload('approve', item.id)"
+                            matTooltip="Upload Medical Certificate">
+                            <mat-icon>cloud_upload</mat-icon>
+                            <span>Upload</span>
+                          </button>
+                        }
+                      } @else {
+                        <span class="muted-dash">—</span>
+                      }
+                    </td>
+
+                    <!-- Penalty Action -->
+                    @if (!employeeStat) {
+                      <td class="td-penalty" (click)="$event.stopPropagation()">
+                        @if (item.status === 'Requested' && item.penaltyLOP > 0 && !item.notes?.includes('Waived')) {
+                          <button
+                            mat-flat-button
+                            class="btn-penalty-action btn-remove-penalty"
+                            (click)="removePenalty(item)"
+                            matTooltip="Reset penalty LOP to 0">
+                            <mat-icon>money_off</mat-icon>
+                            <span>Remove Penalty</span>
+                          </button>
+                        }
+
+                        @if (['Approved', 'AdminApproved', 'Admin Approved'].includes(item.status) && item.penaltyLOP > 0 && !item.notes?.includes('Waived')) {
+                          <button
+                            mat-flat-button
+                            class="btn-penalty-action btn-waive-penalty"
+                            (click)="waiveApprovedPenalty(item)"
+                            matTooltip="Revert employee penalty balance">
+                            <mat-icon>settings_backup_restore</mat-icon>
+                            <span>Waive LOP</span>
+                          </button>
+                        }
+                      </td>
+
+                      <!-- Approval Workflow -->
+                      <td class="td-workflow" (click)="$event.stopPropagation()">
+                        <div class="workflow-btn-group">
+                          <button
+                            mat-flat-button
+                            class="btn-flow btn-flow-approve"
+                            (click)="openDialog('approve', item.id)"
+                            [disabled]="item.status === 'Approved' || item.status === 'AdminApproved' || item.status === 'Locked' || item.status === 'Unapproved'"
+                            matTooltip="Approve leave request">
+                            <mat-icon>check</mat-icon>
+                            <span>Approve</span>
+                          </button>
+
+                          @if (item.status !== 'Approved' && item.status !== 'AdminApproved' && item.status !== 'Rejected' && !(item.penaltyLOP > 0)) {
+                            <button
+                              mat-flat-button
+                              class="btn-flow btn-flow-penalty"
+                              (click)="openDialog('unapproved', item.id)"
+                              [disabled]="item.status === 'Locked' || item.status === 'Unapproved'"
+                              matTooltip="Approve with penalty deduction (LOP)">
+                              <mat-icon>person_off</mat-icon>
+                              <span>Approve (LOP)</span>
+                            </button>
+                          }
+
+                          <button
+                            mat-flat-button
+                            class="btn-flow btn-flow-reject"
+                            (click)="openDialog('reject', item.id)"
+                            [disabled]="item.status === 'Rejected' || item.status === 'AdminApproved' || item.status === 'Locked'"
+                            matTooltip="Reject leave request">
+                            <mat-icon>close</mat-icon>
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      </td>
+                    }
+
+                    <!-- Manage Actions -->
+                    <td class="td-manage" (click)="$event.stopPropagation()">
+                      @if (!employeeStat || (item.status === 'Requested' || item.status === 'Rejected')) {
+                        <div class="row-actions-group">
+                          <button
+                            mat-icon-button
+                            class="btn-row-action btn-edit"
+                            (click)="onEditLeave(item.id)"
+                            [disabled]="item.status === 'Locked'"
+                            matTooltip="Edit leave request">
+                            <mat-icon>edit</mat-icon>
+                          </button>
+
+                          <button
+                            mat-icon-button
+                            class="btn-row-action btn-delete"
+                            (click)="onDeleteLeave(item.id)"
+                            [disabled]="item.status === 'Locked'"
+                            matTooltip="Delete leave request">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Pagination -->
+          <mat-paginator
+            [length]="totalItems"
+            [pageSize]="pageSize"
+            [pageIndex]="currentPage - 1"
+            (page)="onPageChange($event)"
+            [pageSizeOptions]="[10, 20, 30, 50, 100]"
+            class="modern-paginator">
           </mat-paginator>
-        </section>
-      </main>
-    </mat-tab>
-    <mat-tab label="Locked Leaves">
-      <main class="table" id="locked_leaves_table">
-        <section class="table__body">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Leave Date</th>
-                <th>Leave Type</th>
-                @if(!employeeStat){
-                <th>User</th>
+        </div>
+      </mat-tab>
+
+      <!-- TAB 2: LOCKED LEAVES -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-label-wrap">
+            <mat-icon>lock</mat-icon>
+            <span>Locked & Historical Leaves</span>
+          </div>
+        </ng-template>
+
+        <div class="tab-content-area">
+          <div class="table-responsive">
+            <table class="modern-leave-table">
+              <thead>
+                <tr>
+                  <th class="th-id">ID</th>
+                  <th class="th-dates">Leave Dates & Sessions</th>
+                  <th class="th-type">Leave Type</th>
+                  @if (!employeeStat) {
+                    <th class="th-user">Employee</th>
+                  }
+                  <th class="th-reason">Reason</th>
+                  <th class="th-created">Requested On</th>
+                  <th class="th-upload">Medical Doc</th>
+                  <th class="th-status">Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @if (filteredLeaves.length === 0 && !isLoading) {
+                  <tr>
+                    <td [attr.colspan]="!employeeStat ? 8 : 7" class="td-empty">
+                      <div class="empty-state-box">
+                        <div class="empty-icon-wrap">
+                          <mat-icon>lock_open</mat-icon>
+                        </div>
+                        <h3>No Locked Records Found</h3>
+                        <p>No historical locked leaves were found in this period.</p>
+                      </div>
+                    </td>
+                  </tr>
                 }
-                <th>Reason</th>
-                <th>Uploads</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of filteredLeaves; track $index) {
-              <!-- @if(item.status === 'Locked') { -->
-              <tr [routerLink]="['/login/leave/open/', item.id]">
-                <td> {{item.id}} </td>
-                <td>
-                  <ng-container *ngFor="let date of item.leaveDates">
-                    {{ date.date | date: 'dd-MM-yyyy' }}<br>
-                    @if(date.session1==true){
-                    session 1<br>
+
+                @for (item of filteredLeaves; track item.id) {
+                  <tr class="leave-row" [routerLink]="['/login/leave/open/', item.id]">
+                    <td class="td-id">
+                      <span class="id-pill">#{{ item.id }}</span>
+                    </td>
+
+                    <td class="td-dates">
+                      <div class="dates-list">
+                        @for (d of item.leaveDates; track $index) {
+                          <div class="date-chip-item">
+                            <span class="date-text">
+                              <mat-icon class="date-icon">calendar_today</mat-icon>
+                              {{ d.date | date: 'dd MMM yyyy' }}
+                            </span>
+                            <div class="session-badges">
+                              @if (d.session1 && d.session2) {
+                                <span class="badge-session session-full">Full Day</span>
+                              } @else {
+                                @if (d.session1) {
+                                  <span class="badge-session session-am">Session 1 (AM)</span>
+                                }
+                                @if (d.session2) {
+                                  <span class="badge-session session-pm">Session 2 (PM)</span>
+                                }
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </td>
+
+                    <td class="td-type">
+                      <span class="type-badge" [ngClass]="getLeaveTypeBadgeClass(item.leaveType?.leaveTypeName)">
+                        <mat-icon>{{ getLeaveTypeIcon(item.leaveType?.leaveTypeName) }}</mat-icon>
+                        <span>{{ item.leaveType?.leaveTypeName || 'Leave' }}</span>
+                      </span>
+                    </td>
+
+                    @if (!employeeStat) {
+                      <td class="td-user">
+                        <div class="user-cell-meta">
+                          <div class="user-avatar-circle">
+                            {{ getUserInitials(item.user?.name) }}
+                          </div>
+                          <div class="user-text-meta">
+                            <span class="user-name">{{ item.user?.name || 'Staff' }}</span>
+                            <span class="user-empno">{{ item.user?.empNo || 'N/A' }}</span>
+                          </div>
+                        </div>
+                      </td>
                     }
-                    @if(date.session2==true){
-                    session 2<br>
-                    }
-                  </ng-container>
-                </td>
-                <td>{{ item.leaveType.leaveTypeName }}</td>
-                @if(!employeeStat){
-                <td>{{ item.user?.name }} {{item.user?.empNo}}</td>
+
+                    <td class="td-reason">
+                      <span class="reason-text" [matTooltip]="item.notes || 'No comments'">
+                        {{ item.notes || '—' }}
+                      </span>
+                    </td>
+
+                    <td class="td-created">
+                      <div class="created-meta">
+                        <span class="created-date">{{ item.createdAt | date: 'dd MMM yyyy' }}</span>
+                        <span class="created-time">{{ item.createdAt | date: 'hh:mm a' }}</span>
+                      </div>
+                    </td>
+
+                    <td class="td-upload" (click)="$event.stopPropagation()">
+                      @if (item.leaveType?.leaveTypeName === 'Sick Leave' && item.fileUrl) {
+                        <div class="doc-preview-wrapper" matTooltip="Medical Certificate Uploaded">
+                          <iframe [src]="item.fileUrl | safe" class="custom-iframe-preview" scrolling="no"></iframe>
+                        </div>
+                      } @else {
+                        <span class="muted-dash">—</span>
+                      }
+                    </td>
+
+                    <td class="td-status">
+                      <span class="status-chip badge-status-locked">
+                        <mat-icon>lock</mat-icon>
+                        <span>Locked</span>
+                      </span>
+                    </td>
+                  </tr>
                 }
-                <td>{{ item.notes }}</td>
-                <td (click)="$event.stopPropagation()">
-                  <div class="popup-message">
-                    @if(item.leaveType?.leaveTypeName === 'Sick Leave'){
-                    @if(item.fileUrl){
-                    <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center" style="position: relative;">
-                      <iframe [src]="item.fileUrl | safe" class="custom-iframe" scrolling="no"></iframe>
-                    </div>
-                    }
-                    }
-                  </div>
-                </td>
-              </tr>
-              }
-              <!-- } -->
-            </tbody>
-          </table>
-          <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-            (page)="onPageChange($event)" [pageSizeOptions]="[10, 20, 30, 40, 50, 100]">
+              </tbody>
+            </table>
+          </div>
+
+          <mat-paginator
+            [length]="totalItems"
+            [pageSize]="pageSize"
+            [pageIndex]="currentPage - 1"
+            (page)="onPageChange($event)"
+            [pageSizeOptions]="[10, 20, 30, 50, 100]"
+            class="modern-paginator">
           </mat-paginator>
-        </section>
-      </main>
-    </mat-tab>
-  </mat-tab-group>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
 
-
-</body>
-
-</html>
-@if(isLoading) {
-<div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-  <mat-spinner color="primary"></mat-spinner>
+  <!-- Loading Overlay -->
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="46" color="primary"></mat-spinner>
+      <span>Loading leave records...</span>
+    </div>
+  }
 </div>
-}

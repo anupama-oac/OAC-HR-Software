@@ -8,66 +8,69 @@ const { sequelize } = require('../config/database');
 
 
 exports.createLeaveType = async (req, res) => {
-
- try {
+  try {
     const { leaveTypeName } = req.body;
-    if (!leaveTypeName) return res.send({ message: 'Leave type name is required' });
+    if (!leaveTypeName || !leaveTypeName.trim()) {
+      return res.status(400).json({ message: 'Leave type name is required' });
+    }
 
-    const existingLeaveType = await LeaveType.findOne({ where: { leaveTypeName } });
-    if (existingLeaveType) return res.send({ message: 'Leave type already exists' });
+    const trimmedName = leaveTypeName.trim();
+    const existingLeaveType = await LeaveType.findOne({
+      where: sequelize.where(
+        sequelize.fn('LOWER', sequelize.col('leaveTypeName')),
+        trimmedName.toLowerCase()
+      )
+    });
 
-    const leaveType = await LeaveType.create({ leaveTypeName });
-    res.send(leaveType);
+    if (existingLeaveType) {
+      return res.status(400).json({ message: `Leave type '${trimmedName}' already exists` });
+    }
+
+    const leaveType = await LeaveType.create({ leaveTypeName: trimmedName });
+    return res.status(201).json({
+      message: 'Leave type created successfully',
+      leaveType
+    });
   } catch (error) {
-    res.send(error.message);
+    console.error('Error creating leave type:', error);
+    return res.status(500).json({ message: error.message });
   }
-}
+};
 
-exports.getLeaveTypes = async(req,res)=>{
-try {
-    const leaveTypes = await LeaveType.findAll();
-    res.status(200).send(leaveTypes);
+exports.getLeaveTypes = async (req, res) => {
+  try {
+    const leaveTypes = await LeaveType.findAll({
+      order: [['leaveTypeName', 'ASC']]
+    });
+    return res.status(200).json(leaveTypes);
   } catch (error) {
-    res.send(error.message);
+    return res.status(500).json({ message: error.message });
   }
-}
+};
 
-exports.PaginatedLeaveTypes = async(req,res)=>{
-try {
-    let whereClause = {}
+exports.PaginatedLeaveTypes = async (req, res) => {
+  try {
+    let whereClause = {};
     let limit;
     let offset;
-    
-    if (req.query.pageSize != 'undefined' && req.query.page != 'undefined') {
-      limit = req.query.pageSize;
-      offset = (req.query.page - 1) * req.query.pageSize;
-      if (req.query.search != 'undefined') {
-        const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
-        whereClause = {
-          [Op.or]: [
-            sequelize.where(
-              sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveTypeName'), ' ', '')),
-              {
-                [Op.like]: `%${searchTerm}%`
-              }
-            )
-          ]
-        };
-      }
-    } else {
-      if (req.query.search != 'undefined') {
-        const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
-        whereClause = {
-          [Op.or]: [
-            sequelize.where(
-              sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveTypeName'), ' ', '')),
-              {
-                [Op.like]: `%${searchTerm}%`
-              }
-            )
-          ]
-        };
-      }
+
+    if (req.query.pageSize && req.query.pageSize !== 'undefined' && req.query.page && req.query.page !== 'undefined') {
+      limit = parseInt(req.query.pageSize, 10);
+      offset = (parseInt(req.query.page, 10) - 1) * limit;
+    }
+
+    if (req.query.search && req.query.search !== 'undefined' && req.query.search.trim()) {
+      const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
+      whereClause = {
+        [Op.or]: [
+          sequelize.where(
+            sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('leaveTypeName'), ' ', '')),
+            {
+              [Op.like]: `%${searchTerm}%`
+            }
+          )
+        ]
+      };
     }
 
     const customOrder = sequelize.literal(`
@@ -79,82 +82,103 @@ try {
         ELSE 5
       END
     `);
-    const leaveType = await LeaveType.findAll({
-      order: [[customOrder, 'ASC']], limit, offset, where: whereClause
-    })
 
-    let totalCount;
-    totalCount = await LeaveType.count({where: whereClause});
-    
-    if (req.query.page != 'undefined' && req.query.pageSize != 'undefined') {
-      const response = {
+    const leaveType = await LeaveType.findAll({
+      order: [[customOrder, 'ASC'], ['leaveTypeName', 'ASC']],
+      limit,
+      offset,
+      where: whereClause
+    });
+
+    const totalCount = await LeaveType.count({ where: whereClause });
+
+    if (req.query.page && req.query.page !== 'undefined' && req.query.pageSize && req.query.pageSize !== 'undefined') {
+      return res.json({
         count: totalCount,
         items: leaveType,
-      };
-
-      res.json(response);
-    }
-    else {
-
-      res.json(leaveType);
+      });
+    } else {
+      return res.json(leaveType);
     }
   } catch (error) {
-    res.send(error.message);
+    console.error('Error fetching paginated leave types:', error);
+    return res.status(500).json({ message: error.message });
   }
+};
 
-
-}
-
-exports.deleteLeaveType = async(req,res)=>{
- try {
-      const result = await LeaveType.destroy({
-          where: { id: req.params.id },
-          force: true,
-      });
-
-      if (result === 0) {
-          return res.status(404).json({
-            status: "fail",
-            message: "LeaveType with that ID not found",
-          });
-        }
-    
-        res.status(204).json();
-      }  catch (error) {
-        res.send(error.message);
-  }
-  
-}
-
-exports.updateLeaveType = async(req,res)=>{
+exports.deleteLeaveType = async (req, res) => {
   try {
     const leaveTypeId = parseInt(req.params.id, 10);
+    const leaveType = await LeaveType.findByPk(leaveTypeId);
 
-    // if ([1, 2, 3, 4, 5].includes(leaveTypeId)) {
-    //     return res.send("Leave Type cannot be updated");
-    // }
-    LeaveType.update(req.body, {
-        where: { id: leaveTypeId }
-    })
-    .then(num => {
-        if (num == 1) {
-            res.send({
-                message: "LeaveType was updated successfully."
-            });
-        } else {
-            res.send({
-                message: `Cannot update leaveType with id=${leaveTypeId}. Maybe LeaveType was not found or req.body is empty!`
-            });
-        }
-    })
-    .catch(error => {
-        // Handle any errors that occur during the update process
-        res.send(error.message);
+    if (!leaveType) {
+      return res.status(404).json({ message: 'Leave type not found' });
+    }
+
+    // Protect core system leave types
+    const protectedTypes = ['Casual Leave', 'Sick Leave', 'Comp Off', 'LOP', 'Maternity Leave'];
+    if (protectedTypes.includes(leaveType.leaveTypeName)) {
+      return res.status(400).json({
+        message: `'${leaveType.leaveTypeName}' is a core system leave type and cannot be deleted.`
+      });
+    }
+
+    await LeaveType.destroy({
+      where: { id: leaveTypeId },
+      force: true
     });
-} catch (error) {
-    // Handle any unexpected errors
-    res.send(error.message);
-}
 
-}
+    return res.json({ message: 'Leave type deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting leave type:', error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateLeaveType = async (req, res) => {
+  try {
+    const leaveTypeId = parseInt(req.params.id, 10);
+    const { leaveTypeName } = req.body;
+
+    if (!leaveTypeName || !leaveTypeName.trim()) {
+      return res.status(400).json({ message: 'Leave type name is required' });
+    }
+
+    const trimmedName = leaveTypeName.trim();
+
+    const leaveType = await LeaveType.findByPk(leaveTypeId);
+    if (!leaveType) {
+      return res.status(404).json({ message: `Leave type with id ${leaveTypeId} not found` });
+    }
+
+    // Check duplicate name on another record
+    const duplicate = await LeaveType.findOne({
+      where: {
+        id: { [Op.ne]: leaveTypeId },
+        [Op.and]: [
+          sequelize.where(
+            sequelize.fn('LOWER', sequelize.col('leaveTypeName')),
+            trimmedName.toLowerCase()
+          )
+        ]
+      }
+    });
+
+    if (duplicate) {
+      return res.status(400).json({ message: `Another leave type with name '${trimmedName}' already exists` });
+    }
+
+    leaveType.leaveTypeName = trimmedName;
+    await leaveType.save();
+
+    return res.json({
+      message: 'Leave type updated successfully',
+      leaveType
+    });
+  } catch (error) {
+    console.error('Error updating leave type:', error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 

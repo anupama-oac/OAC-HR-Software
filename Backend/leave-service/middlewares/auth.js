@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 's1@e2c3r4e5t6';
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -13,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // 1. Decode and verify the token data natively
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     
     // 2. Map the token data straight to req.user (No Database lookup needed!)
     req.user = {
@@ -55,7 +56,12 @@ const authorizeRole = (...roles) => {
       });
     }
 
-    if (!roles.includes(req.user.roleId)) {
+    const dLower = (req.user.designationName || '').toLowerCase().trim();
+    const isHrAdminMgr = dLower === 'hr & administration manager' || dLower.includes('hr & administration manager') || dLower.includes('hr & admin manager');
+    if (req.user.isSuperAdmin || req.user.systemRoleId === 1 || req.user.roleId === 1 || isHrAdminMgr) {
+      return next();
+    }
+    if (!roles.includes(req.user.roleId) && !roles.includes(req.user.systemRoleId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Insufficient permissions' 

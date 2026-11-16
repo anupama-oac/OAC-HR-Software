@@ -15,40 +15,36 @@ export class AssetsService {
 
   private http = inject(HttpClient);
 
-  getAssets(filterValue?: string, page?: number, pagesize?:number): Observable<Assets[]>{
-    return this.http.get<Assets[]>(this.apiUrl + `/companyasset/find?search=${filterValue}&page=${page}&pageSize=${pagesize}`)
+  getAssets(filterValue: string = '', page: number = 1, pagesize: number = 10): Observable<any>{
+    const query = filterValue && filterValue !== 'undefined' ? `search=${encodeURIComponent(filterValue)}&` : '';
+    return this.http.get<any>(this.apiUrl + `/companyasset/find?${query}page=${page}&pageSize=${pagesize}`);
   }
 
   addAssets(data: any){
-    return this.http.post(this.apiUrl + `/companyasset/add`, data)
+    return this.http.post(this.apiUrl + `/companyasset/add`, data);
   }
 
   deleteAssets(id: number){
-    return this.http.delete(this.apiUrl + `/companyasset/delete/${id}`)
+    return this.http.delete(this.apiUrl + `/companyasset/delete/${id}`);
   }
 
   updateAssets(id: number, data: any){
-    return this.http.patch(this.apiUrl + `/companyasset/update/${id}`, data)
+    return this.http.patch(this.apiUrl + `/companyasset/update/${id}`, data);
   }
 
   getAssetByid(id: number){
-    return this.http.delete(this.apiUrl + `/companyasset/findbyid/${id}`)
+    return this.http.get(this.apiUrl + `/companyasset/findbyid/${id}`);
   }
 
   getAssignedUsers(id: number){
-    return this.http.get(this.apiUrl + `/asset/getassigneduser/${id}`)
+    return this.http.get(this.apiUrl + `/asset/getassigneduser/${id}`);
   }
 
   addUserAssets(data: any) {
     return this.http.post(this.apiUrl + `/asset`, data).pipe(
-      map((response: any) => response.data)
+      map((response: any) => response.data || response)
     );
   }
-  // addUserAssets(data: any){
-  //   return this.http.post(this.apiUrl + `/asset`, data).pipe(
-  //     tap((res) => console.log('Response from backend:', res))
-  //   );
-  // }
 
   editUserAssets(data: any, id: number){
     return this.http.patch(this.apiUrl + `/asset/${id}`, data).pipe(
@@ -57,12 +53,12 @@ export class AssetsService {
   }
 
   deleteUserAssets(id: number){
-    return this.http.delete(this.apiUrl + `/asset/${id}`)
+    return this.http.delete(this.apiUrl + `/asset/${id}`);
   }
 
-
-  getUserAssets(filterValue?: string, page?: number, pagesize?:number): Observable<Assets[]>{
-    return this.http.get<Assets[]>(this.apiUrl + `/asset/find?search=${filterValue}&page=${page}&pageSize=${pagesize}`)
+  getUserAssets(filterValue: string = '', page: number = 1, pagesize: number = 10): Observable<any>{
+    const query = filterValue && filterValue !== 'undefined' ? `search=${encodeURIComponent(filterValue)}&` : '';
+    return this.http.get<any>(this.apiUrl + `/asset/find?${query}page=${page}&pageSize=${pagesize}`);
   }
 
   addAssetDetails(data: any){

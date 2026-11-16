@@ -1,56 +1,455 @@
-.custom-dialog {
-    background-color: #fff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    padding: 16px;
-    width: 400px;
-    max-width: 90%; /* Ensures the dialog doesn't exceed 90% of the viewport width */
-  }
-  
-  .dialog-title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 12px;
-  }
-  
-  .dialog-content {
-    font-size: 16px;
-    margin-bottom: 24px;
-  }
-  
-  .dialog-actions {
+/* ====================================================
+   Confirm Deletion Modal Styles
+   Modern Executive HR Design System
+   ==================================================== */
+
+:host {
+  display: block;
+  font-family: inherit;
+}
+
+.confirm-delete-modal {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  width: 100%;
+  max-height: 88vh;
+  box-sizing: border-box;
+}
+
+/* ----------------------------------------------------
+   Modal Header
+   ---------------------------------------------------- */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px 16px;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  border-bottom: 1px solid #fecdd3;
+  position: relative;
+  flex-shrink: 0;
+
+  .header-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+    border: 1px solid #f87171;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+
+    mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+    }
   }
-  
-  .cancel-button,
-  .confirm-button {
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
+
+  .header-titles {
+    flex: 1;
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .dialog-title {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        color: #881337;
+        letter-spacing: -0.01em;
+        line-height: 1.25;
+      }
+
+      .count-badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+
+        &.danger-badge {
+          background: #ffe4e6;
+          color: #be123c;
+          border: 1px solid #fda4af;
+        }
+      }
+    }
+
+    .dialog-subtitle {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      color: #9f1239;
+      font-weight: 400;
+      line-height: 1.35;
+    }
   }
-  
-  .cancel-button {
-    margin-right: 8px;
-    background-color: #e57373;
-    color: #fff;
+
+  .close-button {
+    background: transparent;
     border: none;
-  }
-  
-  .confirm-button {
-    background-color: #64b5f6;
-    color: #fff;
-    border: none;
-  }
-  @media (max-width: 600px) {
-    .custom-dialog {
-      width: 300px; /* Reduce the width for smaller screens */
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9f1239;
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: rgba(225, 29, 72, 0.12);
+      color: #881337;
     }
   }
-  
-  @media (max-width: 400px) {
-    .custom-dialog {
-      width: 90%; /* Make it even smaller for extra small screens */
+}
+
+/* ----------------------------------------------------
+   Modal Body
+   ---------------------------------------------------- */
+.modal-body {
+  padding: 18px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Danger Callout Card */
+.warning-callout-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-left: 4px solid #e11d48;
+  border-radius: 8px;
+
+  .warning-icon-box {
+    color: #e11d48;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
   }
-  
+
+  .warning-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .warning-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #9f1239;
+    }
+
+    .warning-desc {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #475569;
+
+      strong {
+        color: #0f172a;
+        font-weight: 700;
+      }
+    }
+  }
+}
+
+/* Holidays List Section */
+.holidays-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .section-lead-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #334155;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #e11d48;
+      }
+    }
+
+    .section-count-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+  }
+
+  .holidays-scroll-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  .holidays-list-container {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .holiday-item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        transform: translateX(2px);
+      }
+
+      .item-index {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        font-size: 10.5px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .holiday-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+
+        .holiday-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .holiday-notes {
+          font-size: 11px;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .holiday-meta-pills {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .type-pill {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+
+          &.type-public {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+          }
+          &.type-optional {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+          }
+          &.type-restricted {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
+          }
+        }
+
+        .date-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #334155;
+          background: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          padding: 2px 7px;
+          border-radius: 6px;
+          font-family: monospace;
+
+          mat-icon {
+            font-size: 13px;
+            width: 13px;
+            height: 13px;
+            color: #64748b;
+          }
+        }
+      }
+    }
+
+    .empty-list-state {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+      font-size: 12.5px;
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   Modal Footer Actions
+   ---------------------------------------------------- */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 24px 18px;
+  background: #fafaf9;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+
+  .btn-cancel {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-color: #cbd5e1;
+    background: #ffffff;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  }
+
+  .btn-confirm-delete {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, #be123c 0%, #9f1239 100%);
+      box-shadow: 0 6px 16px rgba(225, 29, 72, 0.35);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 540px) {
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+  }
+
+  .holiday-item-row {
+    flex-wrap: wrap;
+
+    .holiday-meta-pills {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .modal-footer {
+    padding: 12px 16px 16px;
+  }
+}

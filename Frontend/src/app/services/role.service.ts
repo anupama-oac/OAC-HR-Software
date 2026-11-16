@@ -10,8 +10,7 @@ import { Role } from '../common/interfaces/users/role';
 })
 export class RoleService {
 
-  // private apiUrl = environment.apiUrl;
-    private apiUrl = `${environment.apiUrl}/`;
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 
@@ -28,7 +27,7 @@ export class RoleService {
   }
 
   public getRoleById(id: number): Observable<Role>{
-    return this.http.get<Role>(this.apiUrl + 'role/findbyid/'+id);
+    return this.http.get<Role>(this.apiUrl + '/role/findbyid/'+id);
   }
 
   deleteRole(id: number) {

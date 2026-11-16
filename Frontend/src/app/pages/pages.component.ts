@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { Component, ElementRef, HostListener, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Settings, SettingsService } from '../services/settings.service';
@@ -11,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FlexLayoutModule } from '@ngbracket/ngx-layout';
 import { NgScrollbarModule } from 'ngx-scrollbar';
 // import { SidenavComponent } from '../theme/components/sidenav/sidenav.component';
@@ -28,11 +30,13 @@ import { Subscription } from 'rxjs';
 import { RoleService } from '@services/role.service';
 import { UsersService } from '@services/users.service';
 import { SidenavComponent } from "../theme/components/sidenav/sidenav.component";
+import { Announcement } from '../common/interfaces/announcement';
 
 @Component({
   selector: 'app-pages',
   standalone: true,
   imports: [
+    CommonModule,
     RouterOutlet,
     FormsModule,
     ReactiveFormsModule,
@@ -42,6 +46,7 @@ import { SidenavComponent } from "../theme/components/sidenav/sidenav.component"
     MatButtonModule,
     MatSlideToggleModule,
     MatRadioModule,
+    MatTooltipModule,
     FlexLayoutModule,
     NgScrollbarModule,
     FullScreenComponent,
@@ -57,7 +62,7 @@ import { SidenavComponent } from "../theme/components/sidenav/sidenav.component"
   templateUrl: './pages.component.html',
   styleUrl: './pages.component.scss'
 })
-export class PagesComponent implements OnInit {
+export class PagesComponent implements OnInit, OnDestroy {
   @ViewChild('sidenav') sidenav:any;
   @ViewChild('backToTop') backToTop:any;
   @ViewChild('mainSidenavContent') mainSidenavContent: any;
@@ -88,8 +93,14 @@ export class PagesComponent implements OnInit {
     this.menuTypeOption = this.settings.menuType;
     this.defaultMenu = this.settings.menu;
 
-    this.announcementService.callSubmit$.subscribe((data) => {
-      this.getAnnouncement(data);
+    this.loadLatestAnnouncement();
+    this.announcementSubmitSub = this.announcementService.callSubmit$.subscribe((data) => {
+      if (this.announcementService.isAnnouncementActiveToday(data)) {
+        this.getAnnouncement(data);
+      }
+    });
+    this.dismissedChangeSub = this.announcementService.dismissedChanged$.subscribe(() => {
+      this.loadLatestAnnouncement();
     });
 
     const token: any = localStorage.getItem('token')
@@ -97,6 +108,14 @@ export class PagesComponent implements OnInit {
     const roleId = user.role
     this.getRoleById(roleId)
     this.getUserById(user.id)
+  }
+
+  ngOnDestroy(): void {
+    this.announcementSub?.unsubscribe();
+    this.announcementSubmitSub?.unsubscribe();
+    this.dismissedChangeSub?.unsubscribe();
+    this.userSub?.unsubscribe();
+    this.roleSub?.unsubscribe();
   }
 
   userSub!: Subscription;
@@ -228,13 +247,71 @@ export class PagesComponent implements OnInit {
     this.router.navigateByUrl('/login/announcements')
   }
 
+  announcementSub?: Subscription;
+  announcementSubmitSub?: Subscription;
+  dismissedChangeSub?: Subscription;
+  latestAnnouncement?: Announcement;
   announcement: boolean = false;
   message: string = '';
-  type: string = ''
+  type: string = 'info';
+
+  loadLatestAnnouncement(): void {
+    this.announcementSub?.unsubscribe();
+    this.announcementSub = this.announcementService.getAnnouncement('', true).subscribe({
+      next: (res: Announcement[]) => {
+        if (res && res.length > 0) {
+          const active = res.find(a => !this.announcementService.isDismissed(a.id) && this.announcementService.isAnnouncementActiveToday(a));
+          if (active) {
+            this.getAnnouncement(active);
+          } else {
+            this.announcement = false;
+            this.latestAnnouncement = undefined;
+            this.message = '';
+          }
+        } else {
+          this.announcement = false;
+          this.latestAnnouncement = undefined;
+          this.message = '';
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load header announcement:', err);
+      }
+    });
+  }
+
   getAnnouncement(ancmnt: any){
+    if (!ancmnt) return;
+    this.latestAnnouncement = ancmnt;
     this.announcement = true;
-    this.message = ancmnt.message;
-    this.type = ancmnt.type;
+    this.message = ancmnt.message || '';
+    this.type = ancmnt.type || 'info';
+  }
+
+  dismissHeaderAnnouncement(event: Event): void {
+    event.stopPropagation();
+    this.announcement = false;
+    if (this.latestAnnouncement?.id) {
+      this.announcementService.dismissAnnouncement(this.latestAnnouncement.id);
+    }
+  }
+
+  getHeaderIcon(type?: string): string {
+    switch ((type || '').toLowerCase()) {
+      case 'success': return 'check_circle';
+      case 'warning': return 'warning';
+      case 'error': return 'campaign';
+      default: return 'campaign';
+    }
+  }
+
+  getHeaderTypeLabel(type?: string): string {
+    switch ((type || '').toLowerCase()) {
+      case 'success': return 'Milestone';
+      case 'warning': return 'Notice';
+      case 'error': return 'Urgent';
+      default: return 'Announcement';
+    }
   }
 
   openCalender(){

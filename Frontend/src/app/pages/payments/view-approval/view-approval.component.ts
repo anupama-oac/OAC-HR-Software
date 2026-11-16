@@ -152,7 +152,7 @@ export class ViewApprovalComponent {
     } else if (this.data.roleName === 'Accountant') {
       this.pageStatus = false
       apiCall = this.invoiceService.getPIByMA(this.data.status, this.filterValue, this.currentPage, this.pageSize);
-    } else if (this.data.roleName === 'Administrator' || this.data.roleName === 'Super Administrator') {
+    } else if (this.data.roleName === 'Administrator' || this.data.roleName === 'Super Administrator' || (this.data.roleName || '').toLowerCase().trim() === 'hr & administration manager' || (this.data.roleName || '').toLowerCase().trim() === 'hr & admin manager') {
       apiCall = this.invoiceService.getPIByAdmin(this.data.status, this.filterValue, this.currentPage, this.pageSize);
     }
 
@@ -160,10 +160,14 @@ export class ViewApprovalComponent {
       if (this.invoiceSubscriptions) {
         this.invoiceSubscriptions.unsubscribe();
       }
-      this.invoiceSubscriptions = apiCall.subscribe((res: any) => {
-        this.processInvoices(res.items, res.count);
-      }, () => {
-        this.submittingForm = false;
+      this.invoiceSubscriptions = apiCall.subscribe({
+        next: (res: any) => {
+          this.processInvoices(res?.items || [], res?.count || 0);
+        },
+        error: () => {
+          this.submittingForm = false;
+          this.processInvoices([], 0);
+        }
       });
     }
   }

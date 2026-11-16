@@ -1,96 +1,326 @@
-<div class="promotion-container">
-    @if (user) {
-    <h2>Apply Employee Promotion to {{user.name}}</h2>
-    <form [formGroup]="promotionForm" (ngSubmit)="onSubmit()" class="promotion-form">
-        <mat-form-field appearance="fill">
-            <mat-label>Designation</mat-label>
-            <mat-select formControlName="designationId" required>
-                <!-- Non-selectable current position display -->
-                <mat-option disabled class="current-position">
-                    <div class="current-position-container">
-                        <span>Current Designation: {{ user.userPosition?.designation?.designationName }}</span>
-                        <!-- <mat-icon>lock</mat-icon> -->
-                    </div>
-                </mat-option>
-    
-                <mat-divider></mat-divider>
-    
-                <!-- Selectable options -->
-                @for (designation of designations; track $index) {
-                @if (designation.designationName !== user.userPosition.designation.designationName) {
-                <mat-option [value]="designation.id">
-                    {{ designation.designationName }}
-                </mat-option>
-                }
-                }
-            </mat-select>
-        </mat-form-field>
-    
-        <mat-form-field appearance="fill" (click)="openPayRoll()">
-            <mat-label>New Salary</mat-label>
-            <input matInput type="number" formControlName="newSalary" required>
-            <span matPrefix>₹ &nbsp;</span>
-            @if (promotionForm.get('newSalary')?.hasError('required')) {
-            <mat-error> New salary is required </mat-error>
-            }
-            @if (promotionForm.get('newSalary')?.hasError('min')) {
-            <mat-error>
-                Salary must be positive
-            </mat-error>
-            }
-        </mat-form-field>
-    
-        <mat-form-field appearance="fill">
-            <mat-label>Effective Date</mat-label>
-            <input matInput [matDatepicker]="picker" formControlName="effectiveDate" required>
-            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-            <mat-datepicker #picker></mat-datepicker>
-            @if (promotionForm.get('effectiveDate')?.hasError('required')) {
-            <mat-error>
-                Effective date is required
-            </mat-error>
-            }
-        </mat-form-field>
-    
-        <mat-form-field appearance="fill">
-            <mat-label>Promotion Reason (Optional)</mat-label>
-            <textarea matInput formControlName="promotionReason" rows="3"></textarea>
-            <mat-hint align="end">{{ promotionForm.get('promotionReason')?.value?.length || 0 }}/500</mat-hint>
-        </mat-form-field>
-    
-        <div class="form-actions">
-            <button mat-raised-button color="primary" type="submit" [disabled]="promotionForm.invalid || isLoading">
-                @if (!isLoading) {
-                <span>Apply Promotion</span>
-                }@else {
-                <mat-spinner diameter="20"></mat-spinner>
-                }
-            </button>
-        </div>
-    </form>
-    }
+<div class="promotion-page">
+  <!-- Top Action / Breadcrumb Bar -->
+  <div class="page-nav-bar">
+    <button mat-button class="btn-back" type="button" (click)="goBack()" matTooltip="Back to employee profile">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Back to Employee</span>
+    </button>
+    <div class="badge-module">
+      <mat-icon>workspace_premium</mat-icon>
+      <span>Talent Progression & Promotion</span>
+    </div>
+  </div>
 
-  @if (promotionsHistory.length > 0) {
-    <div class="promotion-history">
-        <h3>Promotion History</h3>
-        @for (promotion of promotionsHistory; track $index) {
-        <mat-card class="promotion-card">
-            <mat-card-header>
-                <mat-card-subtitle>
-                    Promoted to {{ promotion.Designation.designationName }} on {{ promotion.effectiveDate | date }}
-                </mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-                <p>Old Designation: {{ promotion.oldDesignation.designationName }}</p>
-                <p>Previous salary: ₹{{ promotion.previousSalary }}</p>
-                <p>New salary: ₹{{ promotion.newSalary }}</p>
-                @if(promotion.promotionReason){
-                <p>Reason: {{ promotion.promotionReason }}</p>
-                }
-            </mat-card-content>
-        </mat-card>
+  @if (isLoading && !user) {
+    <!-- Full-page Loading State -->
+    <div class="loading-state-container">
+      <mat-spinner diameter="44"></mat-spinner>
+      <p class="loading-text">Loading employee details...</p>
+    </div>
+  } @else if (user) {
+    <!-- Employee Header Hero Card -->
+    <div class="hero-employee-card">
+      <div class="hero-left">
+        <div class="avatar-wrapper">
+          @if (userImageUrl) {
+            <img [src]="userImageUrl" [alt]="user.name" class="avatar-image" />
+          } @else {
+            <div class="avatar-fallback">{{ getInitials() }}</div>
+          }
+          <div class="status-indicator" title="Active Employee"></div>
+        </div>
+
+        <div class="employee-meta">
+          <div class="name-row">
+            <h1 class="employee-name">{{ user.name }}</h1>
+            <span class="active-pill">
+              <span class="dot"></span> Active
+            </span>
+          </div>
+          <div class="sub-details">
+            <span class="meta-item">
+              <mat-icon>badge</mat-icon>
+              <strong>{{ user.empNo }}</strong>
+            </span>
+            <span class="meta-separator">•</span>
+            <span class="meta-item">
+              <mat-icon>email</mat-icon>
+              <span>{{ user.email }}</span>
+            </span>
+            @if (user.role?.roleName) {
+              <span class="meta-separator">•</span>
+              <span class="meta-item">
+                <mat-icon>shield</mat-icon>
+                <span>{{ user.role.roleName }}</span>
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <button mat-stroked-button class="btn-payroll-link" type="button" (click)="openPayRoll()" matTooltip="Configure detailed salary breakdown in Payroll Module">
+          <mat-icon>calculate</mat-icon>
+          <span>Open Payroll Builder</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Transition Comparison (Before vs After) -->
+    <div class="transition-comparison-grid">
+      <!-- Current Status -->
+      <div class="transition-card current-state">
+        <div class="card-tag">
+          <mat-icon>history</mat-icon>
+          <span>Current Standing</span>
+        </div>
+        <div class="position-title">{{ getCurrentDesignationName() }}</div>
+        <div class="salary-metric">
+          <span class="metric-label">Current Base / Gross</span>
+          <span class="metric-value">₹{{ (currentSalary || promotionForm.get('previousSalary')?.value || 0) | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <!-- Arrow & Increment Indicator -->
+      <div class="transition-arrow-indicator">
+        <div class="arrow-circle">
+          <mat-icon>trending_up</mat-icon>
+        </div>
+        @if (getSalaryIncrement() !== 0) {
+          <div class="increment-badge" [class.negative]="getSalaryIncrement() < 0">
+            @if (getSalaryIncrement() > 0) {
+              <span>+₹{{ getSalaryIncrement() | number:'1.0-0' }}</span>
+              <span class="increment-pct">(+{{ getIncrementPercentage() | number:'1.0-1' }}%)</span>
+            } @else {
+              <span>-₹{{ (-getSalaryIncrement()) | number:'1.0-0' }}</span>
+              <span class="increment-pct">({{ getIncrementPercentage() | number:'1.0-1' }}%)</span>
+            }
+          </div>
+        } @else {
+          <span class="no-change-tag">No Change</span>
         }
+      </div>
+
+      <!-- Proposed Status -->
+      <div class="transition-card proposed-state" [class.highlighted]="promotionForm.get('designationId')?.value">
+        <div class="card-tag">
+          <mat-icon>military_tech</mat-icon>
+          <span>Proposed Elevation</span>
+        </div>
+        <div class="position-title">
+          {{ getSelectedDesignationName() || 'Select new title below' }}
+        </div>
+        <div class="salary-metric">
+          <span class="metric-label">Proposed New Salary</span>
+          <span class="metric-value">₹{{ (promotionForm.get('newSalary')?.value || 0) | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Promotion Form Section -->
+    <div class="main-form-card">
+      <div class="section-header">
+        <div class="header-icon">
+          <mat-icon>badge</mat-icon>
+        </div>
+        <div>
+          <h2 class="section-title">Promotion Terms & Position Assignment</h2>
+          <p class="section-subtitle">Select the elevated designation, revise the compensation, and declare the effective date.</p>
+        </div>
+      </div>
+
+      <form [formGroup]="promotionForm" (ngSubmit)="onSubmit()" class="promotion-form">
+        <div class="form-grid">
+          <!-- Designation Field -->
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Elevated Designation Title</mat-label>
+            <mat-icon matPrefix class="field-icon">workspace_premium</mat-icon>
+            <mat-select formControlName="designationId" required placeholder="Choose designation">
+              <!-- Current Designation (Disabled Reference) -->
+              <mat-option disabled class="current-opt-header">
+                <div class="current-opt-box">
+                  <mat-icon class="lock-icon">lock</mat-icon>
+                  <span>Current: {{ getCurrentDesignationName() }}</span>
+                </div>
+              </mat-option>
+              <mat-divider></mat-divider>
+
+              <!-- Available Choices -->
+              @for (designation of designations; track designation.id) {
+                @if (designation.designationName !== getCurrentDesignationName()) {
+                  <mat-option [value]="designation.id">
+                    <div class="designation-opt-row">
+                      <span class="desig-name">{{ designation.designationName }}</span>
+                      @if (designation.abbreviation) {
+                        <span class="desig-abbr">{{ designation.abbreviation }}</span>
+                      }
+                    </div>
+                  </mat-option>
+                }
+              }
+            </mat-select>
+            <mat-hint>Choose target title from registered company designations</mat-hint>
+            @if (promotionForm.get('designationId')?.hasError('required') && promotionForm.get('designationId')?.touched) {
+              <mat-error>Target designation is required</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- New Salary Field -->
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>New Annual / Monthly Salary</mat-label>
+            <span matPrefix class="currency-prefix">₹ &nbsp;</span>
+            <input matInput type="number" formControlName="newSalary" required placeholder="e.g. 850000" min="0" />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              class="payroll-shortcut-btn"
+              (click)="openPayRoll()"
+              matTooltip="Compute in Payroll Module"
+            >
+              <mat-icon>calculate</mat-icon>
+            </button>
+            <mat-hint>
+              @if (getSalaryIncrement() > 0) {
+                <span class="increment-hint">
+                  <mat-icon class="hint-icon">arrow_upward</mat-icon>
+                  +₹{{ getSalaryIncrement() | number:'1.0-0' }} (+{{ getIncrementPercentage() | number:'1.0-1' }}% increment)
+                </span>
+              } @else {
+                <span>Enter updated gross salary amount</span>
+              }
+            </mat-hint>
+            @if (promotionForm.get('newSalary')?.hasError('required') && promotionForm.get('newSalary')?.touched) {
+              <mat-error>New salary is required</mat-error>
+            }
+            @if (promotionForm.get('newSalary')?.hasError('min') && promotionForm.get('newSalary')?.touched) {
+              <mat-error>Salary must be a positive amount</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Effective Date -->
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Effective Date</mat-label>
+            <input matInput [matDatepicker]="effectivePicker" formControlName="effectiveDate" required placeholder="DD/MM/YYYY" />
+            <mat-datepicker-toggle matIconSuffix [for]="effectivePicker"></mat-datepicker-toggle>
+            <mat-datepicker #effectivePicker></mat-datepicker>
+            <mat-hint>Date from which the promotion takes effect</mat-hint>
+            @if (promotionForm.get('effectiveDate')?.hasError('required') && promotionForm.get('effectiveDate')?.touched) {
+              <mat-error>Effective date is required</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Promotion Reason (Full-Width) -->
+          <mat-form-field appearance="outline" class="modern-field full-span">
+            <mat-label>Promotion Justification & Performance Notes (Optional)</mat-label>
+            <textarea matInput formControlName="promotionReason" rows="3" placeholder="Provide background or performance merit justifying this promotion..."></textarea>
+            <mat-hint align="end">{{ promotionForm.get('promotionReason')?.value?.length || 0 }}/500</mat-hint>
+            @if (promotionForm.get('promotionReason')?.hasError('maxlength')) {
+              <mat-error>Justification cannot exceed 500 characters</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-footer-actions">
+          <button mat-button type="button" class="btn-reset" (click)="resetForm()" [disabled]="isSubmitting">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset Form</span>
+          </button>
+
+          <button
+            mat-raised-button
+            type="submit"
+            class="btn-apply-promotion"
+            [disabled]="promotionForm.invalid || isSubmitting"
+          >
+            @if (isSubmitting) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              <span>Applying Promotion...</span>
+            } @else {
+              <mat-icon>workspace_premium</mat-icon>
+              <span>Apply Promotion</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Career Promotion Timeline / History -->
+    <div class="history-section-card">
+      <div class="history-header">
+        <div class="history-title-group">
+          <div class="history-icon-box">
+            <mat-icon>timeline</mat-icon>
+          </div>
+          <div>
+            <h3 class="history-title">Promotion & Growth Timeline</h3>
+            <p class="history-subtitle">Chronological record of titles, compensation changes, and effective dates</p>
+          </div>
+        </div>
+        <div class="history-count-badge">
+          {{ promotionsHistory.length }} {{ promotionsHistory.length === 1 ? 'Record' : 'Records' }}
+        </div>
+      </div>
+
+      @if (promotionsHistory.length > 0) {
+        <div class="timeline-container">
+          @for (promotion of promotionsHistory; track promotion.id) {
+            <div class="timeline-item">
+              <div class="timeline-marker">
+                <div class="marker-dot">
+                  <mat-icon>star</mat-icon>
+                </div>
+                <div class="marker-line"></div>
+              </div>
+
+              <div class="timeline-content-card">
+                <div class="content-header">
+                  <div class="title-column">
+                    <div class="promotion-flow">
+                      <span class="old-title">{{ promotion.oldDesignation?.designationName || 'Previous Designation' }}</span>
+                      <mat-icon class="flow-arrow">arrow_forward</mat-icon>
+                      <span class="new-title">{{ promotion.Designation?.designationName || 'Elevated Designation' }}</span>
+                    </div>
+                    <span class="effective-date-tag">
+                      <mat-icon>event</mat-icon>
+                      Effective {{ promotion.effectiveDate | date:'MMM d, y' }}
+                    </span>
+                  </div>
+
+                  <div class="salary-transition-pill">
+                    <span class="old-sal">₹{{ (promotion.previousSalary || 0) | number:'1.0-0' }}</span>
+                    <mat-icon class="sal-arrow">trending_up</mat-icon>
+                    <span class="new-sal">₹{{ (promotion.newSalary || 0) | number:'1.0-0' }}</span>
+                    @if (promotion.newSalary && promotion.previousSalary && (promotion.newSalary - promotion.previousSalary > 0)) {
+                      <span class="diff-chip">
+                        +₹{{ (promotion.newSalary - promotion.previousSalary) | number:'1.0-0' }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                @if (promotion.promotionReason) {
+                  <div class="reason-quote-box">
+                    <mat-icon class="quote-icon">format_quote</mat-icon>
+                    <p class="reason-text">{{ promotion.promotionReason }}</p>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-timeline-state">
+          <div class="empty-icon-circle">
+            <mat-icon>history_edu</mat-icon>
+          </div>
+          <h4 class="empty-title">No Prior Promotions Recorded</h4>
+          <p class="empty-description">
+            This employee does not have any logged promotion milestones yet. Apply the first promotion using the form above to initialize their career trajectory record.
+          </p>
+        </div>
+      }
     </div>
   }
-
 </div>

@@ -1,59 +1,251 @@
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="add" (click)="openLeaveTypeDialog(null)"><mat-icon>edit_calendar</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+<div class="leave-types-page-container">
+  <!-- Top Action Toolbar Card -->
+  <div class="toolbar-card">
+    <div class="toolbar-left">
+      <div class="title-icon-badge">
+        <mat-icon>category</mat-icon>
+      </div>
+      <div class="title-text-group">
+        <h1 class="page-title">Leave Types Configuration</h1>
+        <p class="page-subtitle">
+          Define corporate leave categories, annual entitlement allocations, and organizational absence policies.
+        </p>
+      </div>
     </div>
-    <div fxLayout="row" class="col">
-      <form class="user-search" [class.show]="controls.value == 'search'">
-        <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search leave type by name..." name="search" (keyup)="search($event)">
-        </mat-form-field>
-      </form>
+
+    <div class="toolbar-right">
+      <button
+        mat-stroked-button
+        (click)="openGrantLeaveDialog()"
+        matTooltip="Manually grant sick and casual leave to selected employees"
+        aria-label="Grant leave to selected employees">
+        <mat-icon>group_add</mat-icon>
+        <span>Grant Leave</span>
+      </button>
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-add-leavetype"
+        (click)="openLeaveTypeDialog(null)"
+        matTooltip="Create a new leave category"
+        aria-label="Add Leave Type">
+        <mat-icon>add_circle</mat-icon>
+        <span>Add Leave Type</span>
+      </button>
+
+      <button
+        mat-stroked-button
+        class="btn-refresh"
+        (click)="getLeaveTypes()"
+        [disabled]="isLoading"
+        matTooltip="Refresh leave types list"
+        aria-label="Refresh">
+        <mat-icon [class.spin-icon]="isLoading">refresh</mat-icon>
+      </button>
     </div>
   </div>
 
-  <main class="table" id="customers_table">
-    <section class="table__body">
-      <table>
-        <thead>
-          <tr>
-          
-            <th> SI No. </th>
-            <th> Leave Type </th>
-            <th> Manage </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let leaveType of leaveTypes">
-            <td>{{ leaveType.id }}</td>
-            <td>{{ leaveType.leaveTypeName }}</td>
-            <td>
-              <button
-                mat-icon-button
-                (click)="openLeaveTypeDialog(leaveType)"
-               >
-                <mat-icon>mode_edit</mat-icon>
-              </button>
+  <!-- Key Metrics Row -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-icon-box bg-blue">
+        <mat-icon>ballot</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Total Categories</span>
+        <span class="metric-value">{{ totalItems }}</span>
+        <span class="metric-subtext">Active configured types</span>
+      </div>
+    </div>
 
-              <button
-                mat-icon-button
-                (click)="deleteRole(leaveType.id)"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-       (page)="onPageChange($event)" [pageSizeOptions]="[10, 20,30,40,50,100]">
+    <div class="metric-card">
+      <div class="metric-icon-box bg-emerald">
+        <mat-icon>verified</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Core System Types</span>
+        <span class="metric-value text-emerald">4</span>
+        <span class="metric-subtext">Casual, Sick, Comp-Off, LOP</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon-box bg-purple">
+        <mat-icon>playlist_add_check</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Custom Categories</span>
+        <span class="metric-value text-purple">{{ totalItems >= 4 ? totalItems - 4 : 0 }}</span>
+        <span class="metric-subtext">Organization custom leaves</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Table Card -->
+  <div class="table-container-card">
+    <!-- Search & Filter Bar -->
+    <div class="table-filter-bar">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          (keyup)="onSearch($event)"
+          placeholder="Search leave type by name..."
+          aria-label="Search Leave Types" />
+        @if (searchText) {
+          <button
+            mat-icon-button
+            class="btn-clear-search"
+            (click)="clearSearch()"
+            aria-label="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="filter-summary">
+        Showing <strong>{{ leaveTypes.length }}</strong> of <strong>{{ totalItems }}</strong> leave types
+      </div>
+    </div>
+
+    <!-- Table or Loading / Empty States -->
+    @if (isLoading) {
+      <div class="state-placeholder">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading leave types configuration...</p>
+      </div>
+    } @else if (leaveTypes.length === 0) {
+      <div class="state-placeholder empty-state">
+        <div class="empty-icon-wrap">
+          <mat-icon>category</mat-icon>
+        </div>
+        <h3>No leave types found</h3>
+        <p>
+          @if (searchText) {
+            No leave type matches "<strong>{{ searchText }}</strong>".
+          } @else {
+            No leave types have been defined yet.
+          }
+        </p>
+        @if (searchText) {
+          <button mat-stroked-button color="primary" class="btn-clear" (click)="clearSearch()">
+            <mat-icon>filter_alt_off</mat-icon>
+            <span>Clear Search</span>
+          </button>
+        } @else {
+          <button mat-flat-button color="primary" class="btn-add-first" (click)="openLeaveTypeDialog(null)">
+            <mat-icon>add</mat-icon>
+            <span>Add First Leave Type</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th class="th-sno">SI No.</th>
+              <th class="th-name">Leave Type Category</th>
+              <th class="th-classification">Classification</th>
+              <th class="th-id">System ID</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of leaveTypes; let i = $index; track item.id) {
+              @let isCore = isCoreType(item.leaveTypeName);
+
+              <tr class="table-row">
+                <!-- SI Number -->
+                <td class="td-sno">
+                  <span class="sno-pill">
+                    {{ (currentPage - 1) * pageSize + i + 1 }}
+                  </span>
+                </td>
+
+                <!-- Leave Type Name & Icon Badge -->
+                <td class="td-name">
+                  <div class="name-cell">
+                    <div class="type-icon-box" [ngClass]="getBadgeClass(item.leaveTypeName)">
+                      <mat-icon>{{ getLeaveTypeIcon(item.leaveTypeName) }}</mat-icon>
+                    </div>
+                    <div class="name-info">
+                      <span class="type-name">{{ item.leaveTypeName }}</span>
+                      <span class="type-subtitle">
+                        {{ isCore ? 'Standard statutory policy' : 'Custom company leave entitlement' }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Classification Pill -->
+                <td class="td-classification">
+                  <span class="classification-pill" [class.core-pill]="isCore" [class.custom-pill]="!isCore">
+                    <mat-icon>{{ isCore ? 'verified_user' : 'tune' }}</mat-icon>
+                    <span>{{ getCategoryLabel(item.leaveTypeName) }}</span>
+                  </span>
+                </td>
+
+                <!-- System ID -->
+                <td class="td-id">
+                  <span class="id-mono-tag">#{{ item.id }}</span>
+                </td>
+
+                <!-- Actions -->
+                <td class="td-actions">
+                  <div class="action-btn-group">
+                    <!-- Update Button -->
+                    <button
+                      mat-icon-button
+                      class="btn-action btn-edit"
+                      (click)="openLeaveTypeDialog(item)"
+                      matTooltip="Edit & update '{{ item.leaveTypeName }}'"
+                      matTooltipPosition="above"
+                      aria-label="Edit Leave Type">
+                      <mat-icon>edit_note</mat-icon>
+                    </button>
+
+                    <!-- Delete Button -->
+                    @if (isCore) {
+                      <button
+                        mat-icon-button
+                        class="btn-action btn-locked"
+                        matTooltip="Core policy categories cannot be deleted"
+                        matTooltipPosition="above"
+                        aria-label="Core Category Protected">
+                        <mat-icon>lock</mat-icon>
+                      </button>
+                    } @else {
+                      <button
+                        mat-icon-button
+                        class="btn-action btn-delete"
+                        (click)="deleteLeaveType(item)"
+                        matTooltip="Delete custom leave type '{{ item.leaveTypeName }}'"
+                        matTooltipPosition="above"
+                        aria-label="Delete Leave Type">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modern Paginator -->
+      <mat-paginator
+        class="custom-paginator"
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageIndex]="currentPage - 1"
+        [pageSizeOptions]="[10, 20, 30, 50]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons>
       </mat-paginator>
-    </section>
-  </main>
-</body>
-</html>
+    }
+  </div>
+</div>

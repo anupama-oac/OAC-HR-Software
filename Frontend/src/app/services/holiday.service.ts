@@ -15,54 +15,58 @@ export class HolidayService {
     private readonly http = inject(HttpClient)
   
     getHolidays(filterValue?: string, page?: number, pagesize?:number): Observable<Holidays[]>{
-      return this.http.get<Holidays[]>(this.apiUrl + `/holidays/find?search=${filterValue}&page=${page}&pageSize=${pagesize}`)
+      return this.http.get<Holidays[]>(this.apiUrl + `/holiday/find?search=${filterValue}&page=${page}&pageSize=${pagesize}`)
     }
 
     getHolidayByDate(date: any): Observable<Holidays[]>{
-      return this.http.get<Holidays[]>(this.apiUrl + `/holidays/holidaybydate?date=${date}`)
+      return this.http.get<Holidays[]>(this.apiUrl + `/holiday/holidaybydate?date=${date}`)
     }
 
     getHolidayByYear(year: number): Observable<Holidays[]>{
-      return this.http.get<Holidays[]>(this.apiUrl + `/holidays/holidaysbyyear?year=${year}`)
+      return this.http.get<Holidays[]>(this.apiUrl + `/holiday/holidaysbyyear?year=${year}`)
     }
 
     getHolidayByName(search: string): Observable<Holidays[]>{
-      return this.http.get<Holidays[]>(this.apiUrl + `/holidays/byname?search=${search}`)
+      return this.http.get<Holidays[]>(this.apiUrl + `/holiday/byname?search=${search}`)
     }
     getAllHolidays(): Observable<Holidays[]>{
-      return this.http.get<Holidays[]>(this.apiUrl + `/holidays/findall`)
+      return this.http.get<Holidays[]>(this.apiUrl + `/holiday/findall`)
     }
 
 
     deleteHolidays(id: number){
-      return this.http.delete(this.apiUrl + '/holidays/delete/'+id)
+      return this.http.delete(this.apiUrl + '/holiday/delete/'+id)
     }
 
     deleteHolidaysByYear(ids: number[]){
-      return this.http.patch(this.apiUrl + '/holidays/byyear', ids)
+      return this.http.patch(this.apiUrl + '/holiday/byyear', ids)
     }
 
     updateHolidays(id: number, data: any): Observable<Holidays>{
-      return this.http.patch<Holidays>(this.apiUrl + `/holidays/updateholiday/${id}`, data)
+      return this.http.patch<Holidays>(this.apiUrl + `/holiday/updateholiday/${id}`, data)
     }
 
     addHolidays(data:any){
-      return this.http.post(this.apiUrl+'/holidays/save', data)
+      return this.http.post(this.apiUrl+'/holiday/save', data)
     }
     
     updateCompoOff(id: number, data: any){
-      return this.http.patch<Holidays[]>(`${this.apiUrl}/holidays/update/`+id, data);
+      return this.http.patch<Holidays[]>(`${this.apiUrl}/holiday/update/`+id, data);
     }
   
     updateUpdatedCompoOff(id: number, data: any){
-      return this.http.patch<Holidays[]>(`${this.apiUrl}/holidays/updatetheupdated/`+id, data);
+      return this.http.patch<Holidays[]>(`${this.apiUrl}/holiday/updatetheupdated/`+id, data);
     }
   
     getCompoOff(id: number){
-      return this.http.get<CompoOff>(`${this.apiUrl}/holidays/findcombooff/${id}`);
+      return this.http.get<CompoOff>(`${this.apiUrl}/holiday/findcombooff/${id}`);
+    }
+
+    getHolidayById(id: number): Observable<Holidays> {
+      return this.http.get<Holidays>(`${this.apiUrl}/holiday/findbyid/${id}`);
     }
 
     uploadHolidays(formData: FormData){
-      return this.http.post(`${environment.apiUrl}/holidays/upload`, formData)
+      return this.http.post(`${this.apiUrl}/holiday/upload`, formData)
     }
 }

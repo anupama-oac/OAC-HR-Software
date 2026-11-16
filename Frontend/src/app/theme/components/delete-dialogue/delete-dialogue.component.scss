@@ -1,55 +1,160 @@
-.custom-dialog {
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  padding: 16px;
-  width: 400px;
-  max-width: 90%; /* Ensures the dialog doesn't exceed 90% of the viewport width */
-}
-
-.dialog-title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 12px;
-}
-
-.dialog-content {
-  font-size: 16px;
-  margin-bottom: 24px;
-}
-
-.dialog-actions {
+.delete-dialog-container {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 440px;
+  width: 100%;
+  font-family: inherit;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.18);
 }
 
-.cancel-button,
-.confirm-button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
+/* ----------------------------------------------------
+   Dialog Header
+---------------------------------------------------- */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  position: relative;
 
-.cancel-button {
-  margin-right: 8px;
-  background-color: #e57373;
-  color: #fff;
-  border: none;
-}
+  .header-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
 
-.confirm-button {
-  background-color: #64b5f6;
-  color: #fff;
-  border: none;
-}
-@media (max-width: 600px) {
-  .custom-dialog {
-    width: 300px; /* Reduce the width for smaller screens */
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .header-titles {
+    flex: 1;
+
+    .dialog-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .dialog-subtitle {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      color: #dc2626;
+      font-weight: 500;
+    }
+  }
+
+  .close-btn {
+    color: #94a3b8;
+    transition: color 0.2s;
+    &:hover {
+      color: #334155;
+    }
   }
 }
 
-@media (max-width: 400px) {
-  .custom-dialog {
-    width: 90%; /* Make it even smaller for extra small screens */
+/* ----------------------------------------------------
+   Dialog Body
+---------------------------------------------------- */
+.dialog-body {
+  padding: 20px 24px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .dialog-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #334155;
+
+    strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+  }
+
+  .warning-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: #991b1b;
+
+    .warning-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #dc2626;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   Dialog Footer Actions
+---------------------------------------------------- */
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+
+  .btn-cancel {
+    border-color: #cbd5e1;
+    color: #475569;
+    font-weight: 600;
+    padding: 0 18px;
+    border-radius: 8px;
+  }
+
+  .btn-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px;
+    font-weight: 600;
+    border-radius: 8px;
+    color: #ffffff;
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: #b91c1c;
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.32);
+    }
   }
 }

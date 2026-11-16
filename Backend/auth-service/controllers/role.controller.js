@@ -101,7 +101,20 @@ const sequelize = require('../utils/config');
 
  exports.FindRoleById = async (req,res) => {
   try {
-    const role = await Role.findOne({where: {id: req.params.id}, order:['id']})
+    let role = await Role.findOne({where: {id: req.params.id}, order:['id']});
+    if (!role) {
+      const Designation = require('../models/designation');
+      const desig = await Designation.findOne({ where: { id: req.params.id } });
+      if (desig) {
+        role = {
+          id: desig.id,
+          roleName: desig.designationName,
+          abbreviation: desig.abbreviation,
+          status: true,
+          department: null
+        };
+      }
+    }
 
     res.send(role);
   } catch (error) {

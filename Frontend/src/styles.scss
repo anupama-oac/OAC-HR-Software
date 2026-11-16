@@ -22,5 +22,42 @@
 @import "app/theme/styles/libs-override";
 @import "app/theme/styles/rtl";
 
+// Custom Modern Dialogs
+.modern-holiday-dialog,
+.modern-delete-dialog,
+.modern-designation-dialog,
+.modern-asset-dialog,
+.modern-payroll-dialog,
+.modern-announcement-dialog,
+.modern-team-dialog,
+.modern-leave-dialog {
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-shape: 16px;
+    padding: 0 !important;
+    max-height: 90vh !important;
+  }
+  .mat-mdc-dialog-surface, .mdc-dialog__surface {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+.modern-holiday-dialog {
+  .mat-mdc-dialog-container {
+    width: 95vw !important;
+    max-width: 96vw !important;
+  }
+  .mat-mdc-dialog-surface, .mdc-dialog__surface {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+
 
 

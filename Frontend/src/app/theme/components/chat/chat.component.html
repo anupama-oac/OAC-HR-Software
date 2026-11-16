@@ -19,7 +19,7 @@
                                         <img matListItemAvatar [src]="userImage">
                                       }
                                       @else {
-                                        <img matListItemAvatar [src]="apiUrl + chat.url">
+                                        <img matListItemAvatar [src]="getChatImageUrl(chat.url)">
                                       }
                                     <h6 matListItemTitle> {{chat.name}} </h6>
                                     @if(chat.unreadMessagesCount > 0){
@@ -67,7 +67,7 @@
                                         <img matListItemAvatar [src]="userImage">
                                       }
                                       @else {
-                                        <img matListItemAvatar [src]="apiUrl + currentUser.url">
+                                        <img matListItemAvatar [src]="getChatImageUrl(currentUser.url)">
                                       }
                                 </mat-list-item>
                             </mat-list>

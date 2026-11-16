@@ -1,8 +1,24 @@
 .user-form {
+  padding-top: 8px;
+
   .form-field-outer {
-      width: 280px;
+    width: 100%;
+    min-width: 340px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
-  .mat-mdc-radio-button{
-      margin-right: 12px;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  margin: 0 -24px -24px -24px;
+  border-top: 1px solid #f1f5f9;
+
+  button {
+    border-radius: 8px;
+    font-weight: 600;
+    min-width: 90px;
   }
 }

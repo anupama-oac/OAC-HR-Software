@@ -19,6 +19,10 @@ exports.createNotification = async (req, res) => {
 // 🔍 GET ALL NOTIFICATIONS FOR A SPECIFIC USER
 exports.getNotificationsByUserId = async (req, res) => {
     const { userId } = req.params;
+    if (Number(userId) !== Number(req.user.id)) {
+        return res.status(403).json({ message: 'You can only view your own notifications.' });
+    }
+
     try {
         const notifications = await Notification.findAll({
             where: { userId },

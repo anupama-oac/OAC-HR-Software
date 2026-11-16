@@ -1,84 +1,97 @@
-<form [formGroup]="form">
-    <mat-card>
-      <mat-card-header><mat-card-title>Statutory Info</mat-card-title></mat-card-header>
-  
-      <div fxLayout="column" class="form-field-outer" style="margin-top: 20px; margin-left: 15px;">
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Aadhaar Number</mat-label>
-              <input matInput formControlName="adharNo" >
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>PAN Number</mat-label>
-              <input matInput formControlName="panNumber" >
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>PF Number</mat-label>
-              <input matInput formControlName="pfNumber" >
-            </mat-form-field>
-          </div>
-        </div>
-  
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>ESI Number</mat-label>
-              <input matInput formControlName="esiNumber" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>UAN Number</mat-label>
-              <input matInput formControlName="uanNumber" >
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Insurance Number</mat-label>
-              <input matInput formControlName="insuranceNumber" >
-            </mat-form-field>
-          </div>
-        </div>
+<div class="edit-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge statutory-badge">
+        <mat-icon>assignment_ind</mat-icon>
       </div>
-      <div class="row box">
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Passport Number</mat-label>
-            <input matInput formControlName="passportNumber" >
+      <div class="header-title-box">
+        <h2 class="dialog-title">{{ editStatus ? 'Edit Statutory Information' : 'Add Statutory Information' }}</h2>
+        <p class="dialog-subtitle">Tax, social security, insurance & passport credentials</p>
+      </div>
+    </div>
+    <button mat-icon-button class="dialog-close-btn" (click)="dialogRef?.close()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Form Body -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dialog-body-scrollable">
+      
+      <!-- Section 1: Government & Social Security Identifiers -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">badge</mat-icon>
+          <span>Social Security & Tax Identifiers</span>
+        </div>
+
+        <div class="form-grid-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.adharNo || 'Aadhaar Number' }}</mat-label>
+            <input matInput formControlName="adharNo" placeholder="Enter Aadhaar ID / SSN">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.panNumber || 'PAN Number' }}</mat-label>
+            <input matInput formControlName="panNumber" placeholder="Enter PAN Number / Tax ID">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.pfNumber || 'PF Number' }}</mat-label>
+            <input matInput formControlName="pfNumber" placeholder="Provident fund ID">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.esiNumber || 'ESI Number' }}</mat-label>
+            <input matInput formControlName="esiNumber" placeholder="ESI insurance ID">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.uanNumber || 'UAN Number' }}</mat-label>
+            <input matInput formControlName="uanNumber" placeholder="Universal account number">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>{{ labels.insuranceNumber || 'Insurance Number' }}</mat-label>
+            <input matInput formControlName="insuranceNumber" placeholder="Policy / insurance number">
           </mat-form-field>
         </div>
-        <div class="col">
+      </div>
+
+      <!-- Section 2: Passport Information -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">flight</mat-icon>
+          <span>Passport Details</span>
+        </div>
+
+        <div class="form-grid-2">
           <mat-form-field appearance="outline" class="w-100">
-            <mat-label>Expiry Date</mat-label>
-            <input matInput [matDatepicker]="dp" formControlName="passportExpiry">
-            <mat-hint>DD/MM/YYYY</mat-hint>
+            <mat-label>Passport Number</mat-label>
+            <input matInput formControlName="passportNumber" placeholder="Enter passport number">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Passport Expiry Date</mat-label>
+            <input matInput [matDatepicker]="dp" placeholder="DD/MM/YYYY" formControlName="passportExpiry">
             <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
             <mat-datepicker #dp></mat-datepicker>
           </mat-form-field>
         </div>
       </div>
-  
-      <div class="col" style="text-align: right; margin-bottom: 15px;">
-        <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="form.pristine || form.invalid"
-        style="margin-right: 10px;" >
-          @if (editStatus) {
-              Update
-          } @else {
-              Save
-          }
-        </button>
-        <button mat-raised-button color="primary" (click)="dialogRef?.close()" [disabled]="!form.pristine && !form.invalid">
-          Exit
-        </button>
-      </div>
-    </mat-card>
+
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-footer-actions">
+      <button type="button" mat-button class="btn-cancel" (click)="dialogRef?.close()">
+        Cancel
+      </button>
+      <button type="submit" mat-flat-button class="btn-save" [disabled]="form.pristine || form.invalid">
+        <mat-icon>{{ editStatus ? 'check_circle' : 'save' }}</mat-icon>
+        <span>{{ editStatus ? 'Update Statutory Details' : 'Save Statutory Details' }}</span>
+      </button>
+    </div>
   </form>
-  
+</div>

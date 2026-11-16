@@ -1,219 +1,465 @@
-
-
-<div class="row"> @if( invNo ){ 
-      <div class="editable-field">
-      @if(!isEditingInvNo) {
-        <h1 (click)="startEditingInvNo()">{{ invNo }}</h1>
-      } @else {
-        <mat-form-field appearance="outline" class="invno-edit-field">
-          <input matInput 
-            [(ngModel)]="invNo" 
-            (input)="onInputChange()"
-            (keyup.enter)="saveInvNo()">
-            <mat-hint *ngIf="showEmptyWarning" class="warning-hint">
-              Cannot be empty - original value restored
-            </mat-hint>
-            <!-- <mat-hint *ngIf="showOACWarn" class="warning-hint">
-              {{desiredPrefix}} is not allowed to be modified
-            </mat-hint> -->
-            <!-- <mat-error *ngIf="showOACWarn">
-              OAC prefix is not allowed to be modified
-            </mat-error> -->
-        </mat-form-field>
-      }
-    </div>
-  <!-- <h1>{{ invNo }}</h1>  -->
-}@if( userName ){ <h1>/{{ userName }}</h1> }</div>
-<mat-tab-group class="horizontal-tabs" class="user-head" [selectedIndex]="selectedTabIndex">
-  <mat-tab [disabled]="!formSubmitted">
-    <mat-card style="margin-top: 20px;">
-      <ng-template mat-tab-label>
-        <mat-icon>info</mat-icon>
-      </ng-template>
-
-      <form [formGroup]="form" class="user-form" fxLayout="column" fxLayoutGap="16px">
-        <div fxLayout="column" class="form-field-outer">
-          <mat-card>
-            <mat-card-header><mat-card-title>Employee</mat-card-title></mat-card-header>
-            <div class="row box" style="margin-top: 20px;">
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label><mat-icon>person</mat-icon> Name</mat-label>
-                  <input matInput formControlName="name" required>
-                  @if(form.controls['name'].hasError('required')){
-                    <mat-error>
-                      Name is required
-                    </mat-error>
-                  }@else if(form.controls.name.hasError('minlength')){
-                    <mat-error>
-                      Name isn't long enough, minimum of 5 characters
-                    </mat-error>
-                  }
-                </mat-form-field>
-              </div>
-              @if(!editStatus){
-                <div class="col">
-                  <mat-form-field class="w-100" appearance="outline">
-                    <mat-label>Official Mail</mat-label>
-                    <input matInput formControlName="officialMailId" >
-                  </mat-form-field>
-                </div>
-              }
-
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label><mat-icon>email</mat-icon> Email</mat-label>
-                  <input matInput formControlName="email" required>
-                  @if(form.controls.email.hasError('required')){
-                    <mat-error>
-                      Email is required
-                    </mat-error>
-                  }
-                </mat-form-field>
-              </div>
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label><mat-icon>phone</mat-icon> Phone Number</mat-label>
-                  <input matInput formControlName="phoneNumber" required>
-                  @if(form.controls.phoneNumber.hasError('required')){
-                    <mat-error>
-                      Phone number is required
-                    </mat-error>
-                  }
-                </mat-form-field>
-              </div>
-
-              <div class="col" style="margin-right: 0;">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label>Enter your password</mat-label>
-                  <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" [readonly]="editStatus"
-                  required />
-                  <button mat-icon-button matSuffix (click)="togglePasswordVisibility()"
-                    [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'"
-                    [attr.aria-pressed]="!hidePassword">
-                    <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                  </button>
-                  @if(form.controls.password.hasError('required')){
-                    <mat-error>
-                      Password is required
-                    </mat-error>
-                  }@else if(form.controls.password.hasError('minlength')){
-                    <mat-error>
-                      Password isn't long enough, minimum of 5 characters
-                    </mat-error>
-                  }
-                </mat-form-field>
-
-              </div>
-              @if(!editStatus){
-                <div style="margin-left: 0; margin-right: 15px;">
-                  <button type="button" class="small-btn" (click)="generateRandomPassword()">
-                    <span class="material-icons">autorenew</span>
-                  </button>
-                  <button type="button" class="small-btn" (click)="copyEmpNoAndPassword()"
-                    [disabled]="form.controls.password.value === ''">
-                    <span class="material-icons">content_copy</span>
-                  </button>
-                </div>
-              }
-
-            </div>
-
-            <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-              @if(imageUrl != '') {
-                <input type="file" class="file-input" hidden #fileInput>
-                <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                  <img [src]="imageUrl" alt="Image" title="Image" height="100" width="100" (click)="fileInput.click()" class="clickable-image" />
-                  @if(imageUrl){
-                    <button mat-icon-button color="warn" (click)="deleteImage()">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  }
-                </div>
-              } @else{
-                <div class="upload-container" style="display: flex; align-items: center;">
-                  Upload Image: <input type="file" class="file-input" hidden #fileInput (change)="uploadFile($event)">
-                  <span class="material-icons clickable-icon" (click)="fileInput.click()" style="margin-left: 10px;">cloud_upload</span>
-                </div>
-              }
-
-              <div fxLayout="row" fxLayoutGap="16px">
-                <button mat-raised-button class="button" [disabled]="!form.valid" (click)="onSubmit()">
-                  {{ editStatus ? 'Update' : 'Save' }}
-                </button>
-
-                @if(!editStatus){
-                  <button mat-raised-button class="button"  onClick="history.back()">
-                    Close
-                  </button>
-                }@else if(editStatus){
-                  <button mat-raised-button (click)="goToNextTab()">
-                    <div class="text-with-icon">
-                      <!-- <span>Next</span> -->
-                      <mat-icon>arrow_forward_ios</mat-icon>
-                    </div>
-                  </button>
-                }
-              </div>
-            </div>
-          </mat-card>
+<div class="user-dialog-container">
+  <!-- Page Header / Hero Banner -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>{{ editStatus ? 'manage_accounts' : 'person_add' }}</mat-icon>
+      </div>
+      <div class="header-titles">
+        <div class="title-row">
+          <h1 class="page-title">
+            {{ editStatus ? (userName ? userName : 'Edit Employee') : 'New Employee Registration' }}
+          </h1>
+          <span class="status-pill" [class.edit-mode]="editStatus">
+            <span class="status-dot"></span>
+            {{ editStatus ? 'Editing Profile' : 'New Onboarding' }}
+          </span>
         </div>
-      </form>
-    </mat-card>
-  </mat-tab>
-  <mat-tab [disabled]="!isFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>person</mat-icon>
-    </ng-template>
-    <app-personal-details [data]="dataToPass" (dataSubmitted)="personalSubmit($event)" (loadingState)="updateLoadingState($event)" 
-    (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-personal-details>
-  </mat-tab>
+        <p class="page-subtitle">
+          {{ editStatus ? 'Update credentials, job positioning, statutory details, and documents' : 'Complete the multi-step onboarding wizard to register a new employee' }}
+        </p>
+      </div>
+    </div>
 
-  <mat-tab [disabled]="!isWorkFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>work</mat-icon>
-    </ng-template>
-    <app-user-position [positionData]="dataToPass" (dataSubmitted)="workSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-position>
-  </mat-tab>
+    <div class="header-right">
+      <!-- Employee ID Badge (Click to Edit) -->
+      @if (invNo || !editStatus) {
+        <div class="emp-id-pill" [class.is-editing]="isEditingInvNo">
+          <div class="id-badge-icon">
+            <mat-icon>badge</mat-icon>
+          </div>
+          @if (!isEditingInvNo) {
+            <div class="id-content" (click)="startEditingInvNo()" matTooltip="Click to edit Employee ID">
+              <span class="id-label">EMP ID</span>
+              <span class="id-value">{{ invNo || 'Generating...' }}</span>
+            </div>
+            <button type="button" mat-icon-button class="id-edit-btn" (click)="startEditingInvNo()" matTooltip="Edit Employee ID">
+              <mat-icon>edit</mat-icon>
+            </button>
+          } @else {
+            <div class="id-inline-editor">
+              <input 
+                class="id-input" 
+                [(ngModel)]="invNo" 
+                (input)="onInputChange()"
+                (keyup.enter)="saveInvNo()"
+                (keyup.escape)="cancelEditingInvNo()"
+                placeholder="EMP-XXXX-XXX"
+                autofocus />
+              <button type="button" mat-icon-button class="id-btn save" (click)="saveInvNo()" matTooltip="Save ID (Enter)">
+                <mat-icon>check</mat-icon>
+              </button>
+              <button type="button" mat-icon-button class="id-btn cancel" (click)="cancelEditingInvNo()" matTooltip="Cancel (Esc)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
 
-  <mat-tab [disabled]="!isContactsFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>contacts</mat-icon>
-    </ng-template>
-    <app-statuatory-info [statuatoryData]="dataToPass" (dataSubmitted)="contactSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-statuatory-info>
-  </mat-tab>
+      @if (showEmptyWarning) {
+        <div class="id-warning-toast">
+          <mat-icon>warning</mat-icon>
+          <span>Cannot be empty - original value restored</span>
+        </div>
+      }
 
-  <mat-tab [disabled]="!isSocialFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>savings</mat-icon>
-    </ng-template>
-    <app-user-account [accountData]="dataToPass" (dataSubmitted)="accountSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-account>
-  </mat-tab>
-
-  <mat-tab [disabled]="!isNomineeFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>supervised_user_circle</mat-icon>
-    </ng-template>
-    <app-user-nominee [nomineeData]="dataToPass" (dataSubmitted)="nomineeSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-nominee>
-  </mat-tab>
-
-  <!-- <mat-tab [disabled]="!isQualFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>school</mat-icon>
-    </ng-template>
-    <app-user-qualification [qualData]="dataToPass" (dataSubmitted)="qualSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-qualification>
-  </mat-tab> -->
-
-  <mat-tab [disabled]="!isAccountFormSubmitted">
-    <ng-template mat-tab-label>
-      <mat-icon>upload_file</mat-icon>
-    </ng-template>
-    <app-user-documents [data]="dataToPass" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-documents>
-  </mat-tab>
-</mat-tab-group>
-
-@if(isLoading) {
-  <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-      <mat-spinner class="user-spinner"></mat-spinner>
+      <button type="button" mat-stroked-button class="btn-back-header" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back</span>
+      </button>
+    </div>
   </div>
-}
+
+  <!-- Multi-step Form Tabs -->
+  <div class="form-wrapper-card">
+    <mat-tab-group class="modern-tabs" [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabSelected($event)" animationDuration="200ms">
+      
+      <!-- Tab 0: Basic Info -->
+      <mat-tab [disabled]="!editStatus && !formSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>badge</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 1</span>
+              <span class="tab-title">Basic Info</span>
+            </div>
+          </div>
+        </ng-template>
+
+        <div class="tab-body-container">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="user-form">
+            <div class="form-grid-layout">
+              
+              <!-- Left: Avatar & Profile Card -->
+              <div class="avatar-column">
+                <div class="avatar-card">
+                  <div class="avatar-header">
+                    <span class="avatar-title">Profile Photo</span>
+                    <span class="avatar-subtitle">Employee portrait</span>
+                  </div>
+
+                  <input type="file" class="file-input" hidden #fileInput accept="image/png, image/jpeg, image/jpg" (change)="uploadFile($event)">
+
+                  <div class="avatar-circle-wrapper" [class.has-image]="!!imageUrl">
+                    @if (imageUrl) {
+                      <img [src]="imageUrl" alt="Employee Photo" class="avatar-preview-img" (click)="fileInput.click()" matTooltip="Click to change photo" />
+                      <div class="avatar-overlay" (click)="fileInput.click()">
+                        <mat-icon>photo_camera</mat-icon>
+                        <span>Change</span>
+                      </div>
+                    } @else {
+                      <div class="avatar-placeholder" (click)="fileInput.click()" matTooltip="Click to upload photo">
+                        <div class="placeholder-icon-circle">
+                          <mat-icon>add_a_photo</mat-icon>
+                        </div>
+                        <span class="placeholder-label">Upload Photo</span>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="avatar-btn-row">
+                    @if (imageUrl) {
+                      <button type="button" mat-stroked-button color="warn" class="btn-avatar-action delete" (click)="deleteImage()">
+                        <mat-icon>delete_outline</mat-icon>
+                        <span>Remove Photo</span>
+                      </button>
+                    } @else {
+                      <button type="button" mat-stroked-button class="btn-avatar-action upload" (click)="fileInput.click()">
+                        <mat-icon>cloud_upload</mat-icon>
+                        <span>Choose File</span>
+                      </button>
+                    }
+                  </div>
+                  <span class="avatar-specs-text">PNG, JPG or JPEG up to 5MB</span>
+
+                  <mat-divider class="avatar-divider"></mat-divider>
+
+                  <!-- Onboarding Progress Flow -->
+                  <div class="step-guide-box">
+                    <div class="guide-item active">
+                      <mat-icon class="guide-icon">check_circle</mat-icon>
+                      <div class="guide-text">
+                        <strong>1. Basic Credentials</strong>
+                        <span>Account & Contact</span>
+                      </div>
+                    </div>
+                    <div class="guide-item" [class.unlocked]="isFormSubmitted">
+                      <mat-icon class="guide-icon">{{ isFormSubmitted ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                      <div class="guide-text">
+                        <strong>2. Personal Profile</strong>
+                        <span>Bio, DOB & Gender</span>
+                      </div>
+                    </div>
+                    <div class="guide-item" [class.unlocked]="isWorkFormSubmitted">
+                      <mat-icon class="guide-icon">{{ isWorkFormSubmitted ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                      <div class="guide-text">
+                        <strong>3. Employment</strong>
+                        <span>Designation & Team</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Form Fields Section -->
+              <div class="fields-column">
+                <div class="section-card">
+                  <div class="section-header">
+                    <div class="section-title-wrap">
+                      <div class="section-icon">
+                        <mat-icon>account_box</mat-icon>
+                      </div>
+                      <div>
+                        <h2 class="section-title">Primary Account Credentials</h2>
+                        <p class="section-desc">Manage employee full name, official & personal contacts, and initial login access.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-fields-grid">
+                    <!-- Full Name -->
+                    <div class="field-col col-span-2">
+                      <mat-form-field appearance="outline" class="w-100 modern-field">
+                        <mat-label>Full Name</mat-label>
+                        <mat-icon matPrefix class="field-icon">person</mat-icon>
+                        <input matInput formControlName="name" placeholder="Enter employee full name" required>
+                        @if (form.controls['name'].hasError('required')) {
+                          <mat-error>Employee full name is required</mat-error>
+                        } @else if (form.controls.name.hasError('minlength')) {
+                          <mat-error>Name must be at least 3 characters long</mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Official Mail (Shown when creating employee) -->
+                    @if (!editStatus) {
+                      <div class="field-col">
+                        <mat-form-field appearance="outline" class="w-100 modern-field">
+                          <mat-label>Official Email (Work)</mat-label>
+                          <mat-icon matPrefix class="field-icon">business</mat-icon>
+                          <input matInput formControlName="officialMailId" type="email" placeholder="name@company.com" required>
+                          @if (form.controls['officialMailId'].hasError('required')) {
+                            <mat-error>Official work email is required</mat-error>
+                          } @else if (form.controls['officialMailId'].hasError('email')) {
+                            <mat-error>Please enter a valid work email</mat-error>
+                          }
+                        </mat-form-field>
+                      </div>
+                    }
+
+                    <!-- Personal Email -->
+                    <div class="field-col" [class.col-span-2]="editStatus">
+                      <mat-form-field appearance="outline" class="w-100 modern-field">
+                        <mat-label>Personal Email</mat-label>
+                        <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
+                        <input matInput formControlName="email" type="email" placeholder="name@example.com" required>
+                        @if (form.controls['email'].hasError('required')) {
+                          <mat-error>Personal email address is required</mat-error>
+                        } @else if (form.controls['email'].hasError('email')) {
+                          <mat-error>Please enter a valid email address</mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="field-col">
+                      <mat-form-field appearance="outline" class="w-100 modern-field">
+                        <mat-label>Mobile / Phone Number</mat-label>
+                        <mat-icon matPrefix class="field-icon">phone</mat-icon>
+                        <input matInput formControlName="phoneNumber" placeholder="+91 9876543210" required>
+                        @if (form.controls['phoneNumber'].hasError('required')) {
+                          <mat-error>Phone number is required</mat-error>
+                        } @else if (form.controls['phoneNumber'].hasError('pattern')) {
+                          <mat-error>Invalid phone format (e.g. +919876543210)</mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="field-col">
+                      <mat-form-field appearance="outline" class="w-100 modern-field">
+                        <mat-label>{{ editStatus ? 'Current Password' : 'Login Password' }}</mat-label>
+                        <mat-icon matPrefix class="field-icon">lock</mat-icon>
+                        <input matInput 
+                          [type]="hidePassword ? 'password' : 'text'" 
+                          formControlName="password" 
+                          [readonly]="editStatus"
+                          placeholder="••••••••"
+                          required />
+                        <button type="button" mat-icon-button matSuffix (click)="togglePasswordVisibility()"
+                          [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'"
+                          [matTooltip]="hidePassword ? 'Show password' : 'Hide password'">
+                          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                        </button>
+                        @if (form.controls['password'].hasError('required')) {
+                          <mat-error>Password is required</mat-error>
+                        } @else if (form.controls['password'].hasError('minlength')) {
+                          <mat-error>Password must be at least 4 characters</mat-error>
+                        }
+                        @if (editStatus) {
+                          <mat-hint class="password-hint">Password is read-only in profile editor</mat-hint>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Password Tools (Generate & Copy) -->
+                    @if (!editStatus) {
+                      <div class="field-col col-span-2">
+                        <div class="password-action-box">
+                          <div class="pwd-box-left">
+                            <mat-icon class="pwd-shield-icon">security</mat-icon>
+                            <div class="pwd-notes">
+                              <span class="pwd-notes-title">Password Generation & Sharing</span>
+                              <span class="pwd-notes-desc">Generate a secure random password and easily copy employee login credentials.</span>
+                            </div>
+                          </div>
+                          <div class="pwd-box-right">
+                            <button type="button" mat-stroked-button class="btn-pwd-tool generate" (click)="generateRandomPassword()" matTooltip="Generate a new secure random password">
+                              <mat-icon>autorenew</mat-icon>
+                              <span>Generate</span>
+                            </button>
+                            <button type="button" mat-stroked-button class="btn-pwd-tool copy" [class.copied]="isCopied" (click)="copyEmpNoAndPassword()" matTooltip="Copy Employee ID and Password to clipboard">
+                              <mat-icon>{{ isCopied ? 'done' : 'content_copy' }}</mat-icon>
+                              <span>{{ isCopied ? 'Copied!' : 'Copy Credentials' }}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                  </div>
+                </div>
+
+                <!-- Form Action Footer -->
+                <div class="form-footer-bar">
+                  <div class="footer-left">
+                    <button type="button" mat-stroked-button class="btn-cancel" (click)="goBack()">
+                      <mat-icon>close</mat-icon>
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+
+                  <div class="footer-right">
+                    <button type="submit" mat-raised-button class="btn-submit-primary" [disabled]="!form.valid">
+                      <mat-icon>{{ editStatus ? 'check_circle' : 'save' }}</mat-icon>
+                      <span>{{ editStatus ? 'Save Updates' : 'Save & Proceed' }}</span>
+                    </button>
+
+                    @if (editStatus) {
+                      <button type="button" mat-raised-button class="btn-next-tab" (click)="goToNextTab()">
+                        <span>Next Step</span>
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 1: Personal Details -->
+      <mat-tab [disabled]="!editStatus && !isFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 2</span>
+              <span class="tab-title">Personal</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-personal-details [data]="dataToPass" (dataSubmitted)="personalSubmit($event)" (loadingState)="updateLoadingState($event)" 
+          (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-personal-details>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 2: Position & Employment -->
+      <mat-tab [disabled]="!editStatus && !isWorkFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>work</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 3</span>
+              <span class="tab-title">Employment</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-user-position [positionData]="dataToPass" (dataSubmitted)="workSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-position>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 3: Statutory Info -->
+      <mat-tab [disabled]="!editStatus && !isContactsFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>gavel</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 4</span>
+              <span class="tab-title">Statutory</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-statuatory-info [statuatoryData]="dataToPass" (dataSubmitted)="contactSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-statuatory-info>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 4: Account & Bank -->
+      <mat-tab [disabled]="!editStatus && !isSocialFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>account_balance</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 5</span>
+              <span class="tab-title">Bank & Account</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-user-account [accountData]="dataToPass" (dataSubmitted)="accountSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-account>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 5: Nominee -->
+      <mat-tab [disabled]="!editStatus && !isNomineeFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>family_restroom</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 6</span>
+              <span class="tab-title">Nominee</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-user-nominee [nomineeData]="dataToPass" (dataSubmitted)="nomineeSubmit($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-nominee>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 6: Salary Structure -->
+      <mat-tab [disabled]="!editStatus && !isSalaryFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>payments</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 7</span>
+              <span class="tab-title">Salary</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-user-salary [salaryData]="dataToPass" (dataSubmitted)="salarySubmit($event)" (loadingState)="updateLoadingState($event)" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-salary>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 7: Documents -->
+      <mat-tab [disabled]="!editStatus && !isAccountFormSubmitted">
+        <ng-template mat-tab-label>
+          <div class="tab-label-inner">
+            <div class="tab-icon-wrap">
+              <mat-icon>folder_shared</mat-icon>
+            </div>
+            <div class="tab-text-wrap">
+              <span class="tab-step">STEP 8</span>
+              <span class="tab-title">Documents</span>
+            </div>
+          </div>
+        </ng-template>
+        <div class="child-tab-container">
+          <app-user-documents [data]="dataToPass" (nextTab)="goToNextTab()" (previousTab)="goToPreviousTab()"></app-user-documents>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  </div>
+
+  <!-- Loading Overlay -->
+  @if (isLoading) {
+    <div class="user-spinner-overlay">
+      <div class="spinner-card">
+        <mat-spinner diameter="44" strokeWidth="4"></mat-spinner>
+        <span class="spinner-text">Processing employee record...</span>
+      </div>
+    </div>
+  }
+</div>

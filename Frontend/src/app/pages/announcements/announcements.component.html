@@ -1,67 +1,379 @@
-<div fxLayout="row" fxLayoutAlign="space-between center" class="px-2 py-1">
-    <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            @if (roleName === 'HR Admin' || roleName === 'Super Admin') {
-                <mat-button-toggle value="add" (click)="openDialog(null)">
-                    <mat-icon>loupe</mat-icon>
-                </mat-button-toggle>
-            }
-        </mat-button-toggle-group>
-    </div>
-
-    <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-        <div fxLayout="row" class="col">
-          <form class="user-search" [class.show]="controls.value == 'search'">
-            <mat-form-field class="user-search-input">
-                <input matInput placeholder="Search..." name="search" (keyup)="search($event)">
-            </mat-form-field>
-          </form>
+<div class="announcements-container">
+  <!-- Top Action Toolbar Card -->
+  <div class="announcements-toolbar-card">
+    <div class="toolbar-left-group">
+      <div class="page-title-box">
+        <div class="title-icon-badge">
+          <mat-icon>campaign</mat-icon>
+        </div>
+        <div class="title-text-group">
+          <h1 class="page-title">Company Announcements</h1>
+          <p class="page-subtitle">Stay informed with the latest organizational notices, milestones, and alerts.</p>
         </div>
       </div>
-</div>
-
-<div>
-    <ul>
-        @for (item of announcements; track $index) {
-            <li 
-            [ngClass]="getAnnouncementClass(item.type)" 
-            style="display: flex; justify-content: space-between; align-items: center;"
-            >
-            <div style="display: flex; align-items: center;">
-                <span class="symbol">{{ getSymbol(item.type) }}</span>
-                {{ item.message }}
-            </div>
-        
-            <div>
-                <img 
-                    *ngIf="item.fileUrl" 
-                    [src]="apiUrl + item.fileUrl" 
-                    class="transition-2" 
-                    [ngClass]="{ 'enlarged': enlargedItemId === item.id }"
-                    [style.width]="enlargedItemId === item.id ? '200px' : '50px'"
-                    [style.height]="enlargedItemId === item.id ? '200px' : '50px'"
-                    (click)="toggleImageSize(item.id)"
-                />
-            </div>
-        
-            <div>
-                <button 
-                    *ngIf="roleName === 'HR Admin' || roleName === 'Super Admin'" 
-                    mat-button 
-                    color="warn" 
-                    (click)="deleteAnnouncement(item.id)"
-                >
-                    <mat-icon>delete</mat-icon>
-                </button>
-            </div>
-        </li>
-        
-        }
-    </ul>
-</div>
-
-@if(isVisible) {
-    <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-        <mat-spinner color="primary"></mat-spinner>
     </div>
-}
+
+    <div class="toolbar-right-group">
+      <!-- Create Announcement Button -->
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-new-announcement"
+        (click)="openDialog(null)"
+        matTooltip="Create and post a new announcement"
+        matTooltipPosition="below"
+        aria-label="Post Announcement">
+        <mat-icon>add_alert</mat-icon>
+        <span class="btn-text">New Announcement</span>
+      </button>
+
+      <!-- Refresh Button -->
+      <button
+        mat-stroked-button
+        class="btn-refresh"
+        (click)="getAnnouncement()"
+        matTooltip="Refresh announcements feed"
+        matTooltipPosition="below"
+        aria-label="Refresh Feed">
+        <mat-icon>refresh</mat-icon>
+        <span class="refresh-text">Refresh</span>
+      </button>
+
+      <!-- Toggle Dismissed View Button -->
+      @if (dismissedCount > 0 || showDismissed) {
+        <button
+          mat-stroked-button
+          class="btn-toggle-dismissed"
+          [class.active-mode]="showDismissed"
+          (click)="toggleDismissedView()"
+          [matTooltip]="showDismissed ? 'Switch to active announcements' : 'View ' + dismissedCount + ' dismissed announcements'"
+          matTooltipPosition="below"
+          aria-label="Toggle Dismissed View">
+          <mat-icon>{{ showDismissed ? 'visibility' : 'visibility_off' }}</mat-icon>
+          <span>{{ showDismissed ? 'Active Feed' : 'Dismissed (' + dismissedCount + ')' }}</span>
+        </button>
+      }
+
+      <!-- Total Count Chip -->
+      <div class="announcements-count-badge" [matTooltip]="showDismissed ? 'Total dismissed notices' : 'Total active notices in feed'" matTooltipPosition="below">
+        <mat-icon>{{ showDismissed ? 'visibility_off' : 'notifications_active' }}</mat-icon>
+        <span><strong>{{ filteredAnnouncements.length }}</strong> {{ showDismissed ? 'Dismissed' : 'Notices' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Controls Bar -->
+  <div class="filters-search-bar">
+    <!-- Category Filter Pills -->
+    <div class="category-chips-row">
+      <button
+        type="button"
+        class="filter-pill-btn"
+        [class.active]="selectedTypeFilter === 'all' && !showDismissed"
+        (click)="setTypeFilter('all'); showDismissed = false"
+        matTooltip="Show all active announcements"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-all"></span>
+        <span>All</span>
+        <span class="pill-count">{{ getTypeCount('all') }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill-btn pill-info"
+        [class.active]="selectedTypeFilter === 'info' && !showDismissed"
+        (click)="setTypeFilter('info'); showDismissed = false"
+        matTooltip="Show Information notices"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-info"></span>
+        <span>Information</span>
+        <span class="pill-count">{{ getTypeCount('info') }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill-btn pill-success"
+        [class.active]="selectedTypeFilter === 'success' && !showDismissed"
+        (click)="setTypeFilter('success'); showDismissed = false"
+        matTooltip="Show Success announcements"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-success"></span>
+        <span>Success</span>
+        <span class="pill-count">{{ getTypeCount('success') }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill-btn pill-warning"
+        [class.active]="selectedTypeFilter === 'warning' && !showDismissed"
+        (click)="setTypeFilter('warning'); showDismissed = false"
+        matTooltip="Show Warning notices"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-warning"></span>
+        <span>Warning</span>
+        <span class="pill-count">{{ getTypeCount('warning') }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill-btn pill-error"
+        [class.active]="selectedTypeFilter === 'error' && !showDismissed"
+        (click)="setTypeFilter('error'); showDismissed = false"
+        matTooltip="Show Urgent alerts"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-error"></span>
+        <span>Urgent</span>
+        <span class="pill-count">{{ getTypeCount('error') }}</span>
+      </button>
+
+      <!-- Dismissed Filter Pill -->
+      <button
+        type="button"
+        class="filter-pill-btn pill-dismissed"
+        [class.active]="showDismissed"
+        (click)="toggleDismissedView()"
+        matTooltip="View your dismissed announcements"
+        matTooltipPosition="below">
+        <span class="pill-dot dot-dismissed"></span>
+        <mat-icon class="pill-icon-inline">visibility_off</mat-icon>
+        <span>Dismissed</span>
+        <span class="pill-count" [class.has-count]="dismissedCount > 0">{{ dismissedCount }}</span>
+      </button>
+    </div>
+
+    <!-- Search Input Shell -->
+    <div class="search-input-shell">
+      <mat-icon class="search-lead-icon">search</mat-icon>
+      <input
+        type="text"
+        class="custom-search-input"
+        placeholder="Search announcements..."
+        [(ngModel)]="searchText"
+        (input)="onSearchInput($event)"
+      />
+      @if (searchText) {
+        <button
+          type="button"
+          class="search-clear-btn"
+          (click)="clearSearch()"
+          matTooltip="Clear search filter"
+          matTooltipPosition="below">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Dismissed View Banner (shown when viewing dismissed notices) -->
+  @if (showDismissed) {
+    <div class="dismissed-view-banner">
+      <div class="banner-info">
+        <mat-icon>visibility_off</mat-icon>
+        <div>
+          <strong>Dismissed Notices Archive ({{ dismissedCount }})</strong>
+          <p>These notices are currently hidden from your main feed. You can restore any notice back to your feed.</p>
+        </div>
+      </div>
+      <div class="banner-cta-group">
+        @if (dismissedCount > 0) {
+          <button mat-flat-button color="primary" class="btn-restore-all" (click)="restoreAllDismissed()" matTooltip="Restore all dismissed notices back to your active feed">
+            <mat-icon>restore</mat-icon>
+            <span>Restore All</span>
+          </button>
+        }
+        <button mat-stroked-button class="btn-return-active" (click)="toggleDismissedView(false)" matTooltip="Back to active notices feed">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Active Feed</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Announcements Cards Feed -->
+  <div class="announcements-feed">
+    @if (filteredAnnouncements.length === 0) {
+      <div class="empty-feed-card">
+        <div class="empty-icon-wrap">
+          <mat-icon>{{ showDismissed ? 'visibility_off' : 'campaign' }}</mat-icon>
+        </div>
+        <h3 class="empty-title">
+          {{ showDismissed
+              ? 'No dismissed announcements'
+              : (searchText || selectedTypeFilter !== 'all' ? 'No matching announcements found' : 'No announcements published yet') }}
+        </h3>
+        <p class="empty-desc">
+          {{ showDismissed
+              ? 'You have not dismissed any announcements yet. Any notices you dismiss will appear here so you can review or restore them.'
+              : (searchText || selectedTypeFilter !== 'all' ? 'Try adjusting your search criteria or resetting the category filter.' : 'New corporate notices, milestones, and alerts will appear here.') }}
+        </p>
+        @if (showDismissed) {
+          <button mat-stroked-button class="btn-reset-filters" (click)="toggleDismissedView(false)" matTooltip="Return to active notices">
+            <mat-icon>arrow_back</mat-icon>
+            <span>Back to Active Feed</span>
+          </button>
+        } @else if (searchText || selectedTypeFilter !== 'all') {
+          <button mat-stroked-button class="btn-reset-filters" (click)="resetFilters()" matTooltip="Reset search and filters">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset Filters</span>
+          </button>
+        } @else {
+          <button
+            mat-flat-button
+            color="primary"
+            class="btn-post-first"
+            (click)="openDialog(null)"
+            matTooltip="Create and broadcast your first announcement">
+            <mat-icon>add_alert</mat-icon>
+            <span>Post First Announcement</span>
+          </button>
+        }
+      </div>
+    }
+
+    @for (item of filteredAnnouncements; track item.id) {
+      <div class="announcement-card" [ngClass]="getAnnouncementClass(item.type)" [class.is-dismissed-card]="isDismissed(item.id)">
+        <!-- Left Type Accent Stripe / Icon -->
+        <div class="card-lead-box">
+          <div class="type-icon-bubble" [ngClass]="item.type">
+            <mat-icon>{{ getTypeIcon(item.type) }}</mat-icon>
+          </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="card-main-content">
+          <!-- Card Header Row -->
+          <div class="card-meta-header">
+            <div class="meta-tag-badges">
+              <span class="type-badge-chip" [ngClass]="item.type">
+                {{ getTypeLabel(item.type) }}
+              </span>
+              @if (item.dismissible !== false) {
+                <span class="dismissible-badge-chip" matTooltip="You can dismiss this notice once read">
+                  Dismissible
+                </span>
+              } @else {
+                <span class="mandatory-badge-chip" matTooltip="Mandatory notice cannot be dismissed">
+                  Mandatory
+                </span>
+              }
+              @if (isDismissed(item.id)) {
+                <span class="dismissed-badge-chip" matTooltip="Notice is currently dismissed">
+                  <mat-icon>visibility_off</mat-icon>
+                  <span>Dismissed</span>
+                </span>
+              }
+            </div>
+
+            <!-- Action Buttons: Dismiss, Restore, and Admin Delete -->
+            <div class="card-action-buttons">
+              <!-- Dismiss Option -->
+              @if (item.dismissible !== false && !isDismissed(item.id)) {
+                <button
+                  mat-button
+                  class="btn-card-dismiss"
+                  (click)="dismissAnnouncement(item, $event)"
+                  matTooltip="Dismiss this announcement from your feed"
+                  matTooltipPosition="above"
+                  aria-label="Dismiss Announcement">
+                  <mat-icon>visibility_off</mat-icon>
+                  <span class="action-btn-text">Dismiss</span>
+                </button>
+              }
+
+              <!-- Restore Option -->
+              @if (isDismissed(item.id)) {
+                <button
+                  mat-stroked-button
+                  class="btn-card-restore"
+                  (click)="restoreAnnouncement(item, $event)"
+                  matTooltip="Restore announcement to active feed"
+                  matTooltipPosition="above"
+                  aria-label="Restore Announcement">
+                  <mat-icon>restore</mat-icon>
+                  <span class="action-btn-text">Restore</span>
+                </button>
+              }
+
+              <!-- Admin Actions -->
+              @if (roleName === 'HR Admin' || roleName === 'Super Admin' || canManage) {
+                <button
+                  mat-icon-button
+                  class="btn-delete-announcement"
+                  (click)="deleteAnnouncement(item.id, item.message)"
+                  matTooltip="Delete announcement permanently"
+                  matTooltipPosition="left"
+                  aria-label="Delete Announcement">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Message Body -->
+          <div class="card-message-body">
+            <p class="announcement-text">{{ item.message }}</p>
+          </div>
+
+          <!-- Attachment Section (Image or PDF) -->
+          @if (item.fileUrl) {
+            <div class="card-attachment-section">
+              @if (isPdf(item.fileUrl)) {
+                <!-- PDF Attachment Pill -->
+                <a
+                  [href]="getFileUrl(item.fileUrl)"
+                  target="_blank"
+                  class="pdf-attachment-chip"
+                  matTooltip="Click to open / view PDF in new tab"
+                  matTooltipPosition="above">
+                  <mat-icon class="pdf-icon">picture_as_pdf</mat-icon>
+                  <span class="pdf-name">{{ getFileName(item.fileUrl) }}</span>
+                  <mat-icon class="external-icon">open_in_new</mat-icon>
+                </a>
+              } @else {
+                <!-- Image Attachment Preview Thumbnail -->
+                <div class="image-attachment-wrap">
+                  <div
+                    class="image-thumb-container"
+                    (click)="openImagePreview(item.fileUrl)"
+                    matTooltip="Click to preview full image"
+                    matTooltipPosition="above">
+                    <img [src]="getFileUrl(item.fileUrl)" alt="Announcement attachment" class="attachment-thumb" />
+                    <div class="thumb-hover-overlay">
+                      <mat-icon>zoom_in</mat-icon>
+                    </div>
+                  </div>
+                  <a
+                    [href]="getFileUrl(item.fileUrl)"
+                    target="_blank"
+                    class="btn-open-image-link"
+                    matTooltip="Open original in new tab">
+                    <mat-icon>open_in_new</mat-icon>
+                  </a>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Fullscreen Image Lightbox Modal -->
+  @if (previewImageUrl) {
+    <div class="lightbox-backdrop" (click)="closeImagePreview()">
+      <div class="lightbox-modal" (click)="$event.stopPropagation()">
+        <button type="button" class="lightbox-close-btn" (click)="closeImagePreview()" matTooltip="Close preview">
+          <mat-icon>close</mat-icon>
+        </button>
+        <img [src]="previewImageUrl" alt="Announcement enlarged attachment" class="lightbox-image" />
+      </div>
+    </div>
+  }
+
+  <!-- Loading Spinner -->
+  @if (isVisible) {
+    <div class="announcements-spinner-overlay">
+      <mat-spinner diameter="44" color="primary"></mat-spinner>
+    </div>
+  }
+</div>

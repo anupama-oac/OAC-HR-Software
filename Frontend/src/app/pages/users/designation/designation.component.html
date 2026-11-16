@@ -1,61 +1,149 @@
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="add" (click)="openRoleDialog(null)"><mat-icon>verified_user</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+<div class="designation-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>badge</mat-icon>
+      </div>
+      <div class="header-titles">
+        <div class="title-row">
+          <h1 class="page-title">Designations</h1>
+          <span class="count-badge">{{ totalItems }} Total</span>
+        </div>
+        <p class="page-subtitle">Manage company designations, job titles, and abbreviations</p>
+      </div>
     </div>
-    <div fxLayout="row" class="col">
-      <form class="user-search" [class.show]="controls.value == 'search'">
-        <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search designation..." name="search" (keyup)="search($event)">
-        </mat-form-field>
-      </form>
+
+    <div class="header-right">
+      <button mat-flat-button class="btn-add" (click)="openRoleDialog(null)">
+        <mat-icon>add</mat-icon>
+        <span>Add Designation</span>
+      </button>
     </div>
   </div>
 
-  <main class="table" id="customers_table">
-    <section class="table__body">
-      <table>
+  <!-- Content Card -->
+  <mat-card class="content-card">
+    <!-- Toolbar / Search Bar -->
+    <div class="table-toolbar">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search designations by name or abbreviation..."
+          [value]="searchText"
+          (input)="onSearchInput($event)"
+          autocomplete="off"
+        />
+        @if (searchText) {
+          <button mat-icon-button class="clear-btn" (click)="clearSearch()" matTooltip="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="toolbar-actions">
+        <button mat-icon-button class="refresh-btn" (click)="getRoles()" matTooltip="Refresh data">
+          <mat-icon [class.spin]="isLoading">refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    @if (isLoading) {
+      <mat-progress-bar mode="indeterminate" class="table-progress"></mat-progress-bar>
+    }
+
+    <!-- Table Section -->
+    <div class="table-responsive">
+      <table class="modern-table">
         <thead>
           <tr>
-            <th></th>
-            <th> Designation </th>
-            <th> Abbreviation</th>
-            <th> Manage </th>
+            <th class="col-id">#</th>
+            <th class="col-name">Designation</th>
+            <th class="col-abbreviation">Abbreviation</th>
+            <th class="col-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
-          @for(role of roles; track $index){
-            <tr>
-              <td>{{ role.id }}</td>
-              <td>{{ role.designationName }}</td>
-              <td>{{ role.abbreviation }}</td>
-              <td>
-                <button
-                  mat-icon-button
-                  (click)="openRoleDialog(role)">
-                  <mat-icon>mode_edit</mat-icon>
-                </button>
-
-                <button
-                  mat-icon-button
-                  (click)="deleteRole(role.id)">
-                  <mat-icon>delete</mat-icon>
-                </button>
+          @for (role of roles; track role.id) {
+            <tr class="table-row">
+              <td class="col-id">
+                <span class="id-pill">{{ role.id }}</span>
+              </td>
+              <td class="col-name">
+                <div class="designation-info">
+                  <div class="designation-avatar">
+                    <mat-icon>work_outline</mat-icon>
+                  </div>
+                  <div class="designation-meta">
+                    <span class="designation-title">{{ role.designationName }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="col-abbreviation">
+                <span class="abbreviation-badge">{{ role.abbreviation }}</span>
+              </td>
+              <td class="col-actions">
+                <div class="action-buttons">
+                  <button
+                    mat-icon-button
+                    class="action-btn edit-btn"
+                    matTooltip="Edit Designation"
+                    (click)="openRoleDialog(role)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="action-btn delete-btn"
+                    matTooltip="Delete Designation"
+                    (click)="deleteRole(role.id)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
               </td>
             </tr>
           }
-
         </tbody>
       </table>
-      <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-       (page)="onPageChange($event)" [pageSizeOptions]="[10, 20,30,40,50,100]">
-      </mat-paginator>
-    </section>
-  </main>
-</body>
-</html>
+
+      <!-- Empty State -->
+      @if (!isLoading && roles.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-circle">
+            <mat-icon>work_off</mat-icon>
+          </div>
+          <h3 class="empty-title">No designations found</h3>
+          <p class="empty-description">
+            @if (searchText) {
+              No results found matching "{{ searchText }}". Try searching for something else.
+            } @else {
+              No designations have been configured yet. Get started by adding a new designation.
+            }
+          </p>
+          @if (searchText) {
+            <button mat-stroked-button class="empty-btn" (click)="clearSearch()">
+              <mat-icon>clear</mat-icon> Clear Filter
+            </button>
+          } @else {
+            <button mat-flat-button class="empty-btn primary" (click)="openRoleDialog(null)">
+              <mat-icon>add</mat-icon> Add Designation
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Paginator -->
+    <mat-paginator
+      [length]="totalItems"
+      [pageSize]="pageSize"
+      [pageIndex]="currentPage - 1"
+      [pageSizeOptions]="[10, 20, 30, 50, 100]"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+      class="modern-paginator">
+    </mat-paginator>
+  </mat-card>
+</div>

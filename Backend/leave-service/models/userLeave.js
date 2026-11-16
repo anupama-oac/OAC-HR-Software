@@ -16,13 +16,11 @@ const User = require('../../auth-service/models');
     tableName: 'userLeave'
  })
 
-//  LeaveType.hasMany(UserLeave, { foreignKey: 'leaveTypeId', onUpdate: 'CASCADE' });
-//  UserLeave.belongsTo(LeaveType, {as: 'leaveType'});
- 
-//  User.hasMany(UserLeave, { foreignKey: 'userId', onUpdate: 'CASCADE' });
-//  UserLeave.belongsTo(User);
+if (!LeaveType.associations || !LeaveType.associations.userLeaves) {
+  LeaveType.hasMany(UserLeave, { foreignKey: 'leaveTypeId', as: 'userLeaves', onUpdate: 'CASCADE' });
+}
+if (!UserLeave.associations || !UserLeave.associations.leaveType) {
+  UserLeave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+}
 
-//  UserLeave.sync({alter: true})
-// .then(()=>console.log)
-
-module.exports = UserLeave
+module.exports = UserLeave;

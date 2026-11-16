@@ -102,7 +102,7 @@ export class UserLeaveComponent implements OnInit, OnDestroy {
   leaveTypes: LeaveType[] = [];
   getLeaveTypes(){
     this.leaveTypeSub = this.leaveService.getLeaveType().subscribe(res => {
-      this.leaveTypes = res;
+      this.leaveTypes = (res && Array.isArray(res.items)) ? res.items : (Array.isArray(res) ? res : []);
       for(let i = 0; i < this.leaveTypes.length; i++){
         this.getUserLeave(this.leaveTypes[i].id, this.leaveTypes[i])
       }

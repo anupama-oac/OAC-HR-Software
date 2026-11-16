@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, map, Observable, throwError } from 'rxjs';
 import { Leave } from '../common/interfaces/leaves/leave';
 import { UserLeave } from '../common/interfaces/leaves/userLeave';
 import { LeaveType } from '../common/interfaces/leaves/leaveType';
@@ -80,8 +80,15 @@ updateLeaveStatus(id: number, payload: any): Observable<any> {
     return this.http.get<UserLeave[]>(`${this.apiUrl}/userLeave/byuser/${id}`);
   }
 
-  getLeaveType(filterValue?: string, page?: number, pagesize?:number): Observable<LeaveType[]> {
-    return this.http.get<LeaveType[]>(this.apiUrl + `/leaveType/find/?search=${filterValue}&page=${page}&pageSize=${pagesize}`);
+  getLeaveType(filterValue?: string, page?: number, pagesize?: number): Observable<any> {
+    if (page !== undefined && pagesize !== undefined) {
+      const searchParam = filterValue ? `&search=${encodeURIComponent(filterValue)}` : '';
+      return this.http.get<any>(`${this.apiUrl}/leaveType/find?page=${page}&pageSize=${pagesize}${searchParam}`);
+    }
+    const searchParam = filterValue ? `&search=${encodeURIComponent(filterValue)}` : '';
+    return this.http.get<any>(`${this.apiUrl}/leaveType/find?page=1&pageSize=100${searchParam}`).pipe(
+      map(res => (res && Array.isArray(res.items)) ? res.items : (Array.isArray(res) ? res : []))
+    );
   }
 
   deleteLeaveType(id: number) {
@@ -151,6 +158,23 @@ updateLeaveStatus(id: number, payload: any): Observable<any> {
 
   updateUserLeave(data: any): Observable<UserLeave> {
     return this.http.patch<UserLeave>(`${this.apiUrl}/userLeave/update`, data);
+  }
+
+  grantLeaveToSelectedEmployees(userIds: number[]): Observable<{
+    message: string;
+    grantedEmployees: number;
+    year: number;
+    notificationFailures: number;
+  }> {
+    return this.http.post<{
+      message: string;
+      grantedEmployees: number;
+      year: number;
+      notificationFailures: number;
+    }>(
+      `${this.apiUrl}/userLeave/grant-selected`,
+      { userIds }
+    );
   }
 
   getLeaveCounts(userId: number, ltId: number, year: number): Observable<any> {

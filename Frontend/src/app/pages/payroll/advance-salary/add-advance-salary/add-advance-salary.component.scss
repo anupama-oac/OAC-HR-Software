@@ -1,19 +1,306 @@
-.user-form {
-  .form-field-outer {
-      width: 400px;
+/* ==========================================================================
+   ADD / EDIT ADVANCE SALARY MODAL STYLES
+   ========================================================================== */
+
+$primary: #4f46e5;
+$primary-dark: #4338ca;
+$text-main: #1e293b;
+$text-muted: #64748b;
+$border-color: #e2e8f0;
+
+.add-advance-dialog {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* 1. Header */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid $border-color;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .header-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        color: #ffffff;
+      }
+    }
+
+    .header-titles {
+      .dialog-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        color: #f8fafc;
+        line-height: 1.2;
+      }
+
+      .dialog-subtitle {
+        font-size: 12px;
+        color: #94a3b8;
+        margin: 3px 0 0;
+      }
+    }
   }
-  .mat-mdc-radio-button{
-      margin-right: 15px;
-      margin-left: 15px;
+
+  .btn-close {
+    color: #94a3b8;
+
+    &:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
   }
 }
 
-.full-width{
-  width: 80%;
-  margin-right: 15px;
-  margin-left: 15px;
+/* 2. Dialog Body & Form */
+.dialog-body {
+  padding: 24px !important;
+  max-height: 75vh;
+  overflow-y: auto;
+
+  .advance-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    .w-100 {
+      width: 100%;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+
+      .form-col {
+        flex: 1;
+        width: 100%;
+      }
+    }
+
+    .currency-prefix {
+      font-weight: 700;
+      color: #475569;
+      margin-right: 6px;
+      font-size: 15px;
+    }
+
+    .form-prefix-icon {
+      color: #94a3b8;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+  }
 }
 
-h2{
-  text-align: center;
+/* 3. User Autocomplete Option */
+.user-autocomplete-option {
+  height: 48px !important;
+}
+
+.user-option-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+
+  .user-option-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    color: #4338ca;
+    font-weight: 700;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .user-option-details {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+
+    .user-option-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: $text-main;
+    }
+
+    .user-option-meta {
+      font-size: 11px;
+      color: $text-muted;
+    }
+  }
+}
+
+/* 4. Live Repayment Preview Card */
+.repayment-preview-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4338ca;
+
+    .preview-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #6366f1;
+    }
+  }
+
+  .preview-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .preview-label {
+        font-size: 11px;
+        color: $text-muted;
+      }
+
+      .preview-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: $text-main;
+
+        &.value-primary {
+          color: #1e293b;
+        }
+
+        &.value-accent {
+          color: #4f46e5;
+        }
+      }
+    }
+
+    .preview-divider {
+      width: 1px;
+      height: 28px;
+      background-color: #cbd5e1;
+    }
+  }
+}
+
+/* 5. Dialog Actions */
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px !important;
+  border-top: 1px solid $border-color;
+  background-color: #ffffff;
+  margin: 0 !important;
+
+  .btn-cancel {
+    border-radius: 10px;
+    height: 40px;
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: $text-muted;
+    border-color: $border-color;
+
+    &:hover {
+      background-color: #f8fafc;
+      color: $text-main;
+    }
+  }
+
+  .btn-submit {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: #ffffff !important;
+    border-radius: 10px;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover:not([disabled]) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .dialog-body {
+    padding: 16px !important;
+
+    .advance-form {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+  }
+
+  .repayment-preview-card {
+    .preview-metrics {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .preview-divider {
+        display: none;
+      }
+    }
+  }
 }

@@ -1,95 +1,708 @@
-<mat-tab-group>
-  <!-- Tab for Adding a Holiday -->
-  <mat-tab label="Add Holiday">
-    <h1 mat-dialog-title>
-      
-      <span>@if(editStatus) { EDIT } @else { ADD }</span> HOLIDAY
-    </h1>
-    <div mat-dialog-content>
-      <form [formGroup]="holidayForm" class="user-form">
-        <div fxLayout="column" class="form-field-outer">
-          <br>
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" required />
-            @if(holidayForm.controls['name'].hasError('required')){
-              <mat-error *ngIf="">
-                Designation name is required
-              </mat-error>
+<div class="add-holiday-modal">
+  <!-- Modal Header -->
+  <div class="modal-header">
+    <div class="header-icon-box">
+      <mat-icon>{{ editStatus ? 'edit_calendar' : 'celebration' }}</mat-icon>
+    </div>
+    <div class="header-titles">
+      <div class="title-row">
+        <h2 class="dialog-title">
+          {{ editStatus ? 'Edit Holiday' : 'Add Holiday' }}
+        </h2>
+        @if (editStatus) {
+          <span class="mode-badge edit-mode">
+            <span class="status-dot"></span>
+            Edit Mode
+          </span>
+        }
+      </div>
+      <p class="dialog-subtitle">
+        {{ editStatus 
+          ? 'Modify scheduled date, holiday classification, or comments' 
+          : 'Schedule a public, optional, or restricted holiday in the corporate calendar' }}
+      </p>
+    </div>
+    <button
+      type="button"
+      class="close-button"
+      (click)="close()"
+      matTooltip="Close"
+      matTooltipPosition="below"
+      aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  @if (editStatus) {
+    <!-- EDIT MODE (Direct Single Holiday Form) -->
+    <form [formGroup]="holidayForm" class="modal-form" (ngSubmit)="onSubmit()">
+      <div class="form-body">
+        <!-- Holiday Name -->
+        <div class="form-section">
+          <label class="section-label">
+            Holiday Name <span class="required-star">*</span>
+          </label>
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-icon matPrefix class="field-icon">celebration</mat-icon>
+            <mat-label>Holiday Name</mat-label>
+            <input 
+              matInput 
+              formControlName="name" 
+              placeholder="e.g. Independence Day, Diwali, Christmas Day" 
+              required />
+            @if (holidayForm.controls['name'].hasError('required') && holidayForm.controls['name'].touched) {
+              <mat-error>Holiday name is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Holiday Classification Selection -->
+        <div class="form-section">
+          <label class="section-label">
+            Holiday Classification <span class="required-star">*</span>
+          </label>
+          <div class="type-cards-grid">
+            @for (item of holidayTypes; track item.value) {
+              <button
+                type="button"
+                class="type-choice-card"
+                [class.active]="holidayForm.get('type')?.value === item.value"
+                [ngClass]="item.cssClass"
+                (click)="selectType(item.value)"
+                [matTooltip]="item.description"
+                matTooltipPosition="above">
+                <div class="type-icon-bubble">
+                  <mat-icon>{{ item.icon }}</mat-icon>
+                </div>
+                <div class="type-card-text">
+                  <span class="type-choice-label">{{ item.label }}</span>
+                  <span class="type-choice-hint">{{ item.description }}</span>
+                </div>
+                @if (holidayForm.get('type')?.value === item.value) {
+                  <mat-icon class="check-mark">check_circle</mat-icon>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Holiday Date -->
+        <div class="form-section">
+          <label class="section-label">
+            Holiday Date <span class="required-star">*</span>
+          </label>
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-icon matPrefix class="field-icon">calendar_month</mat-icon>
+            <mat-label>Select Date</mat-label>
+            <input 
+              matInput 
+              [matDatepicker]="editPicker" 
+              formControlName="date" 
+              placeholder="Choose holiday date" 
+              required />
+            <mat-datepicker-toggle matSuffix [for]="editPicker"></mat-datepicker-toggle>
+            <mat-datepicker #editPicker></mat-datepicker>
+            @if (holidayForm.controls['date'].hasError('required') && holidayForm.controls['date'].touched) {
+              <mat-error>Holiday date is required</mat-error>
             }
           </mat-form-field>
 
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Holiday Type</mat-label>
-            <mat-select formControlName="type">
-              <mat-option value="Public">Public</mat-option>
-              <mat-option value="Optional">Optional</mat-option>
-              <mat-option value="Restricted">Restricted</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Date</mat-label>
-            <input matInput [matDatepicker]="picker" formControlName="date" placeholder="Select a date" required />
-            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-            <mat-datepicker #picker></mat-datepicker>
-          </mat-form-field>
-        </div>
-
-        <mat-form-field class="w-100" appearance="outline">
-          <mat-label>Comments</mat-label>
-          <textarea matInput formControlName="comments" placeholder="Enter comments"></textarea>
-        </mat-form-field>
-      </form>
-    </div>
-    <!-- <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-      <button mat-raised-button color="primary" [mat-dialog-close]="holidayForm.value" [disabled]="!holidayForm.valid" (click)="onSubmit()">
-        @if(editStatus) {<span>Update</span>}
-        @else {<span>Add</span>}
-      </button>
-      <button mat-raised-button color="warn" [mat-dialog-close]="true" type="button">Cancel</button>
-    </div> -->
-
-    <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-  <button mat-raised-button color="primary" [disabled]="!holidayForm.valid" (click)="onSubmit()">
-    @if(editStatus) {<span>Update</span>}
-    @else {<span>Add</span>}
-  </button>
-  
-  <button mat-raised-button color="warn" [mat-dialog-close]="false" type="button">Cancel</button>
-</div>
-  </mat-tab>
-
-  <!-- Tab for Uploading a Holiday -->
-  <mat-tab label="Upload Holidays">
-    <h1 mat-dialog-title>UPLOAD HOLIDAYS</h1>
-    <div mat-dialog-content>
-      <form [formGroup]="uploadForm" class="upload-form">
-        <div>
-          <input #fileInput type="file" (change)="onFileChange($event)" accept=".xlsx" />
-          <p>You can upload holiday data using an Excel (.xlsx) file.</p>
-          @if (excelData.length > 0) {
-            <div>
-              <h3>Uploaded Excel Data:</h3>
-              <table border="1">
-                @for (row of excelData; track $index) {
-                  <tr>
-                    @for (cell of row; track $index) {
-                      <td>{{ cell }}</td>
-                    }
-                  </tr>
-                }
-              </table>
+          @if (formattedDatePreview) {
+            <div class="date-preview-pill">
+              <mat-icon>event</mat-icon>
+              <span>{{ formattedDatePreview }}</span>
             </div>
           }
         </div>
-      </form>
-    </div>
-    
-    <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-      <button mat-raised-button color="primary"[mat-dialog-close]="uploadForm.value" 
-      [disabled]="!uploadForm.valid || !selectedFile" (click)="uploadFile()">Upload</button>
-      <button mat-raised-button color="warn" [mat-dialog-close]="true" type="button">Cancel</button>
-    </div>
-  </mat-tab>
-</mat-tab-group>
+
+        <!-- Comments / Remarks -->
+        <div class="form-section">
+          <label class="section-label">
+            Comments & Notes <span class="optional-tag">(Optional)</span>
+          </label>
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Additional remarks or scope</mat-label>
+            <textarea 
+              matInput 
+              formControlName="comments" 
+              rows="3" 
+              placeholder="e.g. Corporate headquarters and all regional branches closed."></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          mat-stroked-button
+          class="btn-cancel"
+          (click)="close()"
+          [disabled]="isSubmitting">
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          mat-flat-button
+          color="primary"
+          class="btn-submit"
+          [disabled]="holidayForm.invalid || isSubmitting">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Updating...</span>
+          } @else {
+            <mat-icon>sync</mat-icon>
+            <span>Update Holiday</span>
+          }
+        </button>
+      </div>
+    </form>
+  } @else {
+    <!-- ADD MODE (Tabs for Single Holiday vs Bulk Import) -->
+    <mat-tab-group 
+      animationDuration="200ms" 
+      class="modern-tabs-group" 
+      [(selectedIndex)]="selectedTabIndex">
+      
+      <!-- TAB 1: Single Holiday -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-header-label">
+            <mat-icon>add_circle_outline</mat-icon>
+            <span>Single Holiday</span>
+          </div>
+        </ng-template>
+
+        <form [formGroup]="holidayForm" class="modal-form" (ngSubmit)="onSubmit()">
+          <div class="form-body">
+            <!-- Holiday Name -->
+            <div class="form-section">
+              <label class="section-label">
+                Holiday Name <span class="required-star">*</span>
+              </label>
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-icon matPrefix class="field-icon">celebration</mat-icon>
+                <mat-label>Holiday Name</mat-label>
+                <input 
+                  matInput 
+                  formControlName="name" 
+                  placeholder="e.g. Independence Day, New Year's Day, Diwali" 
+                  required />
+                @if (holidayForm.controls['name'].hasError('required') && holidayForm.controls['name'].touched) {
+                  <mat-error>Holiday name is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- Holiday Classification Selection -->
+            <div class="form-section">
+              <label class="section-label">
+                Holiday Classification <span class="required-star">*</span>
+              </label>
+              <div class="type-cards-grid">
+                @for (item of holidayTypes; track item.value) {
+                  <button
+                    type="button"
+                    class="type-choice-card"
+                    [class.active]="holidayForm.get('type')?.value === item.value"
+                    [ngClass]="item.cssClass"
+                    (click)="selectType(item.value)"
+                    [matTooltip]="item.description"
+                    matTooltipPosition="above">
+                    <div class="type-icon-bubble">
+                      <mat-icon>{{ item.icon }}</mat-icon>
+                    </div>
+                    <div class="type-card-text">
+                      <span class="type-choice-label">{{ item.label }}</span>
+                      <span class="type-choice-hint">{{ item.description }}</span>
+                    </div>
+                    @if (holidayForm.get('type')?.value === item.value) {
+                      <mat-icon class="check-mark">check_circle</mat-icon>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Holiday Date -->
+            <div class="form-section">
+              <label class="section-label">
+                Holiday Date <span class="required-star">*</span>
+              </label>
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-icon matPrefix class="field-icon">calendar_month</mat-icon>
+                <mat-label>Select Date</mat-label>
+                <input 
+                  matInput 
+                  [matDatepicker]="addPicker" 
+                  formControlName="date" 
+                  placeholder="Choose holiday date" 
+                  required />
+                <mat-datepicker-toggle matSuffix [for]="addPicker"></mat-datepicker-toggle>
+                <mat-datepicker #addPicker></mat-datepicker>
+                @if (holidayForm.controls['date'].hasError('required') && holidayForm.controls['date'].touched) {
+                  <mat-error>Holiday date is required</mat-error>
+                }
+              </mat-form-field>
+
+              @if (formattedDatePreview) {
+                <div class="date-preview-pill">
+                  <mat-icon>event</mat-icon>
+                  <span>{{ formattedDatePreview }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Comments / Remarks -->
+            <div class="form-section">
+              <label class="section-label">
+                Comments & Notes <span class="optional-tag">(Optional)</span>
+              </label>
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Additional remarks or scope</mat-label>
+                <textarea 
+                  matInput 
+                  formControlName="comments" 
+                  rows="3" 
+                  placeholder="e.g. Official holiday declared by central government."></textarea>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="modal-footer">
+            <button
+              type="button"
+              mat-stroked-button
+              class="btn-cancel"
+              (click)="close()"
+              [disabled]="isSubmitting">
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              mat-flat-button
+              color="primary"
+              class="btn-submit"
+              [disabled]="holidayForm.invalid || isSubmitting">
+              @if (isSubmitting) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                <span>Saving Holiday...</span>
+              } @else {
+                <mat-icon>add_circle</mat-icon>
+                <span>Add Holiday</span>
+              }
+            </button>
+          </div>
+        </form>
+      </mat-tab>
+
+      <!-- TAB 2: Excel Template & Download -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-header-label tab-excel-label">
+            <mat-icon>table_chart</mat-icon>
+            <span>Excel Template & Download</span>
+          </div>
+        </ng-template>
+
+        <div class="excel-template-tab-body">
+          <!-- Spreadsheet Toolbar / Controls -->
+          <div class="excel-topbar-card">
+            <div class="topbar-row-main">
+              <div class="excel-brand-group">
+                <div class="excel-icon-square">
+                  <mat-icon>table_chart</mat-icon>
+                </div>
+                <div class="excel-text-group">
+                  <h4 class="excel-card-title">Indian Holidays Spreadsheet ({{ currentYear }})</h4>
+                  <p class="excel-card-subtitle">Edit inline, add/remove any row, then download or import.</p>
+                </div>
+              </div>
+
+              <!-- Presets & Actions in One Compact Row -->
+              <div class="excel-controls-group">
+                <div class="preset-toggle-pills">
+                  <button
+                    type="button"
+                    class="preset-pill-btn"
+                    [class.active]="activePreset === 'indian'"
+                    (click)="switchToIndianCalendar()"
+                    matTooltip="Load official Indian national & festive calendar">
+                    <span class="preset-flag">🇮🇳</span>
+                    <span>Indian ({{ getInitialIndianHolidays().length }})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="preset-pill-btn"
+                    [class.active]="activePreset === 'system'"
+                    (click)="switchToSystemHolidays()"
+                    matTooltip="Load existing corporate holidays from database">
+                    <span class="preset-flag">🏢</span>
+                    <span>Database ({{ systemHolidays.length }})</span>
+                  </button>
+                </div>
+
+                <div class="excel-action-buttons">
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    class="btn-sheet-action"
+                    (click)="resetTemplateRows()"
+                    matTooltip="Reset rows to initial list">
+                    <mat-icon>refresh</mat-icon>
+                    <span>Reset</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    class="btn-sheet-action btn-sheet-clear"
+                    (click)="clearAllTemplateRows()"
+                    matTooltip="Clear all rows to create from blank">
+                    <mat-icon>clear_all</mat-icon>
+                    <span>Clear</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    mat-flat-button
+                    color="primary"
+                    class="btn-sheet-add"
+                    (click)="addTemplateRow()"
+                    matTooltip="Add a new custom holiday row">
+                    <mat-icon>add</mat-icon>
+                    <span>Add Row</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spreadsheet Table View -->
+          <div class="spreadsheet-container">
+            <table class="spreadsheet-table">
+              <thead>
+                <tr>
+                  <th class="col-idx">#</th>
+                  <th class="col-date">Date (YYYY-MM-DD)</th>
+                  <th class="col-name">Holiday Name</th>
+                  <th class="col-type">Type</th>
+                  <th class="col-comments">Comments / Description</th>
+                  <th class="col-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of templateRows; track $index) {
+                  <tr class="spreadsheet-row">
+                    <!-- Index -->
+                    <td class="col-idx">
+                      <span class="row-num-badge">{{ $index + 1 }}</span>
+                    </td>
+
+                    <!-- Date Input -->
+                    <td class="col-date">
+                      <input
+                        type="date"
+                        [(ngModel)]="row.date"
+                        class="cell-input cell-date" />
+                    </td>
+
+                    <!-- Name Input -->
+                    <td class="col-name">
+                      <input
+                        type="text"
+                        [(ngModel)]="row.name"
+                        placeholder="Enter holiday name..."
+                        class="cell-input cell-name" />
+                    </td>
+
+                    <!-- Type Dropdown -->
+                    <td class="col-type">
+                      <select [(ngModel)]="row.type" class="cell-select">
+                        <option value="Public">Public</option>
+                        <option value="Optional">Optional</option>
+                        <option value="Restricted">Restricted</option>
+                      </select>
+                    </td>
+
+                    <!-- Comments Input -->
+                    <td class="col-comments">
+                      <input
+                        type="text"
+                        [(ngModel)]="row.comments"
+                        placeholder="Comments or notes..."
+                        class="cell-input cell-comments" />
+                    </td>
+
+                    <!-- Remove Row Action -->
+                    <td class="col-action">
+                      <button
+                        type="button"
+                        mat-icon-button
+                        class="btn-del-cell"
+                        (click)="removeTemplateRow($index)"
+                        matTooltip="Remove this holiday row">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                }
+
+                @if (templateRows.length === 0) {
+                  <tr class="empty-sheet-row">
+                    <td colspan="6">
+                      <div class="empty-sheet-msg">
+                        <mat-icon>grid_off</mat-icon>
+                        <p>Spreadsheet is currently empty. Click <strong>Add Row</strong> or select a preset above.</p>
+                      </div>
+                    </td>
+                  </tr>
+                }
+
+                <!-- Quick Inline Add Row Row -->
+                <tr class="quick-add-row" (click)="addTemplateRow()">
+                  <td colspan="6">
+                    <div class="quick-add-btn-content">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      <span>Click here to add another holiday row</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Spreadsheet Bottom Footer Bar -->
+          <div class="spreadsheet-footer-bar">
+            <div class="footer-stats-pills">
+              <span class="stat-pill total-pill">
+                <strong>{{ templateRows.length }}</strong> {{ templateRows.length === 1 ? 'Holiday' : 'Holidays' }}
+              </span>
+              <span class="stat-pill public-pill">
+                <strong>{{ publicTemplateCount }}</strong> Public
+              </span>
+              <span class="stat-pill optional-pill">
+                <strong>{{ optionalTemplateCount }}</strong> Optional
+              </span>
+            </div>
+
+            <div class="footer-actions">
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn-cancel"
+                (click)="close()">
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn-use-for-import"
+                (click)="applyTemplateToImport()"
+                matTooltip="Directly stage these customized holidays into the Import tab">
+                <mat-icon>playlist_play</mat-icon>
+                <span>Use Directly For Import</span>
+              </button>
+
+              <button
+                type="button"
+                mat-flat-button
+                class="btn-download-excel-action"
+                (click)="downloadCustomizedTemplate()"
+                matTooltip="Download your customized list as an Excel spreadsheet (.xlsx)">
+                <mat-icon>download</mat-icon>
+                <span>Download Excel (.xlsx)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB 3: Upload Spreadsheet -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-header-label">
+            <mat-icon>cloud_upload</mat-icon>
+            <span>Upload Spreadsheet</span>
+          </div>
+        </ng-template>
+
+        <div class="upload-tab-body">
+          <!-- Guide Banner -->
+          <div class="upload-guide-card">
+            <div class="guide-icon-box">
+              <mat-icon>lightbulb</mat-icon>
+            </div>
+            <div class="guide-content">
+              <h4 class="guide-title">Need to review or customize holidays first?</h4>
+              <p class="guide-text">
+                Preview this year's Indian holidays, add or remove any rows, and download or stage the file from the <strong>Excel Template & Download</strong> tab.
+              </p>
+              <div class="guide-actions-row">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  color="primary"
+                  class="btn-switch-tab"
+                  (click)="selectedTabIndex = 1">
+                  <mat-icon>table_chart</mat-icon>
+                  <span>Open Excel Template Builder</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Dropzone (When No File Selected) -->
+          @if (!selectedFile && !isUploading) {
+            <div
+              class="file-dropzone"
+              [class.drag-over]="isDragOver"
+              (click)="fileInput.click()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+              matTooltip="Click to browse or drop .xlsx spreadsheet here"
+              matTooltipPosition="above">
+              <input
+                #fileInput
+                type="file"
+                class="hidden-file-input"
+                accept=".xlsx"
+                (change)="onFileChange($event)" />
+
+              <div class="dropzone-content">
+                <div class="upload-icon-circle">
+                  <mat-icon>cloud_upload</mat-icon>
+                </div>
+                <div class="upload-text-group">
+                  <p class="primary-upload-text">
+                    <strong>Click to browse</strong> or drag & drop Excel file
+                  </p>
+                  <p class="secondary-upload-text">Supports Microsoft Excel (.xlsx) spreadsheet</p>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Uploading State Indicator -->
+          @if (isUploading) {
+            <div class="uploading-state-card">
+              <mat-spinner diameter="34" color="primary"></mat-spinner>
+              <div class="uploading-text-group">
+                <span class="uploading-title">Importing Holidays into Calendar...</span>
+                <span class="uploading-sub">Validating dates and batch-saving records. Please wait.</span>
+              </div>
+            </div>
+          }
+
+          <!-- Selected File Card & Preview -->
+          @if (selectedFile && !isUploading) {
+            <div class="selected-file-card">
+              <div class="file-lead-group">
+                <div class="excel-icon-badge">
+                  <mat-icon>table_chart</mat-icon>
+                </div>
+                <div class="file-info-group">
+                  <span class="file-name" [matTooltip]="selectedFile.name">{{ selectedFile.name }}</span>
+                  <div class="file-meta-row">
+                    <span class="file-size-pill">{{ getFileSize(selectedFile.size) }}</span>
+                    @if (totalExcelRows > 0) {
+                      <span class="rows-count-pill">
+                        <strong>{{ totalExcelRows }}</strong> {{ totalExcelRows === 1 ? 'row' : 'rows' }} detected
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="file-actions-group">
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="btn-remove-file"
+                  (click)="removeFile()"
+                  matTooltip="Remove this file and choose another"
+                  matTooltipPosition="above">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Excel Data Preview Table -->
+            @if (excelData.length > 0) {
+              <div class="preview-table-container">
+                <div class="preview-header-bar">
+                  <div class="preview-title-row">
+                    <mat-icon>visibility</mat-icon>
+                    <span>
+                      File Preview
+                      @if (previewRows.length === totalExcelRows) {
+                        ({{ totalExcelRows }} {{ totalExcelRows === 1 ? 'row' : 'rows' }})
+                      } @else {
+                        (showing first {{ previewRows.length }} of {{ totalExcelRows }} rows)
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <div class="table-scroll-wrapper">
+                  <table class="preview-data-table">
+                    <thead>
+                      <tr>
+                        @for (col of previewHeaders; track $index) {
+                          <th>{{ col }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of previewRows; track $index) {
+                        <tr>
+                          @for (col of previewHeaders; track colIdx; let colIdx = $index) {
+                            <td>{{ row[colIdx] !== undefined && row[colIdx] !== null && row[colIdx] !== '' ? row[colIdx] : '--' }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Upload Tab Footer Actions -->
+          <div class="modal-footer">
+            <button
+              type="button"
+              mat-stroked-button
+              class="btn-cancel"
+              (click)="close()"
+              [disabled]="isUploading">
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              mat-flat-button
+              color="primary"
+              class="btn-submit"
+              [disabled]="!selectedFile || isUploading"
+              (click)="uploadFile()">
+              @if (isUploading) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                <span>Importing...</span>
+              } @else {
+                <mat-icon>cloud_upload</mat-icon>
+                <span>Import {{ totalExcelRows > 0 ? totalExcelRows : '' }} Holidays</span>
+              }
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

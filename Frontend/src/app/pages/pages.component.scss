@@ -202,38 +202,217 @@
 
 
 
-.info {
-    // background-color: #d9edf7;
-    color: $info-color;
-    padding: 10px;
-    border-radius: 5px;
+/* ====================================================
+   Executive Header Toolbar & Announcement Pill
+   ==================================================== */
+.main-header-toolbar {
+  height: $toolbar-height;
+  padding: 0 16px !important;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+
+  .header-toolbar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .header-left-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .header-right-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .header-center-announcement {
+    flex: 1;
+    min-width: 0;
+    max-width: 760px;
+    display: flex;
+    justify-content: center;
+    margin: 0 8px;
+
+    @media (max-width: 600px) {
+      margin: 0 4px;
+    }
+  }
+
+  .header-announcement-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 10px 3px 5px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    cursor: pointer;
+    max-width: 100%;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    user-select: none;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+
+    .chip-icon-box {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+
+      mat-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    .chip-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    .chip-text {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
+      line-height: 1.3;
+
+      @media (max-width: 1200px) {
+        max-width: 320px;
+      }
+      @media (max-width: 900px) {
+        max-width: 180px;
+      }
+      @media (max-width: 650px) {
+        max-width: 110px;
+      }
+    }
+
+    .chip-dismiss-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      color: rgba(255, 255, 255, 0.65);
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+
+      mat-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: #ffffff;
+      }
+    }
+
+    /* Type Specific Accent Themes */
+    &.info {
+      border-color: rgba(96, 165, 250, 0.45);
+      .chip-icon-box {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+      .chip-badge {
+        background: rgba(59, 130, 246, 0.35);
+        color: #bfdbfe;
+        border: 1px solid rgba(147, 197, 253, 0.3);
+      }
+    }
+
+    &.success {
+      border-color: rgba(52, 211, 153, 0.45);
+      .chip-icon-box {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+      .chip-badge {
+        background: rgba(16, 185, 129, 0.35);
+        color: #a7f3d0;
+        border: 1px solid rgba(110, 231, 183, 0.3);
+      }
+    }
+
+    &.warning {
+      border-color: rgba(251, 191, 36, 0.5);
+      .chip-icon-box {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      }
+      .chip-badge {
+        background: rgba(245, 158, 11, 0.35);
+        color: #fef3c7;
+        border: 1px solid rgba(253, 230, 138, 0.3);
+      }
+    }
+
+    &.error {
+      border-color: rgba(248, 113, 113, 0.5);
+      .chip-icon-box {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        animation: pulse-badge 2s infinite ease-in-out;
+      }
+      .chip-badge {
+        background: rgba(239, 68, 68, 0.4);
+        color: #fee2e2;
+        border: 1px solid rgba(254, 202, 202, 0.3);
+      }
+    }
+  }
 }
 
-.warning {
-    // background-color: #fcf8e3;
-    color: $warning-color;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.error {
-    // background-color: #f2dede;
-    color: $error-color;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.success {
-    // background-color: #dff0d8;
-    color: $success-color;
-    padding: 10px;
-    border-radius: 5px;
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
 }
 
 .invert-icon {
-    transform: rotate(90deg);
-  }
+  transform: rotate(90deg);
+}
 
-  .theme-primary{
-    background-color: $primary-color;
-  }
+.theme-primary {
+  background-color: $primary-color;
+}

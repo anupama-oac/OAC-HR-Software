@@ -1,18 +1,18 @@
 const axios = require('axios');
 
 // You can pull this URL from your .env file
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4000/auth-service';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4000/api/auth';
 
 /**
  * Fetches user details by ID from the Auth Service
  */
 exports.getUserById = async (userId) => {
   try {
-    const response = await axios.get(`${AUTH_SERVICE_URL}/users/${userId}`);
-    return response.data; // Returns user object { name, empNo, etc. }
+    const response = await axios.get(`${AUTH_SERVICE_URL}/findone/${userId}`);
+    return response.data || { id: userId };
   } catch (error) {
-    console.error(`Error fetching user ${userId} from Auth Service:`, error.message);
-    return null; // Return null if user not found or service down
+    // Graceful fallback so leave queries by userId still succeed
+    return { id: userId };
   }
 };
 

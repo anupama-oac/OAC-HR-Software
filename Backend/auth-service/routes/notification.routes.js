@@ -7,11 +7,7 @@ const notificationController = require('../controllers/notification.controller')
 
 // Clean mapping of routers to matching controller methods
 router.post('/create', authenticateToken, notificationController.createNotification);
-// router.get('/user/:userId', authenticateToken, notificationController.getNotificationsByUserId);
-
-router.get('/user/:userId', (req, res) => {
-  res.json({ ok: true, userId: req.params.userId });
-});
+router.get('/user/:userId', authenticateToken, notificationController.getNotificationsByUserId);
 router.get('/', authenticateToken, notificationController.getAllNotifications);
 router.get('/unread-count', authenticateToken, notificationController.getUnreadCount);
 

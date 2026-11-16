@@ -53,7 +53,13 @@ import { environment } from '../../../environments/environment';
 })
 export class ProfileComponent {
   public userImage = 'img/users/avatar.png';
-  apiUrl = 'https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/';
+  apiUrl = environment.s3Url || `https://${environment.AWS_BUCKET_NAME || 'aerohr-uploads'}.s3.amazonaws.com/`;
+
+  getUserImageUrl(url?: string): string {
+    if (!url) return this.imageUrl || this.userImage;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${this.apiUrl}${url}`;
+  }
   private loginService = inject(LoginService)
   userService = inject(UsersService);
   currentCompany = environment.company
@@ -221,9 +227,10 @@ export class ProfileComponent {
       }
       this.uploadSub = this.userService.uploadImage(this.file).subscribe({
         next: (invoice) => {
-          const data = { url: invoice.fileUrl }
+          const fileKey = invoice.fileUrl || invoice.key;
+          const data = { url: fileKey };
           this.userService.updateUserImage(this.user.id, data).subscribe(res => {
-            this.imageUrl = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/${ invoice.fileUrl}`;
+            this.imageUrl = invoice.url || (fileKey && fileKey.startsWith('http') ? fileKey : `${this.apiUrl}${fileKey}`);
             if (this.imageUrl) {
               this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.imageUrl);
             }

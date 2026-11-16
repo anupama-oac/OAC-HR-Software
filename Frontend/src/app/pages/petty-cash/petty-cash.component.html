@@ -1,0 +1,501 @@
+<div class="petty-cash-page fade-in">
+
+  <!-- HERO / HEADER BANNER -->
+  <div class="petty-cash-header-card">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <div class="header-text">
+        <div class="breadcrumb-trail">Finance / Payments / Petty Cash</div>
+        <h1 class="header-title">Petty Cash Management</h1>
+        <p class="header-subtitle">Track fund allocations, monitor cash balances, and manage debit/credit disbursements</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      @if (currentView === 'dashboard') {
+        <button mat-raised-button class="btn-primary-action" (click)="setView('add')">
+          <mat-icon>add</mat-icon>
+          <span>Record Transaction</span>
+        </button>
+      } @else {
+        <button mat-stroked-button class="btn-back-action" (click)="setView('dashboard')">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Overview</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ACTIVE FILTER BANNER (When filtering by an Employee) -->
+  @if (selectedEmployeeFilter !== 'ALL') {
+    <div class="active-filter-banner fade-in">
+      <div class="filter-banner-info">
+        <mat-icon class="filter-icon">filter_alt</mat-icon>
+        <span>Viewing metrics and transaction ledger for: <strong>{{ selectedEmployeeName }}</strong></span>
+      </div>
+      <button mat-button class="btn-clear-filter" (click)="onEmployeeFilterChange('ALL')">
+        <mat-icon>close</mat-icon>
+        <span>Show All Employees</span>
+      </button>
+    </div>
+  }
+
+  <!-- KPI SUMMARY METRICS CARDS -->
+  <div class="metrics-grid">
+    <!-- Current Balance Card -->
+    <div class="metric-card balance-metric" [ngClass]="{'is-negative': displayedBalance < 0, 'is-positive': displayedBalance >= 0}">
+      <div class="metric-icon-wrap balance-icon">
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Current Balance</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value">
+          ₹ {{ displayedBalance | number:'1.2-2' }}
+        </div>
+        <div class="metric-badge" [ngClass]="displayedBalance >= 0 ? 'badge-positive' : 'badge-negative'">
+          <mat-icon>{{ displayedBalance >= 0 ? 'check_circle' : 'warning' }}</mat-icon>
+          <span>{{ displayedBalance >= 0 ? 'Funds Available' : 'Deficit / Overdrawn' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Credited Card -->
+    <div class="metric-card credit-metric">
+      <div class="metric-icon-wrap credit-icon">
+        <mat-icon>trending_up</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Total Credited</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-credit">
+          + ₹ {{ displayedCredited | number:'1.2-2' }}
+        </div>
+        <span class="metric-hint">
+          {{ selectedEmployeeFilter === 'ALL' ? 'Deposits & Fund Allocations' : 'Allocated to ' + selectedEmployeeName }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Total Debited Card -->
+    <div class="metric-card debit-metric">
+      <div class="metric-icon-wrap debit-icon">
+        <mat-icon>trending_down</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Total Debited</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-debit">
+          - ₹ {{ displayedDebited | number:'1.2-2' }}
+        </div>
+        <span class="metric-hint">
+          {{ selectedEmployeeFilter === 'ALL' ? 'Disbursements & Expenses' : 'Disbursed by ' + selectedEmployeeName }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Total Transactions Card -->
+    <div class="metric-card count-metric">
+      <div class="metric-icon-wrap count-icon">
+        <mat-icon>receipt_long</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Total Records</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-count">
+          {{ displayedCount }}
+        </div>
+        <span class="metric-hint">
+          {{ selectedEmployeeFilter === 'ALL' ? 'Recorded Transactions' : 'Transactions for ' + selectedEmployeeName }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD / TABLE VIEW -->
+  @if (currentView === 'dashboard') {
+    <div class="content-card">
+      
+      <!-- TOOLBAR: SEARCH & FILTERS -->
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <!-- Search field -->
+          <div class="search-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search by description, employee, amount, or date..." 
+              [value]="searchTerm"
+              (input)="onSearch($event)"
+            />
+            @if (searchTerm) {
+              <button mat-icon-button class="clear-btn" (click)="clearSearch()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <!-- Employee Filter for Super Admin -->
+          @if (isSuperAdmin) {
+            <mat-form-field appearance="outline" class="employee-filter-field" subscriptSizing="dynamic">
+              <mat-label>Filter by Employee</mat-label>
+              <mat-select [value]="selectedEmployeeFilter" (selectionChange)="onEmployeeFilterChange($event.value)">
+                <mat-option value="ALL">All Employees</mat-option>
+                @for (u of usersList; track u.id) {
+                  <mat-option [value]="u.id">
+                    {{ u.name }} ({{ u.empNo || 'ID: ' + u.id }})
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix class="prefix-icon">filter_alt</mat-icon>
+            </mat-form-field>
+          }
+        </div>
+
+        <div class="toolbar-right">
+          <!-- Type Filter Chips -->
+          <div class="type-filter-group">
+            <button 
+              type="button" 
+              class="type-pill" 
+              [class.active]="selectedTypeFilter === 'ALL'" 
+              (click)="onTypeFilterChange('ALL')">
+              All Types
+            </button>
+            <button 
+              type="button" 
+              class="type-pill credit-pill" 
+              [class.active]="selectedTypeFilter === 'CREDIT'" 
+              (click)="onTypeFilterChange('CREDIT')">
+              <span class="dot dot-credit"></span>
+              Credit (+)
+            </button>
+            <button 
+              type="button" 
+              class="type-pill debit-pill" 
+              [class.active]="selectedTypeFilter === 'DEBIT'" 
+              (click)="onTypeFilterChange('DEBIT')">
+              <span class="dot dot-debit"></span>
+              Debit (-)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS TABLE -->
+      <div class="table-responsive">
+        <table mat-table [dataSource]="pagedTransactions" class="petty-table w-100">
+
+          <!-- Date Column -->
+          <ng-container matColumnDef="transactionDate">
+            <th mat-header-cell *matHeaderCellDef> Date </th>
+            <td mat-cell *matCellDef="let element">
+              <div class="cell-date">
+                <mat-icon class="date-icon">event</mat-icon>
+                <span>{{ element.transactionDate | date:'mediumDate' }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- User Column -->
+          <ng-container matColumnDef="user">
+            <th mat-header-cell *matHeaderCellDef> Employee / Recipient </th>
+            <td mat-cell *matCellDef="let element">
+              <div class="user-cell">
+                <div class="user-avatar">
+                  {{ getUserInitials(element.user?.name) }}
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{ element.user?.name || ('User #' + (element.userId || element.recordedBy)) }}</span>
+                  <span class="user-meta">{{ element.user?.empNo || element.user?.email || '-' }}</span>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Type Column -->
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef> Type </th>
+            <td mat-cell *matCellDef="let element">
+              @if (element.transactionType === 'CREDIT') {
+                <span class="type-badge badge-credit">
+                  <mat-icon>arrow_upward</mat-icon>
+                  <span>CREDIT</span>
+                </span>
+              } @else {
+                <span class="type-badge badge-debit">
+                  <mat-icon>arrow_downward</mat-icon>
+                  <span>DEBIT</span>
+                </span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Amount Column -->
+          <ng-container matColumnDef="amount">
+            <th mat-header-cell *matHeaderCellDef> Amount </th>
+            <td mat-cell *matCellDef="let element">
+              <span class="amount-value" [ngClass]="element.transactionType === 'CREDIT' ? 'amount-credit' : 'amount-debit'">
+                {{ element.transactionType === 'CREDIT' ? '+' : '-' }} ₹ {{ element.amount | number:'1.2-2' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Description Column -->
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef> Description </th>
+            <td mat-cell *matCellDef="let element">
+              <div class="cell-description">
+                <span>{{ element.description || '-' }}</span>
+                @if (element.expenseId) {
+                  <span class="expense-tag" title="Linked to Expense claim #{{ element.expenseId }}">
+                    <mat-icon>receipt</mat-icon>
+                    <span>Exp #{{ element.expenseId }}</span>
+                  </span>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-end"> Actions </th>
+            <td mat-cell *matCellDef="let element" class="text-end">
+              <div class="action-buttons">
+                <button 
+                  mat-icon-button 
+                  class="btn-icon btn-edit" 
+                  matTooltip="Edit Transaction" 
+                  (click)="editTransaction(element)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button 
+                  mat-icon-button 
+                  class="btn-icon btn-delete" 
+                  matTooltip="Delete Transaction" 
+                  (click)="deleteTransaction(element.id)">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+          
+          <!-- Empty State -->
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-table-cell" [attr.colspan]="displayedColumns.length">
+              <div class="empty-state">
+                <div class="empty-icon-wrap">
+                  <mat-icon>search_off</mat-icon>
+                </div>
+                <h3 class="empty-title">No transactions found</h3>
+                <p class="empty-desc">
+                  @if (searchTerm || selectedEmployeeFilter !== 'ALL' || selectedTypeFilter !== 'ALL') {
+                    Try clearing your search query or adjusting your filters.
+                  } @else {
+                    No petty cash transactions have been recorded yet.
+                  }
+                </p>
+                <button mat-raised-button class="btn-primary-action" (click)="setView('add')">
+                  <mat-icon>add</mat-icon> Record First Transaction
+                </button>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Paginator -->
+      <mat-paginator 
+        [length]="totalItems" 
+        [pageSize]="pageSize" 
+        [pageSizeOptions]="[5, 10, 25, 50]" 
+        [pageIndex]="currentPage - 1"
+        (page)="onPageChange($event)"
+        class="table-paginator"
+        showFirstLastButtons>
+      </mat-paginator>
+
+    </div>
+  }
+
+  <!-- ADD / EDIT TRANSACTION VIEW -->
+  @if (currentView === 'add') {
+    <div class="form-container fade-in">
+      <mat-card class="form-card">
+        
+        <!-- Form Header -->
+        <div class="form-card-header">
+          <div class="form-header-icon" [ngClass]="transactionForm.get('transactionType')?.value === 'CREDIT' ? 'credit-header' : 'debit-header'">
+            <mat-icon>{{ editingTransactionId ? 'edit_note' : (transactionForm.get('transactionType')?.value === 'CREDIT' ? 'add_circle' : 'remove_circle') }}</mat-icon>
+          </div>
+          <div>
+            <h2 class="form-title">
+              {{ editingTransactionId ? 'Edit Transaction #' + editingTransactionId : 'Record Petty Cash Transaction' }}
+            </h2>
+            <p class="form-subtitle">
+              {{ editingTransactionId ? 'Update details of this existing petty cash record' : 'Deposit funds into or disburse expenses from company petty cash' }}
+            </p>
+          </div>
+        </div>
+
+        <mat-card-content class="form-card-content">
+          <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()" class="transaction-form">
+
+            <!-- Type Selector Toggle Buttons -->
+            <div class="form-group-wrap">
+              <label class="form-group-label">Transaction Type</label>
+              <div class="type-selector-grid">
+                <button 
+                  type="button" 
+                  class="type-card" 
+                  [class.selected]="transactionForm.get('transactionType')?.value === 'CREDIT'"
+                  (click)="setFormType('CREDIT')">
+                  <div class="type-card-icon credit-icon">
+                    <mat-icon>trending_up</mat-icon>
+                  </div>
+                  <div class="type-card-text">
+                    <span class="type-card-title">CREDIT</span>
+                    <span class="type-card-desc">Add / Deposit Funds</span>
+                  </div>
+                  <mat-icon class="check-icon">check_circle</mat-icon>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="type-card" 
+                  [class.selected]="transactionForm.get('transactionType')?.value === 'DEBIT'"
+                  (click)="setFormType('DEBIT')">
+                  <div class="type-card-icon debit-icon">
+                    <mat-icon>trending_down</mat-icon>
+                  </div>
+                  <div class="type-card-text">
+                    <span class="type-card-title">DEBIT</span>
+                    <span class="type-card-desc">Disburse / Spend Funds</span>
+                  </div>
+                  <mat-icon class="check-icon">check_circle</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Employee Selection (Super Admin only) -->
+            @if (isSuperAdmin) {
+              <div class="form-row single-col">
+                <mat-form-field appearance="outline" class="w-100">
+                  <mat-label>Assign to Employee</mat-label>
+                  <mat-select formControlName="userId" placeholder="Select employee for this transaction">
+                    @for (user of usersList; track user.id) {
+                      <mat-option [value]="user.id">
+                        {{ user.name }} ({{ user.empNo || 'ID: ' + user.id }})
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-icon matPrefix class="field-prefix-icon">person</mat-icon>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- Live Employee Balance Warning (when DEBIT is selected) -->
+            @if (transactionForm.get('transactionType')?.value === 'DEBIT' && (isSuperAdmin ? transactionForm.get('userId')?.value : true)) {
+              <div class="balance-warning-card" [class.danger]="(transactionForm.get('amount')?.value || 0) > selectedEmployeeBalance">
+                <mat-icon class="warning-icon">{{ (transactionForm.get('amount')?.value || 0) > selectedEmployeeBalance ? 'error_outline' : 'info' }}</mat-icon>
+                <div class="warning-content">
+                  <span class="warning-title">
+                    Available Employee Petty Cash Balance: <strong>₹ {{ selectedEmployeeBalance | number:'1.2-2' }}</strong>
+                  </span>
+                  @if ((transactionForm.get('amount')?.value || 0) > selectedEmployeeBalance) {
+                    <span class="warning-sub alert-text">
+                      Warning: Entered amount (₹ {{ transactionForm.get('amount')?.value | number:'1.2-2' }}) exceeds the current balance!
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Amount and Date in Two Columns -->
+            <div class="form-row two-col">
+              <!-- Amount -->
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Amount</mat-label>
+                <input matInput type="number" step="0.01" formControlName="amount" placeholder="0.00">
+                <span matPrefix class="currency-prefix">₹&nbsp;</span>
+                @if (transactionForm.get('amount')?.hasError('required') && transactionForm.get('amount')?.touched) {
+                  <mat-error>Amount is required</mat-error>
+                }
+                @if (transactionForm.get('amount')?.hasError('min') && transactionForm.get('amount')?.touched) {
+                  <mat-error>Amount must be greater than 0</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- Transaction Date -->
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Transaction Date</mat-label>
+                <input matInput [matDatepicker]="picker" formControlName="transactionDate">
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                <mat-icon matPrefix class="field-prefix-icon">calendar_today</mat-icon>
+                @if (transactionForm.get('transactionDate')?.hasError('required') && transactionForm.get('transactionDate')?.touched) {
+                  <mat-error>Date is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- Description -->
+            <div class="form-row single-col">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Description / Purpose</mat-label>
+                <textarea matInput rows="3" formControlName="description" placeholder="e.g., Office stationeries, Taxi fare for client meeting, Courier charges..."></textarea>
+                <mat-icon matPrefix class="field-prefix-icon">notes</mat-icon>
+                @if (transactionForm.get('description')?.hasError('required') && transactionForm.get('description')?.touched) {
+                  <mat-error>Description is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="form-actions-footer">
+              <button mat-stroked-button type="button" class="btn-cancel" (click)="setView('dashboard')">
+                Cancel
+              </button>
+              <button 
+                mat-raised-button 
+                type="submit" 
+                class="btn-submit" 
+                [disabled]="transactionForm.invalid || isSubmitting">
+                @if (isSubmitting) {
+                  <mat-icon class="spin-icon">refresh</mat-icon>
+                  <span>Saving...</span>
+                } @else {
+                  <mat-icon>save</mat-icon>
+                  <span>{{ editingTransactionId ? 'Update Transaction' : 'Save Transaction' }}</span>
+                }
+              </button>
+            </div>
+
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+</div>

@@ -1,58 +1,225 @@
-<mat-card>
-<mat-card-header class="primary">
-  <div style="display: flex; align-items: center; width: 100%;">
-    <mat-card-title>ADD ANNOUNCEMENTS</mat-card-title>
-    <!-- <button mat-mini-fab color="primary" type="button" aria-label="Close button" style="margin-left: auto;"> -->
-      <mat-icon style="margin-left: auto;" (click)="close()">close</mat-icon>
-    <!-- </button> -->
-  </div>
-</mat-card-header>
-
-      
-
-</mat-card>
-<div class="add-announcement-form">
-    <form [formGroup]="form">
-        <mat-form-field>
-            <input matInput type="text" placeholder="Message" #newMessage formControlName="message">
-        </mat-form-field>
-    
-        <mat-form-field>
-            <mat-select #newType placeholder="Select Type" formControlName="type">
-                <mat-option value="info">Info</mat-option>
-                <mat-option value="success">Success</mat-option>
-                <mat-option value="warning">Warning</mat-option>
-                <mat-option value="error">Error</mat-option>
-            </mat-select>
-        </mat-form-field>
-    
-        <!-- <mat-checkbox #newDismissible checked formControlName="dismissible">Dismissible</mat-checkbox> -->
-
-        <!-- <input type="file" (change)="onFileSelected($event)" /> -->
-        @if(!imageUrl){
-            <div class="col">
-              <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event)">
-              <mat-icon class="file-upload-icon" (click)="fileInput.click()">cloud_upload</mat-icon>
-              <p class="file-upload-text" (click)="fileInput.click()">Browse file to upload</p>
-            </div>
-        }
-        @else{
-        <div class="col">
-            <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                <iframe [src]="imageUrl | safe" width="100%" height="300px"></iframe>
-                <mat-icon style="color: red;" (click)="onDeleteImage()">delete</mat-icon>
-            </div>
-        </div>
-        } 
-    
-        <button mat-raised-button color="primary" (click)="addAnnouncement()" [disabled]="!form.valid">
-            Add Announcement
-        </button>
-    </form>
-</div>
-
-@if(isVisible) {
-    <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-        <mat-spinner color="primary"></mat-spinner>
+<div class="add-announcement-modal">
+  <!-- Modal Header -->
+  <div class="modal-header">
+    <div class="header-icon-box">
+      <mat-icon>campaign</mat-icon>
     </div>
-}
+    <div class="header-titles">
+      <h2 class="dialog-title">New Announcement</h2>
+      <p class="dialog-subtitle">Broadcast a notice, milestone, or alert to all employees</p>
+    </div>
+    <button
+      type="button"
+      class="close-button"
+      (click)="close()"
+      matTooltip="Close"
+      matTooltipPosition="below"
+      aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Modal Form Body -->
+  <form [formGroup]="form" class="modal-form" (ngSubmit)="addAnnouncement()">
+    <!-- Type Selector -->
+    <div class="form-section">
+      <label class="section-label">
+        Notice Type <span class="required-star">*</span>
+      </label>
+      <div class="type-cards-grid">
+        @for (opt of announcementTypes; track opt.value) {
+          <button
+            type="button"
+            class="type-choice-card"
+            [class.active]="form.get('type')?.value === opt.value"
+            [ngClass]="opt.colorClass"
+            (click)="selectType(opt.value)"
+            [matTooltip]="opt.hint"
+            matTooltipPosition="above">
+            <div class="type-icon-bubble">
+              <mat-icon>{{ opt.icon }}</mat-icon>
+            </div>
+            <span class="type-choice-label">{{ opt.label }}</span>
+            @if (form.get('type')?.value === opt.value) {
+              <mat-icon class="check-mark">check_circle</mat-icon>
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Announcement Message Body -->
+    <div class="form-section">
+      <div class="label-row">
+        <label class="section-label">
+          Announcement Message <span class="required-star">*</span>
+        </label>
+        <span class="char-count" [class.near-limit]="(messageInput.value?.length || 0) > 900">
+          {{ messageInput.value?.length || 0 }} / 1000
+        </span>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width message-form-field">
+        <textarea
+          matInput
+          #messageInput
+          rows="4"
+          formControlName="message"
+          placeholder="Write the full announcement text here... (e.g. Upcoming office closure, holiday announcement, quarterly milestone celebration, system maintenance)"
+          maxlength="1000"></textarea>
+        @if (form.get('message')?.hasError('required') && form.get('message')?.touched) {
+          <mat-error>Please enter an announcement message.</mat-error>
+        }
+        @if (form.get('message')?.hasError('minlength') && form.get('message')?.touched) {
+          <mat-error>Message must be at least 3 characters long.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <!-- Attachment Section -->
+    <div class="form-section">
+      <label class="section-label">
+        Attachment <span class="optional-tag">(Optional)</span>
+      </label>
+
+      @if (!imageUrl && !isUploading) {
+        <!-- Upload Dropzone -->
+        <div
+          class="file-dropzone"
+          [class.drag-over]="isDragOver"
+          (click)="fileInput.click()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onFileDropped($event)"
+          matTooltip="Click or drop file to attach (PDF, JPG, PNG, WEBP up to 15MB)"
+          matTooltipPosition="above">
+          <input
+            #fileInput
+            type="file"
+            class="hidden-file-input"
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
+            (change)="onFileSelected($event)" />
+
+          <div class="dropzone-content">
+            <div class="upload-icon-circle">
+              <mat-icon>cloud_upload</mat-icon>
+            </div>
+            <div class="upload-text-group">
+              <p class="primary-upload-text">
+                <strong>Click to browse</strong> or drag & drop attachment
+              </p>
+              <p class="secondary-upload-text">Supports PDF, PNG, JPG, WEBP (Max 15MB)</p>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (isUploading) {
+        <!-- Uploading Spinner Card -->
+        <div class="uploading-state-card">
+          <mat-spinner diameter="32" color="primary"></mat-spinner>
+          <div class="uploading-text-group">
+            <span class="uploading-title">Uploading document...</span>
+            <span class="uploading-sub">Please wait while the file is securely uploaded.</span>
+          </div>
+        </div>
+      }
+
+      @if (imageUrl && !isUploading) {
+        <!-- Uploaded File Preview Card -->
+        <div class="attached-file-card" [class.pdf-card]="isPdf(imageUrl)">
+          <div class="file-lead-group">
+            @if (isPdf(imageUrl)) {
+              <div class="pdf-icon-badge">
+                <mat-icon>picture_as_pdf</mat-icon>
+              </div>
+            } @else {
+              <div class="image-thumb-wrap">
+                <img [src]="imageUrl" alt="Attachment Preview" class="preview-thumbnail" />
+              </div>
+            }
+
+            <div class="file-info-group">
+              <span class="file-title" [matTooltip]="getFileName(imageUrl)">
+                {{ getFileName(imageUrl) }}
+              </span>
+              <span class="file-type-pill">
+                {{ isPdf(imageUrl) ? 'PDF Document' : 'Image File' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="file-actions-group">
+            <a
+              [href]="imageUrl"
+              target="_blank"
+              mat-icon-button
+              type="button"
+              class="btn-action-icon"
+              matTooltip="View full file in new tab"
+              matTooltipPosition="above">
+              <mat-icon>open_in_new</mat-icon>
+            </a>
+
+            <button
+              mat-icon-button
+              type="button"
+              class="btn-delete-file"
+              [disabled]="isDeletingFile"
+              (click)="onDeleteAttachment()"
+              matTooltip="Remove attachment"
+              matTooltipPosition="above">
+              @if (isDeletingFile) {
+                <mat-spinner diameter="18" color="warn"></mat-spinner>
+              } @else {
+                <mat-icon>delete_outline</mat-icon>
+              }
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Dismissible Option Switch -->
+    <div class="form-section dismissible-section">
+      <div class="dismissible-info">
+        <div class="dismissible-title-row">
+          <mat-icon class="dismiss-info-icon">notifications_off</mat-icon>
+          <span class="toggle-title">Dismissible Notice</span>
+        </div>
+        <p class="toggle-hint">Allow employees to acknowledge and dismiss this notice once read</p>
+      </div>
+
+      <mat-slide-toggle formControlName="dismissible" color="primary"></mat-slide-toggle>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer">
+      <button
+        type="button"
+        mat-stroked-button
+        class="btn-cancel"
+        (click)="close()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+
+      <button
+        type="submit"
+        mat-flat-button
+        color="primary"
+        class="btn-publish"
+        [disabled]="form.invalid || isSubmitting || isUploading"
+        matTooltip="Publish this announcement to all employees"
+        matTooltipPosition="above">
+        @if (isSubmitting) {
+          <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          <span>Publishing...</span>
+        } @else {
+          <mat-icon>send</mat-icon>
+          <span>Publish Announcement</span>
+        }
+      </button>
+    </div>
+  </form>
+</div>

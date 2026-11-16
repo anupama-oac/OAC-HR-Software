@@ -17,7 +17,7 @@
                     </div>
                   }
                   @else {
-                    <img [src]="user.url? apiUrl + user.url : imageUrl" alt="Photo 1" width="200" height="200" ngOptimizedImage>
+                    <img [src]="getUserImageUrl(user.url)" alt="Photo 1" width="200" height="200" ngOptimizedImage>
                   }
                 </div>
               </div>

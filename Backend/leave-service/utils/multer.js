@@ -4,14 +4,14 @@ const multer = require('multer');
 const path = require('path');
 
 const fileFilter = (req, file, cb) => {
-  const fileTypes = /jpeg|jpg|png|pdf|txt|text\/plain/; 
+  const allowedExts = /\.(jpeg|jpg|png|pdf|txt|xlsx|xls|csv)$/i;
+  const allowedMimes = /jpeg|jpg|png|pdf|txt|text\/plain|spreadsheetml|ms-excel|excel|octet-stream|csv/i;
 
-  const mimetype = fileTypes.test(file.mimetype);
-  
-  const extname = fileTypes.test(path.extname(file.originalname).toLowerCase()); 
+  const extValid = allowedExts.test(path.extname(file.originalname).toLowerCase());
+  const mimeValid = allowedMimes.test(file.mimetype);
 
-  if (mimetype && extname) {
-    return cb(null, true); 
+  if (extValid || mimeValid) {
+    return cb(null, true);
   }
   return cb(new Error('File format is not supported'));
 };

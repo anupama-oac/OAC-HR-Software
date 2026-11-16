@@ -1,26 +1,10 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
-const express = require("express");
-const router = express.Router();
 const MonthlyPayroll = require("../models/monthlyPayroll");
-const User = require('../../users/models/user');
 const AdvanceSalary = require("../models/advanceSalary");
-const sequelize = require('../../utils/db');
-const UserPersonal = require("../../users/models/userPersonal");
-const UserAccount = require("../../users/models/userAccount");
-const StatutoryInfo = require("../../users/models/statutoryInfo");
-const UserPosition = require("../../users/models/userPosition");
-const Designation = require("../../users/models/designation");
+const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
-const authenticateToken = require('../../middleware/authorization');
-const multer = require('multer');
-const fs = require('fs');
-const upload = multer({ dest: 'uploads/' });
-const Role = require("../../users/models/role");
-const { sendEmail } = require('../../app/emailService');
-const config = require('../../utils/config')
-const { createNotification } = require('../../app/notificationService');
-const Leave = require("../../leave/models/leave");
+const authService = require('../utils/authService');
 
 exports.savePayroll = async (req, res) => {
   const data = req.body.payrolls;
@@ -43,7 +27,7 @@ exports.savePayroll = async (req, res) => {
 
     res.status(200).send({ message: "Payrolls saved successfully", payrolls: results });
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
 }
 
@@ -72,13 +56,20 @@ exports.findPayroll = async (req, res) => {
 
     const monthlyPayroll = await MonthlyPayroll.findAll({
       where: { payedFor },
-      include: [
-        { model: User, attributes: ['name', 'empNo'], as: 'user', required: false }
-      ],
       order: [['id', 'DESC']]
     });
 
-    res.json(monthlyPayroll);
+    const users = await authService.getAllActiveUsers();
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = u; });
+
+    const enriched = monthlyPayroll.map(mp => {
+      const data = mp.toJSON ? mp.toJSON() : mp;
+      data.user = userMap[data.userId] || { name: 'Unknown', empNo: '' };
+      return data;
+    });
+
+    res.json(enriched);
 
   } catch (error) {
     console.error(error);
@@ -91,7 +82,7 @@ exports.findPayrollByUser = async (req, res) => {
   let whereClause = { status: 'Locked', userId: req.params.id };
   let limit;
   let offset;
-  if (req.query.search !== 'undefined') {
+  if (req.query.search !== 'undefined' && req.query.search) {
     const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
     whereClause = {
       [Op.and]: [
@@ -111,31 +102,36 @@ exports.findPayrollByUser = async (req, res) => {
   }
 
   if (req.query.pageSize && req.query.page && req.query.pageSize !== 'undefined' && req.query.page !== 'undefined') {
-    limit = req.query.pageSize;
-    offset = (req.query.page - 1) * req.query.pageSize;
+    limit = parseInt(req.query.pageSize, 10);
+    offset = (parseInt(req.query.page, 10) - 1) * limit;
   }
 
   try {
     const monthlyPayroll = await MonthlyPayroll.findAll({ 
       where: whereClause, limit: limit, offset: offset,
-      include:[
-          { model: User, attributes: ['name','empNo']}
-      ], order: [['id', 'DESC']]
+      order: [['id', 'DESC']]
     });
-    totalCount = await MonthlyPayroll.count({where: whereClause});
+    const totalCount = await MonthlyPayroll.count({where: whereClause});
+    const user = await authService.getUserById(req.params.id);
+
+    const enriched = monthlyPayroll.map(mp => {
+      const data = mp.toJSON ? mp.toJSON() : mp;
+      data.user = user || { name: 'Unknown', empNo: '' };
+      return data;
+    });
 
     if (req.query.page != 'undefined' && req.query.pageSize != 'undefined') {
       const response = {
         count: totalCount,
-        items: monthlyPayroll,
+        items: enriched,
       };
 
       res.json(response);
     } else {
-      res.json(monthlyPayroll);
+      res.json(enriched);
     }
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
 }
 
@@ -144,15 +140,24 @@ exports.getPayrollByPayedFor = async (req, res) => {
     const { payedFor } = req.query;
     
     const monthlyPayroll = await MonthlyPayroll.findAll({ 
-      where: { payedFor: payedFor }, include: [
-        {model: User, attributes: ['name','empNo']}
-      ],
-      order: [[User, 'empNo', 'ASC']]
+      where: { payedFor: payedFor },
+      order: [['id', 'ASC']]
     });
-    return res.status(200).json(monthlyPayroll);
+
+    const users = await authService.getAllActiveUsers();
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = u; });
+
+    const enriched = monthlyPayroll.map(mp => {
+      const data = mp.toJSON ? mp.toJSON() : mp;
+      data.user = userMap[data.userId] || { name: 'Unknown', empNo: '' };
+      return data;
+    });
+
+    return res.status(200).json(enriched);
   
   } catch (error) {
-    res.send(error.message)
+    res.status(500).send(error.message);
   }
 }
 
@@ -214,24 +219,17 @@ exports.updatePayroll = async (req, res) => {
 }
 
 exports.findPayrollById = async (req, res) => {
- try {
-    const monthlyPayroll = await MonthlyPayroll.findByPk(req.params.id,{ 
-      include: [
-        {model: User, attributes: ['name','empNo'], include: [
-          {model: UserPersonal, as: 'userpersonal', attributes: ['dateOfJoining']},
-          {model: UserAccount},
-          {model: StatutoryInfo, attributes: ['panNumber', 'uanNumber', 'pfNumber']},
-          {model: UserPosition, attributes: ['designationId', 'department', 'location'], include:[
-            {model: Designation, attributes: ['designationName']}
-          ]}
-        ]}
-      ]
-    });
-
-    return res.status(200).json(monthlyPayroll);
-  
+  try {
+    const monthlyPayroll = await MonthlyPayroll.findByPk(req.params.id);
+    if (!monthlyPayroll) {
+      return res.status(404).json({ message: 'Payroll not found' });
+    }
+    const data = monthlyPayroll.toJSON ? monthlyPayroll.toJSON() : monthlyPayroll;
+    const user = await authService.getUserById(data.userId);
+    data.user = user || { name: 'Unknown', empNo: '' };
+    return res.status(200).json(data);
   } catch (error) {
-    res.send(error.message)
+    res.status(500).send(error.message);
   }
 }
 
@@ -384,8 +382,21 @@ const { payrollData, status } = req.body;
   }
 }
 
-const pdf = require('html-pdf');
+let pdf;
+try {
+  pdf = require('html-pdf');
+} catch (e) {
+  // html-pdf optional
+}
+
 async function generatePDF(html) {
+  if (!pdf) {
+    try {
+      pdf = require('html-pdf');
+    } catch (e) {
+      throw new Error('PDF generator html-pdf is not installed.');
+    }
+  }
   return new Promise((resolve, reject) => {
     pdf.create(html, { format: 'A4' }).toBuffer((err, buffer) => {
       if (err) reject(err);
@@ -446,7 +457,8 @@ try {
     });
     
     let designation;
-    if(user.role.roleName !== 'Super Administrator' && user.role.roleName !== 'HR Administrator'){
+    const isSuperOrHr = user.role?.roleName === 'Super Administrator' || user.role?.roleName === 'HR Administrator' || (user.userPosition?.designation?.designationName || '').toUpperCase() === 'HR & ADMINISTRATION MANAGER';
+    if(!isSuperOrHr){
       if(!user.userPosition || !user.userPosition.designationId){
         return res.send(`Designation of the sender ${user.name} is not added`)
       }
@@ -1016,7 +1028,4 @@ function generatePayslipHTML(mp) {
           </html>
           `;
 
-}
-
-
-module.exports = router;
+}

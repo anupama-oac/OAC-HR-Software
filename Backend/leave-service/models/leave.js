@@ -36,24 +36,12 @@ const Leave = sequelize.define('leave', {
   timestamps: true, 
 });
 
-//------------------------------LEAVE ASSOCIATIONS-----------------------------------------------
-// LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', onUpdate: 'CASCADE' });
-// // Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId'});
-
-// User.hasMany(Leave, { foreignKey: 'userId', onUpdate: 'CASCADE' });
-// // Leave.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
-// Leave.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-// Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
-
-// User.hasMany(Leave,{foreignKey : 'userId', as: 'user', onUpdate : 'CASCADE'})
-// Leave.belongsTo(User)
-
-// LeaveType.hasMany(Leave,{foreignKey : 'leaveTypeId', as: 'leaveType',  onUpdate : 'CASCADE'})
-// Leave.belongsTo(LeaveType)
-
-// LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', as: 'leaves', onUpdate: 'CASCADE' });
-// Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+if (!LeaveType.associations || !LeaveType.associations.leaves) {
+  LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', as: 'leaves', onUpdate: 'CASCADE' });
+}
+if (!Leave.associations || !Leave.associations.leaveType) {
+  Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+}
 
 
 

@@ -1,40 +1,54 @@
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
+import { RoleService } from '@services/role.service';
 import { UsersService } from '@services/users.service';
 import { Subscription } from 'rxjs';
-import { CommonModule, DatePipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { UserPersonal } from '../../../common/interfaces/users/user-personal';
-import { Router } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { RoleService } from '@services/role.service';
+import {
+  CelebrationPopupItem,
+  CelebrationWishDialogComponent
+} from '../celebration-wish-dialog/celebration-wish-dialog.component';
 
 @Component({
   selector: 'app-birthday',
   standalone: true,
-  imports: [DatePipe, MatCardModule, MatIconModule, CommonModule],
+  imports: [
+    DatePipe,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatDialogModule,
+    CommonModule
+  ],
   templateUrl: './birthday.component.html',
   styleUrl: './birthday.component.scss'
 })
 export class BirthdayComponent implements OnInit, OnDestroy {
   userService = inject(UsersService);
-  roleService=inject(RoleService)
-  canAccessDraft: boolean = false;
-  roleName: string = '';
+  roleService = inject(RoleService);
+  private dialog = inject(MatDialog);
+  router = inject(Router);
+
+  canAccessDraft = false;
+  roleName = '';
+  currentUserName = 'Team OAC';
+  private roleSub!: Subscription;
+  isLoading = true;
+  birthSub!: Subscription;
+  birthdaysThisMonth: UserPersonal[] = [];
+
   ngOnInit(): void {
-       this.checkUserRole();
+    this.checkUserRole();
     this.getBirthdays();
-      const token: any = localStorage.getItem('token')
-    const user = JSON.parse(token)
-
-    const roleId = user.role
-
-    
-
   }
 
-
- private roleSub!: Subscription;
-  isLoading: boolean = true;
   checkUserRole(): void {
     try {
       const tokenData = localStorage.getItem('token');
@@ -44,11 +58,10 @@ export class BirthdayComponent implements OnInit, OnDestroy {
       }
 
       const authData = JSON.parse(tokenData);
-      // Check both possible locations for roleId
+      this.currentUserName = authData?.name || authData?.username || 'Team OAC';
       const roleId = authData.role || authData.token?.roleId;
-      
+
       if (!roleId) {
-        console.error('Role ID not found in token data');
         this.isLoading = false;
         return;
       }
@@ -64,7 +77,9 @@ export class BirthdayComponent implements OnInit, OnDestroy {
     this.roleSub = this.roleService.getRoleById(id).subscribe({
       next: (role) => {
         this.roleName = role.roleName;
-        this.canAccessDraft = ['Super Administrator', 'HR Administrator', 'Super Admin'].includes(this.roleName);
+        this.canAccessDraft = ['Super Administrator', 'HR Administrator', 'Super Admin'].includes(
+          this.roleName
+        );
         this.isLoading = false;
       },
       error: (err) => {
@@ -78,23 +93,57 @@ export class BirthdayComponent implements OnInit, OnDestroy {
     });
   }
 
-
-  birthSub!: Subscription;
-  birthdaysThisMonth: UserPersonal[] = [];
-  getBirthdays() {
-    this.birthSub = this.userService.getBirthdays().subscribe(res => {
-      this.birthdaysThisMonth = res;
-    })
+  getBirthdays(): void {
+    this.birthSub = this.userService.getBirthdays().subscribe((res) => {
+      this.birthdaysThisMonth = res || [];
+    });
   }
 
-  ngOnDestroy(): void {
-    this.birthSub?.unsubscribe();
-  }
-  router=inject(Router)
-  openDraft(id: number) {
+  openWishPopup(employee: any): void {
+    if (!employee) return;
+    const wish = employee?.user?.celebrationWishes?.[0];
+    const item: CelebrationPopupItem = {
+      userId: employee.userId || employee.user?.id,
+      name: employee.user?.name || 'Colleague',
+      empNo: employee.user?.empNo || '',
+      email: employee.user?.email || '',
+      avatarUrl: employee.user?.userImage || employee.user?.url || '',
+      type: 'birthday',
+      date: employee.dateOfBirth,
+      isToday: this.isTodayBirthday(employee.dateOfBirth),
+      wishId: wish?.id,
+      title: wish?.title || '',
+      message: wish?.message || '',
+      imageUrl: wish?.imageUrl || '',
+      createdBy: wish?.createdBy || ''
+    };
 
-      this.router.navigate(['login/mail/birthday-draft', id]);
-    }
+    const dialogRef = this.dialog.open(CelebrationWishDialogComponent, {
+      width: '660px',
+      maxWidth: '95vw',
+      panelClass: 'celebration-wish-modal-panel',
+      autoFocus: false,
+      data: {
+        items: [item],
+        initialIndex: 0,
+        allowUploadAndEdit: true,
+        canEdit: true,
+        currentUserName: this.currentUserName,
+        currentUserDesignation: this.roleName,
+        startInEditMode: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((res) => {
+      if (res?.updated) {
+        this.getBirthdays();
+      }
+    });
+  }
+
+  openDraft(id: number): void {
+    this.router.navigate(['login/mail/birthday-draft', id]);
+  }
 
   isTodayBirthday(dateOfBirth: string | Date): boolean {
     const dob = new Date(dateOfBirth);
@@ -102,5 +151,8 @@ export class BirthdayComponent implements OnInit, OnDestroy {
     return dob.getDate() === today.getDate() && dob.getMonth() === today.getMonth();
   }
 
-
+  ngOnDestroy(): void {
+    this.birthSub?.unsubscribe();
+    this.roleSub?.unsubscribe();
+  }
 }

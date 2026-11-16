@@ -6,9 +6,9 @@ const leaveTypeController = require('../controllers/leaveType.controller');
 
 
 router.post('/', authenticateToken, leaveTypeController.createLeaveType);
-router.get('/', authenticateToken, leaveTypeController.getLeaveTypes);
-router.get('/find', authenticateToken, leaveTypeController.PaginatedLeaveTypes);
-router.delete('/:id', authenticateToken,leaveTypeController.deleteLeaveType);
+router.get(['/', ''], leaveTypeController.getLeaveTypes);
+router.get(['/find', '/find/'], leaveTypeController.PaginatedLeaveTypes);
+router.delete('/:id', authenticateToken, leaveTypeController.deleteLeaveType);
 router.patch('/:id', authenticateToken, leaveTypeController.updateLeaveType);
 
 

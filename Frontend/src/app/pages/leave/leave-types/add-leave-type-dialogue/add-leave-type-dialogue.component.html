@@ -1,51 +1,194 @@
-<h1 mat-dialog-title>
-    @if (leaveType) {
-        <span>Edit</span>
-    } @else {
-        <span>Add</span>
+<div class="leave-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="icon-badge" [class.badge-edit]="isEdit">
+        <mat-icon>{{ isEdit ? 'edit_note' : 'add_circle' }}</mat-icon>
+      </div>
+      <div class="title-wrap">
+        <h2 class="dialog-title">
+          {{ isEdit ? 'Update Leave Category' : 'Create Leave Category' }}
+        </h2>
+        <p class="dialog-subtitle">
+          {{ isEdit ? 'Modify corporate leave classification & policy label' : 'Configure a new corporate leave policy for employee quotas' }}
+        </p>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      class="btn-close"
+      (click)="close()"
+      [disabled]="isSubmitting"
+      matTooltip="Close dialog"
+      aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Body Form -->
+  <div class="dialog-body">
+    <!-- Core Policy Notice Banner -->
+    @if (isCoreType) {
+      <div class="core-notice-banner">
+        <div class="banner-icon-box">
+          <mat-icon>shield</mat-icon>
+        </div>
+        <div class="banner-text">
+          <span class="banner-title">Core Corporate System Policy</span>
+          <span class="banner-desc">
+            '{{ leaveType?.leaveTypeName }}' is a foundational system leave type. Renaming it will update display labels across all active employee balances and statutory reports.
+          </span>
+        </div>
+      </div>
     }
-     Leave Type
-  </h1>
-  <div mat-dialog-content>
-    <form [formGroup]="leaveTypeForm" class="user-form">
-      <div fxLayout="column" class="form-field-outer">
-        <mat-form-field appearance="outline" class="half-width">
-            <mat-label> Leave Type </mat-label>
-            <input matInput formControlName="leaveTypeName" required>
-            <mat-error>
-                @if (leaveTypeForm.controls['leaveTypeName'].hasError('required')) {
-                  LeaveType Name is required
-                }
-            </mat-error>
+
+    <!-- Quick Suggestions Presets -->
+    @if (!isCoreType) {
+      <div class="presets-section">
+        <div class="presets-header">
+          <div class="presets-label">
+            <mat-icon>auto_awesome</mat-icon>
+            <span>Quick Suggestions</span>
+          </div>
+          <span class="presets-hint">Click any preset to auto-fill</span>
+        </div>
+
+        <div class="preset-chips-grid">
+          @for (preset of presets; track preset.name) {
+            <button
+              type="button"
+              class="preset-chip"
+              [class.active]="isPresetSelected(preset.name)"
+              (click)="selectPreset(preset)"
+              [matTooltip]="preset.description">
+              <mat-icon class="preset-icon">{{ preset.icon }}</mat-icon>
+              <span class="preset-name">{{ preset.name }}</span>
+              @if (isPresetSelected(preset.name)) {
+                <mat-icon class="check-icon">check</mat-icon>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Form Input Section -->
+    <form [formGroup]="leaveTypeForm" (ngSubmit)="onSubmit()" class="leave-type-form">
+      <div class="form-field-group">
+        <div class="field-label-row">
+          <label class="field-label" for="leaveTypeNameInput">
+            Leave Type Name <span class="required-star">*</span>
+          </label>
+          <span class="char-counter" [class.near-limit]="currentLength > 40">
+            {{ currentLength }} / 50 characters
+          </span>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-100 modern-field">
+          <mat-icon matPrefix class="field-prefix-icon">bookmark_border</mat-icon>
+          <input
+            matInput
+            id="leaveTypeNameInput"
+            formControlName="leaveTypeName"
+            placeholder="e.g. Maternity Leave, Sabbatical, Study Leave"
+            autocomplete="off"
+            maxlength="50"
+            required />
+
+          @if (currentLength > 0 && !isSubmitting) {
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              class="btn-input-clear"
+              (click)="clearName()"
+              matTooltip="Clear input"
+              aria-label="Clear input">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+
+          @if (leaveTypeForm.controls['leaveTypeName'].hasError('required') && leaveTypeForm.controls['leaveTypeName'].touched) {
+            <mat-error>Leave Type name is required</mat-error>
+          }
+          @if (leaveTypeForm.controls['leaveTypeName'].hasError('minlength')) {
+            <mat-error>Must be at least 2 characters</mat-error>
+          }
+          @if (leaveTypeForm.controls['leaveTypeName'].hasError('maxlength')) {
+            <mat-error>Cannot exceed 50 characters</mat-error>
+          }
         </mat-form-field>
-  
-        <!-- <mat-form-field class="w-100">
-          <mat-label>Abbreviation</mat-label>
-          <input matInput formControlName="abbreviation" required>
-          <mat-error>
-              @if (leaveTypeForm.controls.abbreviation.errors?.required) {
-                  Abbreviation is required
-              }
-              @if (form.controls.abbreviation.hasError('minlength')) {
-                  Abbreviation isn't long enough, minimum of 5 characters
-              }
-          </mat-error>
-        </mat-form-field> -->
-  
-        <!-- <div class="col center-align" style="align-content: center;">
-          <mat-slide-toggle formControlName="status">Status</mat-slide-toggle>
-        </div> -->
       </div>
     </form>
+
+    <!-- Dynamic Live Policy Preview Card -->
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="preview-tag">
+          <mat-icon>visibility</mat-icon>
+          <span>Live Policy Preview</span>
+        </div>
+        <span class="preview-category-tag">
+          {{ getDetectedCategory(currentName) }}
+        </span>
+      </div>
+
+      <div class="preview-showcase">
+        <div class="preview-badge-pill" [ngClass]="getPreviewBadgeClass(currentName)">
+          <div class="badge-icon-wrap">
+            <mat-icon>{{ getDetectedIcon(currentName) }}</mat-icon>
+          </div>
+          <span class="badge-title">
+            {{ currentName.trim() || 'Leave Type Name' }}
+          </span>
+          <span class="badge-abbr">
+            {{ getAbbreviation(currentName) }}
+          </span>
+        </div>
+      </div>
+
+      <p class="preview-footer-note">
+        <mat-icon>info</mat-icon>
+        <span>This badge styling will appear in employee balance cards, application forms, and approval tables.</span>
+      </p>
+    </div>
+
+    <!-- HR Compliance & System Guidelines -->
+    <div class="guidelines-card">
+      <div class="guide-item">
+        <mat-icon>flash_on</mat-icon>
+        <span>Instant availability across employee self-service leave requests</span>
+      </div>
+      <div class="guide-item">
+        <mat-icon>verified_user</mat-icon>
+        <span>Eligible for company-wide quota allocations and year-end carry forward</span>
+      </div>
+    </div>
   </div>
-  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-    <button mat-raised-button color="primary" [mat-dialog-close]="leaveTypeForm.value" [disabled]="!leaveTypeForm.valid" (click)="onSubmit()">
-        @if (leaveType) {
-            Update
-        } @else {
-            Save
-        }
-    </button> &nbsp;
-    <button mat-raised-button color="warn" (click)="close()" type="button">Cancel</button>
+
+  <!-- Dialog Actions -->
+  <div class="dialog-actions">
+    <button
+      mat-stroked-button
+      class="btn-cancel"
+      (click)="close()"
+      [disabled]="isSubmitting"
+      type="button">
+      <span>Cancel</span>
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      class="btn-save"
+      (click)="onSubmit()"
+      [disabled]="leaveTypeForm.invalid || isSubmitting || isUnchanged">
+      @if (isSubmitting) {
+        <mat-spinner diameter="18" class="spinner"></mat-spinner>
+        <span>Saving...</span>
+      } @else {
+        <mat-icon>{{ isEdit ? 'check' : 'add_circle' }}</mat-icon>
+        <span>{{ isEdit ? 'Update Leave Type' : 'Create Leave Type' }}</span>
+      }
+    </button>
   </div>
-  
+</div>

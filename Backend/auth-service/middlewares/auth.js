@@ -69,6 +69,9 @@ const authorizeRole = (...roles) => {
       });
     }
 
+    const dLower = (req.user.designationName || '').toLowerCase().trim();
+    const isHrAdminMgr = dLower === 'hr & administration manager' || dLower.includes('hr & administration manager') || dLower.includes('hr & admin manager');
+    if (req.user.isSuperAdmin || req.user.roleId === 1 || req.user.systemRoleId === 1 || isHrAdminMgr) return next();
     if (!roles.includes(req.user.roleId)) {
       return res.status(403).json({ 
         success: false, 

@@ -1,39 +1,66 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { UsersService } from '@services/users.service';
 import { Subscription } from 'rxjs';
+
+export interface ResetPasswordDialogData {
+  id: number;
+  empNo: string;
+  name?: string;
+  paswordReset?: boolean;
+}
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [MatFormFieldModule, MatInputModule, MatIconModule, ReactiveFormsModule, MatToolbarModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
+    MatProgressSpinnerModule
+  ],
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss'
 })
-export class ResetPasswordComponent implements OnInit, OnDestroy{
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-    this.reset?.unsubscribe();
-  }
-  private dialogRef = inject(MatDialogRef<ResetPasswordComponent>)
-  private data = inject(MAT_DIALOG_DATA);
-  private fb = inject(FormBuilder)
-  form = this.fb.group({
-    empNo: [this.data.empNo],
-    paswordReset: [this.data.paswordReset],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    confirmPassword: ['', Validators.required]
-  })
+export class ResetPasswordComponent implements OnInit, OnDestroy {
+  private dialogRef = inject(MatDialogRef<ResetPasswordComponent>);
+  public data: ResetPasswordDialogData = inject(MAT_DIALOG_DATA);
+  private fb = inject(FormBuilder);
+  private userService = inject(UsersService);
+  private snackBar = inject(MatSnackBar);
 
   private subscriptions: Subscription = new Subscription();
-  ngOnInit() {
+  resetSub!: Subscription;
+
+  isLoading: boolean = false;
+  showPassword: boolean = false;
+  showConfirmedPassword: boolean = false;
+  passwordMismatch: boolean = false;
+
+  form = this.fb.group({
+    empNo: [{ value: this.data?.empNo || '', disabled: false }, Validators.required],
+    paswordReset: [this.data?.paswordReset ?? false],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', Validators.required]
+  });
+
+  ngOnInit(): void {
     this.subscriptions.add(
       this.form.get('confirmPassword')?.valueChanges.subscribe(() => {
         this.checkPasswords();
@@ -47,67 +74,124 @@ export class ResetPasswordComponent implements OnInit, OnDestroy{
     );
   }
 
-  passwordMismatch: boolean = false;
-  checkPasswords() {
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+    this.resetSub?.unsubscribe();
+  }
+
+  checkPasswords(): void {
     const password = this.form.get('password')?.value;
     const confirmPassword = this.form.get('confirmPassword')?.value;
-    this.passwordMismatch = password !== confirmPassword;
+    this.passwordMismatch = !!(password && confirmPassword && password !== confirmPassword);
   }
 
-  generateRandomPassword() {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-    let password = '';
-    for (let i = 0; i < 10; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+  get passwordVal(): string {
+    return this.form.get('password')?.value || '';
+  }
+
+  get confirmPasswordVal(): string {
+    return this.form.get('confirmPassword')?.value || '';
+  }
+
+  get hasMinLength(): boolean {
+    return this.passwordVal.length >= 6;
+  }
+
+  get doPasswordsMatch(): boolean {
+    return this.hasMinLength && !this.passwordMismatch && !!this.confirmPasswordVal;
+  }
+
+  generateRandomPassword(): void {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnpqrstuvwxyz';
+    const numbers = '23456789';
+    const symbols = '!@#$%&*';
+    const all = upper + lower + numbers + symbols;
+
+    let pwd = '';
+    pwd += upper[Math.floor(Math.random() * upper.length)];
+    pwd += lower[Math.floor(Math.random() * lower.length)];
+    pwd += numbers[Math.floor(Math.random() * numbers.length)];
+    pwd += symbols[Math.floor(Math.random() * symbols.length)];
+
+    for (let i = 4; i < 10; i++) {
+      pwd += all.charAt(Math.floor(Math.random() * all.length));
     }
 
-    this.form.get('password')?.setValue(password);
-    this.form.get('confirmPassword')?.setValue(password);
+    pwd = pwd.split('').sort(() => 0.5 - Math.random()).join('');
+
+    this.form.get('password')?.setValue(pwd);
+    this.form.get('confirmPassword')?.setValue(pwd);
+    this.form.get('password')?.markAsDirty();
+    this.form.get('confirmPassword')?.markAsDirty();
+    this.showPassword = true;
+    this.showConfirmedPassword = true;
+    this.checkPasswords();
+    this.snackBar.open('Generated a secure random password', 'Close', { duration: 2500 });
   }
 
-  copyEmpNoAndPassword() {
-    const empNo = this.form.get('empNo')?.value;
+  copyCredentials(): void {
+    const empNo = this.form.get('empNo')?.value || this.data.empNo;
     const password = this.form.get('password')?.value;
 
-    if (empNo && password) {
-      const textToCopy = `Emp ID: ${empNo}\nPassword: ${password}`;
-      navigator.clipboard.writeText(textToCopy).then(
-        () => {
-          this.snackBar.open('Email and password copied to clipboard',"" ,{duration:3000});
-        },
-        (err) => {
-          console.error('Could not copy text: ', err);
-        }
-      );
+    if (!password) {
+      this.snackBar.open('Please enter or generate a password first', 'Close', { duration: 2500 });
+      return;
+    }
+
+    const textToCopy = `Username: ${empNo}\nPassword: ${password}`;
+    navigator.clipboard.writeText(textToCopy).then(
+      () => {
+        this.snackBar.open('Username & password copied to clipboard!', 'Close', { duration: 3000 });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        this.snackBar.open('Failed to copy to clipboard', 'Close', { duration: 2500 });
+      }
+    );
+  }
+
+  copyUsername(): void {
+    const empNo = this.form.get('empNo')?.value || this.data.empNo;
+    if (empNo) {
+      navigator.clipboard.writeText(empNo).then(() => {
+        this.snackBar.open(`Copied ${empNo} to clipboard`, 'Close', { duration: 2000 });
+      });
     }
   }
 
-  private userService = inject(UsersService)
-  snackBar = inject(MatSnackBar)
-  reset!: Subscription;
-  isLoading: boolean = false
-  onSubmit(){
-    this.isLoading = true;
-    this.reset = this.userService.resetPassword(this.data.id, this.form.getRawValue()).subscribe(x => {
-      this.dialogRef.close();
-      this.isLoading = false;
-      this.snackBar.open(`You have successfully reset ${this.data.empNo} password...`,"" ,{duration:3000})
-    })
-  }
-
-  onCancelClick(){
-    this.dialogRef.close();
-  }
-
-  showPassword: boolean = false;
-
-  togglePasswordVisibility() {
+  togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
 
-  showConfirmedPassword: boolean = false;
-
-  toggleConfirmedPasswordVisibility() {
+  toggleConfirmedPasswordVisibility(): void {
     this.showConfirmedPassword = !this.showConfirmedPassword;
   }
+
+  onCancelClick(): void {
+    this.dialogRef.close({ confirmed: false });
+  }
+
+  onSubmit(): void {
+    if (this.form.invalid || this.passwordMismatch) {
+      return;
+    }
+
+    this.isLoading = true;
+    const rawVal = this.form.getRawValue();
+
+    this.resetSub = this.userService.resetPassword(this.data.id, rawVal).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.dialogRef.close({ confirmed: true });
+        this.snackBar.open(`Password for ${this.data.empNo} reset successfully!`, 'Close', { duration: 3500 });
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Password reset failed:', err);
+        this.snackBar.open(err?.error?.message || 'Failed to reset password', 'Close', { duration: 3500 });
+      }
+    });
+  }
 }
+

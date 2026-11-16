@@ -1,134 +1,248 @@
-<div class="expense-form-container">
+<div class="expense-page-container">
+  <div class="form-wrapper">
     <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()" class="expense-form" enctype="multipart/form-data">
-      <mat-card>
-        <div class="row">
-          <div class="col">
-            <mat-card-header>
-              <mat-card-title>
-                EXPENSE MANAGEMENT
-              </mat-card-title>
-            </mat-card-header>
-          </div>
       
-          <div class="col">
-            <mat-card-header>
-              <button mat-mini-fab color="primary" type="button" aria-label="Example icon button with a home icon"
-                class="d-block mr-0 ml-auto" onClick="history.back()" style="margin-left: auto;">
-                <mat-icon>exit_to_app</mat-icon>
-              </button>
-            </mat-card-header>
+      <!-- Header Banner Card -->
+      <div class="header-card">
+        <div class="header-left">
+          <div class="header-icon-box">
+            <mat-icon>{{ editStatus ? 'edit_note' : 'post_add' }}</mat-icon>
           </div>
-        </div><br>
-
-  
-        <mat-card-content>
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="flex-item">
-              <mat-label>Expense No</mat-label>
-              <input matInput type="text" formControlName="exNo" required />
-              <!-- <mat-error *ngIf="expenseForm.controls['exNo'].hasError('required')">Expense No is required</mat-error> -->
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="flex-item">
-              <mat-label>Currency</mat-label>
-              <mat-select formControlName="currency">
-                  <mat-option value="Dollar">Dollar</mat-option>
-                  <mat-option value="AED">AED</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field  appearance="outline" class="flex-item">
-              <mat-label>Amount</mat-label>
-              <input type="number" matInput placeholder="Enter Amount" formControlName="totalAmount">
-            </mat-form-field>
-            
-            @if (roleName === 'Manager') {
-              <mat-form-field class="flex-item" appearance="outline">
-                <mat-label>Accountatnt</mat-label>
-                <mat-select placeholder="" formControlName="accountantId">
-                @for(item of AMList; track $index){
-                  <mat-option [value]="item.id">
-                    {{item.name}}
-                  </mat-option>
-                }
-                </mat-select>
-              </mat-form-field>
-            }@else {
-              <mat-form-field class="flex-item" appearance="outline">
-                <mat-label>Manager</mat-label>
-                <mat-select placeholder="" formControlName="amId">
-                @for(item of AMList; track $index){
-                  <mat-option [value]="item.id">
-                    {{item.name}}
-                  </mat-option>
-                }
-                </mat-select>
-              </mat-form-field>
-            }
+          <div>
+            <h1 class="header-title">{{ editStatus ? 'Edit Expense Record' : 'Create New Expense' }}</h1>
+            <p class="header-subtitle">
+              {{ editStatus ? 'Update expense details, payment method, or attached receipts' : 'Submit a new company expense for review and disbursement' }}
+            </p>
           </div>
+        </div>
 
-
-          <mat-form-field appearance="outline">
-            <mat-label>Notes</mat-label>
-            <textarea matInput rows="4" formControlName="notes"></textarea>
-          </mat-form-field>
-<!--   
-          <mat-form-field appearance="outline" disabled>
-            <mat-label>Status</mat-label>
-            <input matInput type="text" formControlName="status" readonly />
-          </mat-form-field> -->
-        </mat-card-content>
-
-        <mat-card-content>
-            <div formArrayName="url">
-                  <div *ngFor="let uploadForm of doc().controls; let i = index" [formGroupName]="i" class="form-instance">
-                    <div class="form-row" style="margin-top: 20px;">
-                      <div class="col">
-                        <mat-form-field class="w-100" appearance="outline">
-                          <mat-label>Document Remarks</mat-label>
-                          <input matInput formControlName="remarks">
-                        </mat-form-field>
-                      </div>
-      
-                      @if(!imageUrl[i] && !savedImageUrl[i]){
-                        <div class="col">
-                          <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event, i)">
-                          <mat-icon class="file-upload-icon" (click)="fileInput.click()">cloud_upload</mat-icon>
-                          <p class="file-upload-text" (click)="fileInput.click()">Browse file to upload</p>
-                        </div>
-                      }
-                      @else if(!imageUrl[i] && savedImageUrl[i]){
-                        <div class="col">
-                          <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                            <iframe [src]="savedImageUrl[i].url | safe" width="100%" height="300px"></iframe>
-                          </div>
-                        </div>
-                      } @else if(imageUrl[i] && !savedImageUrl[i]){
-                        <div class="col">
-                          <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                            <iframe [src]="imageUrl[i] | safe" width="100%" height="300px"></iframe>
-                          </div>
-                        </div>
-                      }
-                      @if (!savedImageUrl[i]) {
-                        <button mat-icon-button color="warn" type="button" (click)="removeData(i)">
-                          <mat-icon>remove_circle</mat-icon>
-                        </button>
-                      }
-                    </div>
-                  </div>
-                <button mat-raised-button color="primary" (click)="addDoc()" type="button"
-                [disabled]="!isImageUploaded()">New Doc</button>
-              </div>
-        </mat-card-content>
-  
-        <mat-card-actions>
-          <button mat-raised-button color="primary" type="submit" [disabled]="!expenseForm.valid">
-            @if(editStatus){ Update }
-            @else { Submit }
+        <div class="header-right">
+          <button mat-button class="btn-back" type="button" (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon>
+            <span>Back to Expenses</span>
           </button>
-        </mat-card-actions>
+        </div>
+      </div>
+
+      <!-- Main Form Card -->
+      <mat-card class="form-card mat-elevation-z2">
+        <mat-card-content class="card-body">
+
+          <!-- Section 1: User Selection (Super Admin, Finance Manager & Operations Manager only) -->
+          @if (canAssignEmployee) {
+            <div class="form-section">
+              <div class="section-header">
+                <mat-icon class="section-icon">person</mat-icon>
+                <span class="section-title">Employee Details</span>
+              </div>
+              <div class="form-grid single-col">
+                <mat-form-field appearance="outline" class="w-100">
+                  <mat-label>Assign to Employee</mat-label>
+                  <mat-select formControlName="userId" placeholder="Select employee for this expense">
+                    @for (user of usersList; track user.id) {
+                      <mat-option [value]="user.id">
+                        {{ user.name }} ({{ user.empNo || 'ID: ' + user.id }})
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-icon matPrefix class="field-prefix-icon">badge</mat-icon>
+                </mat-form-field>
+              </div>
+            </div>
+          }
+
+          <!-- Section 2: Expense Details -->
+          <div class="form-section">
+            <div class="section-header">
+              <mat-icon class="section-icon">receipt</mat-icon>
+              <span class="section-title">Expense Details</span>
+            </div>
+
+            <div class="form-grid">
+              <!-- Expense Number -->
+              <mat-form-field appearance="outline" class="grid-item">
+                <mat-label>Expense Number</mat-label>
+                <input matInput type="text" formControlName="exNo" readonly required placeholder="Auto-generated" />
+                <mat-icon matPrefix class="field-prefix-icon">tag</mat-icon>
+              </mat-form-field>
+
+              <!-- Currency -->
+              <mat-form-field appearance="outline" class="grid-item">
+                <mat-label>Currency</mat-label>
+                <mat-select formControlName="currency">
+                  <mat-option value="INR">INR (₹ - Indian Rupee)</mat-option>
+                  <mat-option value="AED">AED (د.إ - UAE Dirham)</mat-option>
+                  <mat-option value="Dollar">USD ($ - US Dollar)</mat-option>
+                </mat-select>
+                <mat-icon matPrefix class="field-prefix-icon">monetization_on</mat-icon>
+              </mat-form-field>
+
+              <!-- Total Amount -->
+              <mat-form-field appearance="outline" class="grid-item">
+                <mat-label>Total Amount</mat-label>
+                <input type="number" matInput placeholder="0.00" formControlName="totalAmount" min="0" step="0.01">
+                <mat-icon matPrefix class="field-prefix-icon">payments</mat-icon>
+                @if (expenseForm.get('paymentMode')?.value === 'Petty Cash') {
+                  <mat-hint [class.hint-danger]="((expenseForm.get('totalAmount')?.value || 0) > pettyCashBalance)">
+                    Available Petty Cash: {{ pettyCashBalance | number:'1.2-2' }}
+                  </mat-hint>
+                }
+              </mat-form-field>
+
+              <!-- Payment Mode -->
+              <mat-form-field appearance="outline" class="grid-item">
+                <mat-label>Payment Mode</mat-label>
+                <mat-select placeholder="Select Payment Mode" formControlName="paymentMode">
+                  <mat-option value="Bank Transfer">Bank Transfer</mat-option>
+                  <mat-option value="Cash">Cash</mat-option>
+                  @if (pettyCashBalance > 0) {
+                    <mat-option value="Petty Cash">Petty Cash</mat-option>
+                  }
+                  <mat-option value="Card">Card</mat-option>
+                </mat-select>
+                <mat-icon matPrefix class="field-prefix-icon">account_balance_wallet</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <!-- Petty Cash Warning Banner -->
+            @if (expenseForm.get('paymentMode')?.value === 'Petty Cash') {
+              <div class="petty-cash-card" [class.danger]="(expenseForm.get('totalAmount')?.value || 0) > pettyCashBalance">
+                <mat-icon class="banner-icon">{{ (expenseForm.get('totalAmount')?.value || 0) > pettyCashBalance ? 'warning' : 'account_balance_wallet' }}</mat-icon>
+                <div class="banner-text">
+                  <strong>Available Petty Cash Balance: {{ pettyCashBalance | number:'1.2-2' }}</strong>
+                  @if ((expenseForm.get('totalAmount')?.value || 0) > pettyCashBalance) {
+                    <p class="error-text">Entered amount exceeds your available petty cash balance!</p>
+                  } @else {
+                    <p class="info-text">Amount will be deducted from your allocated petty cash upon approval.</p>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Notes / Description -->
+            <div class="full-width-field">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Expense Description / Purpose</mat-label>
+                <textarea matInput rows="3" formControlName="notes" placeholder="Explain the purpose of this expense (e.g. Travel tickets, client lunch, office supplies)..."></textarea>
+                <mat-icon matPrefix class="field-prefix-icon">description</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Section 3: Receipt & Document Attachments -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="section-title-wrap">
+                <mat-icon class="section-icon">attach_file</mat-icon>
+                <span class="section-title">Supporting Documents & Receipts</span>
+              </div>
+              <span class="doc-count-badge">{{ doc().controls.length }} {{ doc().controls.length === 1 ? 'file' : 'files' }}</span>
+            </div>
+
+            <div formArrayName="url" class="documents-container">
+              @for (uploadForm of doc().controls; let i = $index; track i) {
+                <div [formGroupName]="i" class="document-item-card">
+                  <div class="doc-card-header">
+                    <span class="doc-card-title">
+                      <mat-icon class="doc-index-icon">description</mat-icon>
+                      Document #{{ i + 1 }}
+                    </span>
+                    <button mat-icon-button class="btn-remove-doc" type="button" (click)="removeData(i)" title="Remove document">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="doc-card-body">
+                    <!-- Remarks input -->
+                    <mat-form-field appearance="outline" class="doc-remarks-field">
+                      <mat-label>Document Remarks / Label</mat-label>
+                      <input matInput formControlName="remarks" placeholder="e.g. Flight Ticket, Food Bill, Invoice Copy" />
+                    </mat-form-field>
+
+                    <!-- Upload Zone / Preview -->
+                    @if (!imageUrl[i] && !savedImageUrl[i]) {
+                      <div class="upload-dropzone" (click)="fileInput.click()">
+                        <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event, i)" />
+                        <div class="upload-icon-circle">
+                          <mat-icon>cloud_upload</mat-icon>
+                        </div>
+                        <p class="dropzone-title">Click to upload receipt or document</p>
+                        <p class="dropzone-subtitle">Supported formats: PDF, JPEG, PNG, TXT (Max 10MB)</p>
+                      </div>
+                    } @else {
+                      <div class="preview-container">
+                        @if (savedImageUrl[i]) {
+                          @if (isImage(savedImageUrl[i])) {
+                            <div class="image-preview-box">
+                              <img [src]="savedImageUrl[i]" alt="Receipt preview" />
+                            </div>
+                          } @else {
+                            <div class="frame-preview-box">
+                              <iframe [src]="savedImageUrl[i] | safe"></iframe>
+                            </div>
+                          }
+                          <div class="preview-actions">
+                            <button type="button" class="btn-delete-preview" (click)="onDeleteUploadedImage(i)">
+                              <mat-icon>delete</mat-icon>
+                              <span>Remove Upload</span>
+                            </button>
+                          </div>
+                        } @else if (imageUrl[i]) {
+                          @if (isImage(imageUrl[i])) {
+                            <div class="image-preview-box">
+                              <img [src]="imageUrl[i]" alt="Receipt preview" />
+                            </div>
+                          } @else {
+                            <div class="frame-preview-box">
+                              <iframe [src]="imageUrl[i] | safe"></iframe>
+                            </div>
+                          }
+                          <div class="preview-actions">
+                            <button type="button" class="btn-delete-preview" (click)="onDeleteImage(i)">
+                              <mat-icon>delete</mat-icon>
+                              <span>Remove File</span>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Add Doc Button -->
+              <div class="add-doc-wrapper">
+                <button
+                  mat-stroked-button
+                  class="btn-add-doc"
+                  (click)="addDoc()"
+                  type="button"
+                  [disabled]="!isImageUploaded()">
+                  <mat-icon>add_circle_outline</mat-icon>
+                  <span>Add Another Document</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </mat-card-content>
+
+        <!-- Form Footer Actions -->
+        <div class="form-actions-bar">
+          <button mat-button type="button" class="btn-cancel" (click)="goBack()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            class="btn-submit"
+            [disabled]="!expenseForm.valid || (expenseForm.get('paymentMode')?.value === 'Petty Cash' && (expenseForm.get('totalAmount')?.value || 0) > pettyCashBalance)">
+            <mat-icon>{{ editStatus ? 'check' : 'send' }}</mat-icon>
+            <span>{{ editStatus ? 'Update Expense' : 'Submit Expense' }}</span>
+          </button>
+        </div>
       </mat-card>
     </form>
   </div>
-  
+</div>

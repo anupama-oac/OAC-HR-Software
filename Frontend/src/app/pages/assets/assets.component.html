@@ -1,110 +1,390 @@
-<div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-  <div fxLayout="row" class="col">
-      <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openUserDialog(null)"><mat-icon>devices</mat-icon>
-          </mat-button-toggle>
-      </mat-button-toggle-group>
-      <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-          <mat-button-toggle value="add" (click)="openDialog(null)"><mat-icon>chair_alt</mat-icon>
-          </mat-button-toggle>
-      </mat-button-toggle-group>
-  </div>
-  <div fxLayout="row" class="col">
-    <form class="user-search" [class.show]="controls.value == 'search'">
-      <mat-form-field class="user-search-input">
-          <input matInput placeholder="Search..." name="search" (keyup)="search($event)">
-      </mat-form-field>
-    </form>
+<div class="assets-container">
+
+  <!-- ================= TOP PAGE HEADER ================= -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>devices_other</mat-icon>
+      </div>
+      <div class="header-titles">
+        <div class="title-row">
+          <h1 class="page-title">Asset Management</h1>
+          <span class="count-badge">{{ totalItems + userAssetsTotalItems }} Total Assets</span>
+        </div>
+        <p class="page-subtitle">Track, allocate, and manage company infrastructure and employee-assigned devices separately</p>
+      </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="header-right">
+      <button mat-flat-button class="btn-action btn-company" (click)="openCompanyDialog()">
+        <mat-icon>corporate_fare</mat-icon>
+        <span>Add Company Asset</span>
+      </button>
+      <button mat-flat-button class="btn-action btn-user" (click)="openUserDialog()">
+        <mat-icon>devices</mat-icon>
+        <span>Add User Asset</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CARD WITH SEPARATE TABS ================= -->
+  <div class="content-card">
+    <mat-tab-group
+      animationDuration="250ms"
+      [(selectedIndex)]="selectedTabIndex"
+      (selectedIndexChange)="onTabChange($event)"
+      class="custom-asset-tabs">
+
+      <!-- ================= TAB 1: COMPANY ASSETS ================= -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-label-content">
+            <mat-icon class="tab-icon">corporate_fare</mat-icon>
+            <span class="tab-text">Company Assets</span>
+            <span class="tab-badge company-badge">{{ totalItems }}</span>
+          </div>
+        </ng-template>
+
+        <!-- Sub Toolbar for Company Assets -->
+        <div class="table-toolbar">
+          <div class="toolbar-info">
+            <h3 class="section-title">Organization Assets</h3>
+            <p class="section-desc">Furniture, office appliances, equipment, and shared infrastructure</p>
+          </div>
+
+          <div class="toolbar-controls">
+            <!-- Search Box -->
+            <div class="search-box">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search company assets..."
+                [value]="companySearchText"
+                (keyup)="onCompanySearch($event)" />
+              @if (companySearchText) {
+                <button mat-icon-button class="clear-btn" (click)="clearCompanySearch()" matTooltip="Clear search">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+
+            <!-- Tab Add Button -->
+            <button mat-flat-button class="btn-tab-add btn-company" (click)="openCompanyDialog()">
+              <mat-icon>add</mat-icon>
+              <span>Add Asset</span>
+            </button>
+
+            <!-- Refresh Button -->
+            <button
+              mat-icon-button
+              class="refresh-btn"
+              (click)="getAssets()"
+              matTooltip="Refresh company assets">
+              <mat-icon [class.spin]="isLoadingCompany">refresh</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        @if (isLoadingCompany) {
+          <mat-progress-bar mode="indeterminate" class="table-progress"></mat-progress-bar>
+        }
+
+        <!-- Company Assets Table -->
+        <div class="table-responsive">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="col-id">#</th>
+                <th class="col-name">Asset Name</th>
+                <th class="col-number">Asset & Serial No.</th>
+                <th class="col-handover">Handover No.</th>
+                <th class="col-items">Quantity</th>
+                <th class="col-desc">Description</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (asset of assets; track asset.id; let i = $index) {
+                <tr class="table-row">
+                  <td class="col-id">
+                    <span class="id-pill">{{ (currentPage - 1) * pageSize + i + 1 }}</span>
+                  </td>
+                  <td class="col-name">
+                    <div class="asset-info">
+                      <div class="asset-avatar company-avatar">
+                        <mat-icon>chair_alt</mat-icon>
+                      </div>
+                      <div class="asset-meta">
+                        <span class="asset-title">{{ asset.assetName }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="col-number">
+                    <div class="number-stack">
+                      <span class="primary-num">{{ asset.assetNumber || '—' }}</span>
+                      @if (asset.serialNumber) {
+                        <span class="secondary-num">SN: {{ asset.serialNumber }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="col-handover">
+                    <span class="code-pill">{{ asset.assetHandoverNumber || '—' }}</span>
+                  </td>
+                  <td class="col-items">
+                    <span class="quantity-badge">{{ asset.noOfItems || 1 }}</span>
+                  </td>
+                  <td class="col-desc">
+                    <span class="desc-text" [title]="asset.description || ''">
+                      {{ asset.description || '—' }}
+                    </span>
+                  </td>
+                  <td class="col-actions">
+                    <div class="action-buttons">
+                      <button
+                        mat-icon-button
+                        class="action-btn edit-btn"
+                        matTooltip="Edit Company Asset"
+                        (click)="openCompanyDialog(asset)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        class="action-btn delete-btn"
+                        matTooltip="Delete Company Asset"
+                        (click)="deleteCompanyAsset(asset.id)">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          @if (!isLoadingCompany && assets.length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon-circle">
+                <mat-icon>corporate_fare</mat-icon>
+              </div>
+              <h3 class="empty-title">No Company Assets Found</h3>
+              <p class="empty-description">
+                @if (companySearchText) {
+                  No organization assets matched your search "{{ companySearchText }}".
+                } @else {
+                  No company assets have been added yet. Add office furniture, fixtures, or equipment to get started.
+                }
+              </p>
+              @if (companySearchText) {
+                <button mat-stroked-button color="primary" class="empty-btn" (click)="clearCompanySearch()">
+                  <mat-icon>clear</mat-icon> Clear Search
+                </button>
+              } @else {
+                <button mat-flat-button class="empty-btn primary btn-company" (click)="openCompanyDialog()">
+                  <mat-icon>add</mat-icon> Add First Company Asset
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Paginator -->
+        <mat-paginator
+          #companyPaginator
+          [length]="totalItems"
+          [pageSize]="pageSize"
+          [pageIndex]="currentPage - 1"
+          (page)="onPageChange($event)"
+          [pageSizeOptions]="[10, 20, 30, 50, 100]"
+          class="modern-paginator">
+        </mat-paginator>
+      </mat-tab>
+
+      <!-- ================= TAB 2: USER ASSETS ================= -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div class="tab-label-content">
+            <mat-icon class="tab-icon">devices</mat-icon>
+            <span class="tab-text">User Assets</span>
+            <span class="tab-badge user-badge">{{ userAssetsTotalItems }}</span>
+          </div>
+        </ng-template>
+
+        <!-- Sub Toolbar for User Assets -->
+        <div class="table-toolbar">
+          <div class="toolbar-info">
+            <h3 class="section-title">User Hardware & Devices</h3>
+            <p class="section-desc">Laptops, workstations, smartphones, and peripherals assigned to staff</p>
+          </div>
+
+          <div class="toolbar-controls">
+            <!-- Search Box -->
+            <div class="search-box">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search user assets..."
+                [value]="userSearchText"
+                (keyup)="onUserSearch($event)" />
+              @if (userSearchText) {
+                <button mat-icon-button class="clear-btn" (click)="clearUserSearch()" matTooltip="Clear search">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+
+            <!-- Tab Add Button -->
+            <button mat-flat-button class="btn-tab-add btn-user" (click)="openUserDialog()">
+              <mat-icon>add</mat-icon>
+              <span>Add User Asset</span>
+            </button>
+
+            <!-- Refresh Button -->
+            <button
+              mat-icon-button
+              class="refresh-btn"
+              (click)="getUserAssets()"
+              matTooltip="Refresh user assets">
+              <mat-icon [class.spin]="isLoadingUser">refresh</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        @if (isLoadingUser) {
+          <mat-progress-bar mode="indeterminate" class="table-progress"></mat-progress-bar>
+        }
+
+        <!-- User Assets Table -->
+        <div class="table-responsive">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="col-id">#</th>
+                <th class="col-name">Device Name</th>
+                <th class="col-serial">Serial / Asset No.</th>
+                <th class="col-handover">Handover Form</th>
+                <th class="col-purchase">Purchase Info</th>
+                <th class="col-invoice">Invoice No.</th>
+                <th class="col-status">Status</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (userAsset of userAssets; track userAsset.id; let i = $index) {
+                <tr class="table-row">
+                  <td class="col-id">
+                    <span class="id-pill">{{ (userAssetsCurrentPage - 1) * userAssetsPageSize + i + 1 }}</span>
+                  </td>
+                  <td class="col-name">
+                    <div class="asset-info">
+                      <div class="asset-avatar user-avatar">
+                        <mat-icon>laptop_mac</mat-icon>
+                      </div>
+                      <div class="asset-meta">
+                        <span class="asset-title">{{ userAsset.assetName }}</span>
+                        @if (userAsset.description) {
+                          <span class="asset-subtitle">{{ userAsset.description }}</span>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                  <td class="col-serial">
+                    <div class="number-stack">
+                      <span class="primary-num">{{ userAsset.serialNumber || '—' }}</span>
+                      @if (userAsset.assetNumber) {
+                        <span class="secondary-num">ID: {{ userAsset.assetNumber }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="col-handover">
+                    <span class="code-pill">{{ userAsset.assetHandoverNumber || '—' }}</span>
+                  </td>
+                  <td class="col-purchase">
+                    <div class="purchase-stack">
+                      <span class="purchase-vendor">{{ userAsset.purchasedFrom || '—' }}</span>
+                      @if (userAsset.purchasedDate) {
+                        <span class="purchase-date">{{ userAsset.purchasedDate | date: 'dd MMM yyyy' }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="col-invoice">
+                    <span class="invoice-pill">{{ userAsset.invoiceNo || '—' }}</span>
+                  </td>
+                  <td class="col-status">
+                    @if (userAsset.assignedStatus) {
+                      <span class="status-chip assigned">
+                        <mat-icon>person</mat-icon> Assigned
+                      </span>
+                    } @else {
+                      <span class="status-chip available">
+                        <mat-icon>check_circle</mat-icon> Available
+                      </span>
+                    }
+                  </td>
+                  <td class="col-actions">
+                    <div class="action-buttons">
+                      <button
+                        mat-icon-button
+                        class="action-btn edit-btn"
+                        matTooltip="Edit User Asset"
+                        (click)="openUserDialog(userAsset)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        class="action-btn delete-btn"
+                        matTooltip="Delete User Asset"
+                        (click)="deleteUserAsset(userAsset.id)">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          @if (!isLoadingUser && userAssets.length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon-circle">
+                <mat-icon>devices</mat-icon>
+              </div>
+              <h3 class="empty-title">No User Assets Found</h3>
+              <p class="empty-description">
+                @if (userSearchText) {
+                  No employee devices matched your search "{{ userSearchText }}".
+                } @else {
+                  No individual hardware or devices registered yet. Add laptops, mobiles, or monitors to allocate to employees.
+                }
+              </p>
+              @if (userSearchText) {
+                <button mat-stroked-button color="primary" class="empty-btn" (click)="clearUserSearch()">
+                  <mat-icon>clear</mat-icon> Clear Search
+                </button>
+              } @else {
+                <button mat-flat-button class="empty-btn primary btn-user" (click)="openUserDialog()">
+                  <mat-icon>add</mat-icon> Add First User Asset
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Paginator -->
+        <mat-paginator
+          #userPaginator
+          [length]="userAssetsTotalItems"
+          [pageSize]="userAssetsPageSize"
+          [pageIndex]="userAssetsCurrentPage - 1"
+          (page)="onUserAssetsPageChange($event)"
+          [pageSizeOptions]="[10, 20, 30, 50, 100]"
+          class="modern-paginator">
+        </mat-paginator>
+      </mat-tab>
+    </mat-tab-group>
   </div>
 </div>
-  
-  
-  <main class="table" id="customers_table">
-    <section class="table__body">
-      <table>
-        <thead>
-          <tr>
-            <th> Asset </th>
-            <th> Number </th>
-            <th> Handover </th>
-            <th> Description </th>
-            <th> Item Number </th>
-            <th> Manage </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for(asset of assets; track $index){
-            <tr>
-              <td>{{ asset.assetName }}</td>
-              <td>{{ asset.assetNumber }} / {{ asset.serialNumber }}</td>
-              <td>{{ asset.assetHandoverNumber }}</td>
-              <td>{{ asset.description }}</td>
-              <td>{{ asset.noOfItems }}</td>
-              <!-- <td>
-                {{ assignedUsers[asset.id] || 'Loading...' }}
-              </td> -->
-              <td>
-                <button
-                  mat-icon-button
-                  (click)="openDialog(asset)">
-                  <mat-icon>mode_edit</mat-icon>
-                </button>
-  
-                <button
-                  mat-icon-button
-                  (click)="delete(asset.id)">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>   
-            </tr>
-          }
-  
-        </tbody>
-      </table>
-      <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-      (page)="onPageChange($event)" [pageSizeOptions]="[10, 20,30,40,50,100]">
-     </mat-paginator>
-
-       <!-- User Assets Table -->
-      <h2>User Assets</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Asset Name</th>
-            <th>Handover Form</th>
-            <th>Serial Number</th>
-            <th>Purchase Date</th>
-            <th>Purchase From</th>
-            <th>Invoice Number</th>
-            <th>Assigned To</th>
-            <th>Manage</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for(userAsset of userAssets; track $index){
-            <tr>
-              <td>{{ userAsset.assetName }}</td>
-              <td>{{ userAsset.assetHandoverNumber }}</td>
-              <td>{{ userAsset.serialNumber }}</td>
-              <td>{{ userAsset.purchasedDate }}</td>
-              <td>{{ userAsset.purchasedFrom }}</td>
-              <td>{{ userAsset.invoiceNo }}</td>
-              <td>{{ userAsset.assignedStatus }}</td>
-              <td>
-                <button mat-icon-button (click)="openUserDialog(userAsset)">
-                  <mat-icon>mode_edit</mat-icon>
-                </button>
-                <button mat-icon-button (click)="removeUserAsset(userAsset.id)">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>   
-            </tr>
-          }
-        </tbody>
-      </table>
-      <mat-paginator [length]="userAssetsTotalItems" [pageSize]="userAssetsPageSize" 
-        [pageIndex]="userAssetsCurrentPage - 1" (page)="onUserAssetsPageChange($event)" 
-        [pageSizeOptions]="[10, 20,30,40,50,100]">
-      </mat-paginator>
-    </section>
-  </main>

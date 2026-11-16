@@ -48,6 +48,13 @@ exports.createEmployeeLeave = async (req, res) => {
         await transaction.rollback();
         return res.json({ message: 'Leave type not found' });
       }
+
+      // SICK LEAVE MANDATORY MEDICAL CERTIFICATE
+      const isSick = (leaveType.leaveTypeName || '').toLowerCase().includes('sick');
+      if (isSick && (!fileUrl || !fileUrl.trim())) {
+        await transaction.rollback();
+        return res.status(400).json({ message: 'A medical certificate is mandatory for all sick leave applications.' });
+      }
       const isLOP = leaveType.leaveTypeName === 'LOP';
       // const isLOP = leaveType.leaveTypeName === 'LOP';
 
@@ -347,6 +354,14 @@ exports.updateEmployeeLeave = async(req,res)=>{
     if (!newLeaveType) {
       await transaction.rollback();
       return res.json({ message: 'Leave type not found' });
+    }
+
+    // SICK LEAVE MANDATORY MEDICAL CERTIFICATE
+    const isSick = (newLeaveType.leaveTypeName || '').toLowerCase().includes('sick');
+    const finalFileUrl = fileUrl || existingLeave.fileUrl;
+    if (isSick && (!finalFileUrl || !finalFileUrl.trim())) {
+      await transaction.rollback();
+      return res.status(400).json({ message: 'A medical certificate is mandatory for all sick leave applications.' });
     }
 
     const isLOP = newLeaveType.leaveTypeName === 'LOP';
@@ -751,6 +766,13 @@ exports.getEmergencyLeaves = async(req,res)=>{
       return res.json({ message: 'Leave type not found' });
     }
 
+    // SICK LEAVE MANDATORY MEDICAL CERTIFICATE
+    const isSick = (leaveType.leaveTypeName || '').toLowerCase().includes('sick');
+    if (isSick && (!fileUrl || !fileUrl.trim())) {
+      await transaction.rollback();
+      return res.status(400).json({ message: 'A medical certificate is mandatory for all sick leave applications.' });
+    }
+
     const sortedLeaveDates = [...leaveDates].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const datesByYear = new Map();
@@ -1128,10 +1150,10 @@ let transaction;
     const key = leave.fileUrl;
 
     // Delete the file from S3 if it exists
-    const fileKey = key ? key.replace(`https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`, '') : null;
+    const fileKey = key ? key.replace(/^https?:\/\/[^\/]+\//, '') : null;
     if (fileKey) {
       const deleteParams = {
-        Bucket: process.env.AWS_BUCKET_NAME,
+        Bucket: process.env.AWS_BUCKET_NAME || 'aerohr-uploads',
         Key: fileKey
       };
       await s3.deleteObject(deleteParams).promise();
@@ -1213,6 +1235,7 @@ try {
       include: [
         {
           model: LeaveType,
+          as: 'leaveType',
           attributes: [],
           where: {
             leaveTypeName: 'LOP'
@@ -1552,23 +1575,25 @@ try {
     const customFileName = req.body.name || req.file.originalname;
     const sanitizedFileName = customFileName.replace(/[^a-zA-Z0-9]/g, '_');
 
+    const bucket = process.env.AWS_BUCKET_NAME || 'aerohr-uploads';
+    const key = `oac/Leave/documents/${Date.now()}_${sanitizedFileName}`;
+
     const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `Leave/documents/${Date.now()}_${sanitizedFileName}`,
+      Bucket: bucket,
+      Key: key,
       Body: req.file.buffer,
-      ContentType: req.file.mimetype,
-      ACL: 'public-read'
+      ContentType: req.file.mimetype
     };
 
     const data = await s3.upload(params).promise();
 
-    const fileUrl = data.Location ? data.Location : '';
-    const key = fileUrl ? fileUrl.replace(`https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`, '') : null;
+    const fileUrl = data.Key || key;
 
     res.send({
       message: 'File uploaded successfully',
       file: req.file,
-      fileUrl: key
+      fileUrl: fileUrl,
+      url: data.Location
     });
   } catch (error) {
     res.send({ message: error.message });

@@ -1,13 +1,13 @@
-import { Component, Inject, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LoginService } from '@services/login.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ResetPasswordComponent } from '../users/reset-password/reset-password.component';
 import { MatIconModule } from '@angular/material/icon';
-import { Settings, SettingsService } from '@services/settings.service';
+import { SettingsService } from '@services/settings.service';
 
 @Component({
   standalone: true,
@@ -44,16 +44,18 @@ export class LoginComponent {
     }
 
     this.loginService.loginUser(this.loginForm.value).subscribe({
-      next: (res: boolean) => { 
-        console.log(res);
-        
+      next: (res: boolean) => {
         if (res) {
-          const token: any = localStorage.getItem('token')
-          let user = JSON.parse(token)
-          if(!user.paswordReset){
-            this.resetPassword(user.id, user.empNo)
-          }else{
-            this.router.navigate(['/login']); 
+          // Trigger celebration wish popup on fresh employee login
+          sessionStorage.setItem('oac_show_login_celebration_popup', 'true');
+          sessionStorage.removeItem('oac_login_celebration_popup_shown');
+
+          const token: any = localStorage.getItem('token');
+          const user = JSON.parse(token);
+          if (!user.paswordReset) {
+            this.resetPassword(user.id, user.empNo);
+          } else {
+            this.router.navigate(['/login']);
           }
         } else {
           this.errorMessage = 'Incorrect username or password';
@@ -62,7 +64,7 @@ export class LoginComponent {
           });
         }
       },
-      error: (err) => {
+      error: () => {
         this.errorMessage = 'Invalid username or password';
         this.snackBar.open('Invalid username or password', 'Close', {
           duration: 3000,
@@ -71,14 +73,13 @@ export class LoginComponent {
     });
   }
 
-  dialog = inject(MatDialog)
-  resetPassword(id: number, empNo: string){
+  dialog = inject(MatDialog);
+  resetPassword(id: number, empNo: string) {
     const dialogRef = this.dialog.open(ResetPasswordComponent, {
       width: '450px',
-      data: {id: id, empNo: empNo, paswordReset: true}
-    });dialogRef.afterClosed().subscribe((result) => {
-
-    })
+      data: { id: id, empNo: empNo, paswordReset: true }
+    });
+    dialogRef.afterClosed().subscribe(() => {});
   }
 
   setCurrentUser(user: any): void {

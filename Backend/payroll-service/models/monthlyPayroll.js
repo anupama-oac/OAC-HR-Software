@@ -1,11 +1,8 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { DataTypes } = require('sequelize');
-const sequelize = require('../../utils/db');
-const User = require('../../users/models/user');
+const { sequelize } = require('../config/database');
 
 const MonthlyPayroll = sequelize.define('monthlyPayroll', {
-  userId: { type: DataTypes.INTEGER },
+  userId: { type: DataTypes.INTEGER, allowNull: false },
   basic: { type: DataTypes.DECIMAL(10, 2) },
   hra: { type: DataTypes.DECIMAL(10, 2) },
   conveyanceAllowance: { type: DataTypes.DECIMAL(10, 2) },
@@ -30,23 +27,12 @@ const MonthlyPayroll = sequelize.define('monthlyPayroll', {
   toPay: { type: DataTypes.FLOAT },
   payedFor: { type: DataTypes.STRING },
   payedAt: { type: DataTypes.DATEONLY },
-  daysInMonth: { type: DataTypes.INTEGER},
+  daysInMonth: { type: DataTypes.INTEGER },
   status: { type: DataTypes.STRING, defaultValue: 'Added' },
   isSent: { type: DataTypes.BOOLEAN }
 }, {
   freezeTableName: true,
   timestamps: true,
 });
-
-MonthlyPayroll.sync({ alter: true })
-  .then(() => {
-    console.log('Tables synced successfully.');
-  })
-  .catch(err => {
-    console.error('Error syncing tables:', err);
-  });
-
-User.hasMany(MonthlyPayroll, {foreignKey: 'userId', onUpdate: 'CASCADE' });
-MonthlyPayroll.belongsTo(User, {foreignKey: 'userId' });
 
 module.exports = MonthlyPayroll;
