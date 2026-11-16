@@ -1,49 +1,62 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DatePipe } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { provideMomentDateAdapter } from '@angular/material-moment-adapter';
-import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MY_FORMATS } from '../../users/personal-details/personal-details.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatCardModule } from '@angular/material/card';
-import { Assets } from '../../../common/interfaces/assets/assets';
-import { Subscription } from 'rxjs';
-import { AssetsService } from '@services/assets.service';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subscription } from 'rxjs';
+
+import { Assets } from '../../../common/interfaces/assets/assets';
+import { AssetsService } from '@services/assets.service';
 
 @Component({
   selector: 'app-add-assets',
   standalone: true,
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatDatepickerModule, MatIconModule, MatInputModule, MatButtonModule, 
-    MatDialogModule, MatCardModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatTooltipModule
+  ],
   templateUrl: './add-assets.component.html',
-  styleUrl: './add-assets.component.scss',
-  providers: [ provideMomentDateAdapter(MY_FORMATS), DatePipe ]
+  styleUrl: './add-assets.component.scss'
 })
-export class AddAssetsComponent implements OnInit, OnDestroy{
+export class AddAssetsComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
+  private readonly dialogRef = inject(MatDialogRef<AddAssetsComponent>);
+  private readonly asset = inject(MAT_DIALOG_DATA);
+  private readonly assetService = inject(AssetsService);
+  private readonly snackBar = inject(MatSnackBar);
+
+  editStatus: boolean = false;
+  isSubmitting: boolean = false;
+  private submitSub?: Subscription;
+
   form = this.fb.group({
-    assetName: ['', Validators.required],
+    assetName: ['', [Validators.required]],
     assetNumber: [''],
     assetHandoverNumber: [''],
     description: [''],
     serialNumber: [''],
-    noOfItems: <any>[]
+    noOfItems: [1, [Validators.min(1)]]
   });
 
-  editStatus: boolean = false;
-  private dialogRef = inject(MatDialogRef<AddAssetsComponent>)
-  private asset = inject(MAT_DIALOG_DATA);
   ngOnInit(): void {
-    if(this.asset) this.patchAsset(this.asset)
+    if (this.asset) {
+      this.patchAsset(this.asset);
+    }
   }
 
-  patchAsset(asset: Assets){
+  patchAsset(asset: Assets): void {
     this.editStatus = true;
     this.form.patchValue({
       assetName: asset.assetName,
@@ -51,29 +64,46 @@ export class AddAssetsComponent implements OnInit, OnDestroy{
       assetNumber: asset.assetNumber,
       assetHandoverNumber: asset.assetHandoverNumber,
       serialNumber: asset.serialNumber,
-      noOfItems: asset.noOfItems
-    })
+      noOfItems: asset.noOfItems || 1
+    });
   }
 
-  private submit!: Subscription;
-  private readonly assetService = inject(AssetsService);
-  private readonly snackBar = inject(MatSnackBar);
-  onSubmit(){
-    if(this.editStatus){
-      this.submit = this.assetService.updateAssets(this.asset.id, this.form.getRawValue()).subscribe(data => {
-        this.dialogRef.close()
-        this.snackBar.open("Asset updated succesfully...","" ,{duration:3000})
+  onSubmit(): void {
+    if (this.form.invalid || this.isSubmitting) return;
+
+    this.isSubmitting = true;
+    const formVal = this.form.getRawValue();
+
+    if (this.editStatus) {
+      this.submitSub = this.assetService.updateAssets(this.asset.id, formVal).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.snackBar.open('Company asset updated successfully', '', { duration: 3000 });
+          this.dialogRef.close(true);
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Update company asset failed:', err);
+          this.snackBar.open('Failed to update company asset', 'Close', { duration: 3000 });
+        }
       });
-    }else{
-      this.submit = this.assetService.addAssets(this.form.getRawValue()).subscribe((res)=>{
-        this.dialogRef.close();
-        this.snackBar.open("Asset added succesfully...","" ,{duration:3000})
-      })
+    } else {
+      this.submitSub = this.assetService.addAssets(formVal).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.snackBar.open('Company asset added successfully', '', { duration: 3000 });
+          this.dialogRef.close(true);
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Add company asset failed:', err);
+          this.snackBar.open('Failed to add company asset', 'Close', { duration: 3000 });
+        }
+      });
     }
   }
 
   ngOnDestroy(): void {
-    this.submit?.unsubscribe();
+    this.submitSub?.unsubscribe();
   }
-
 }

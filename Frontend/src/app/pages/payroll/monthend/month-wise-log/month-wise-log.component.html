@@ -1,75 +1,453 @@
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <!-- <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-      <form class="user-search">
-        <mat-form-field class="user-search-input" appearance="outline">
-            <input matInput placeholder="Search Log..." name="search" (keyup)="search($event)">
-        </mat-form-field>
-      </form>
+<div class="payslip-log-container">
+  <!-- Executive Header Banner -->
+  <div class="executive-header">
+    <div class="header-left">
+      <div class="breadcrumb-tag">
+        <mat-icon>history_edu</mat-icon>
+        <span>Payroll Operations</span>
+        <span class="separator">/</span>
+        <span class="active-crumb">Payslip & Settlement Archives</span>
+      </div>
+      <h1 class="page-title">
+        Payslip Settlement Logs
+        @if (isAdmin) {
+          <span class="role-badge admin-badge">Administrator View</span>
+        } @else {
+          <span class="role-badge user-badge">Employee Portal</span>
+        }
+      </h1>
+      <p class="page-subtitle">
+        Inspect locked monthly pay cycles, verify disbursed net salaries, and explore employee compensation history.
+      </p>
     </div>
-  </div> -->
 
-@if (isAdmin) {
-  <mat-accordion>
-    <mat-expansion-panel *ngFor="let group of groupedMonths" (opened)="setSearchText(group)">
-      <mat-expansion-panel-header>
-        <mat-panel-title>
-          {{ group }}
-        </mat-panel-title>
-      </mat-expansion-panel-header>
+    <!-- Right Side: View Mode Switcher (For Admins) -->
+    @if (isAdmin) {
+      <div class="header-right">
+        <div class="view-mode-toggle">
+          <mat-button-toggle-group [(ngModel)]="viewMode" aria-label="Payslip View Mode">
+            <mat-button-toggle value="month">
+              <mat-icon>calendar_month</mat-icon>
+              <span>Month-Wise</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="employee">
+              <mat-icon>badge</mat-icon>
+              <span>Employee-Wise</span>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      </div>
+    }
+  </div>
 
-      <main class="table" id="customers_table">
-        <section class="table__body scrollable-table">
-          <table>
+  <!-- Search & Metric Control Bar -->
+  <div class="control-toolbar">
+    <div class="search-box">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        [placeholder]="viewMode === 'month' ? 'Search by month, employee name or EMP ID...' : 'Search employee by name, ID, or department...'"
+        class="search-input"
+      />
+      @if (searchQuery) {
+        <button type="button" class="clear-search-btn" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="toolbar-info">
+      @if (isAdmin) {
+        @if (viewMode === 'month') {
+          <div class="tally-pill">
+            <mat-icon>event_available</mat-icon>
+            <span><strong>{{ filteredGroupedMonths.length }}</strong> Pay Cycles Available</span>
+          </div>
+        } @else {
+          <div class="tally-pill">
+            <mat-icon>groups</mat-icon>
+            <span><strong>{{ filteredEmployees.length }}</strong> Staff in Directory</span>
+          </div>
+        }
+      } @else {
+        <div class="tally-pill">
+          <mat-icon>receipt</mat-icon>
+          <span><strong>{{ totalItems }}</strong> Payslips On Record</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  @if (isAdmin) {
+    <!-- VIEW MODE 1: MONTH-WISE ACCORDION -->
+    @if (viewMode === 'month') {
+      <div class="accordion-wrapper">
+        @if (filteredGroupedMonths && filteredGroupedMonths.length) {
+          <mat-accordion multi="true" class="modern-accordion">
+            <mat-expansion-panel
+              *ngFor="let group of filteredGroupedMonths; let first = first"
+              [expanded]="first"
+              (opened)="loadMonthData(group)"
+              class="month-panel"
+            >
+              <mat-expansion-panel-header class="month-panel-header">
+                <mat-panel-title class="panel-title-wrapper">
+                  <div class="month-icon-pill">
+                    <mat-icon>calendar_today</mat-icon>
+                  </div>
+                  <div class="month-title-info">
+                    <span class="month-name">{{ group }}</span>
+                    <span class="month-sub">Pay Settlement Batch</span>
+                  </div>
+                </mat-panel-title>
+
+                <mat-panel-description class="panel-desc-wrapper">
+                  <span class="stat-badge count-badge" matTooltip="Total employees paid in this cycle">
+                    <mat-icon>people</mat-icon>
+                    {{ getMonthEmployeesCount(group) }} Paid
+                  </span>
+                  @if (getMonthTotal(group) > 0) {
+                    <span class="stat-badge amount-badge" matTooltip="Total disbursed net wages">
+                      <mat-icon>payments</mat-icon>
+                      ₹{{ getMonthTotal(group) | number:'1.2-2' }}
+                    </span>
+                  }
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+
+              <!-- Panel Body: Employee Payslips Table -->
+              <div class="panel-content-body">
+                @if (loadingMonths[group]) {
+                  <div class="panel-spinner">
+                    <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+                    <span>Loading payroll records for {{ group }}...</span>
+                  </div>
+                } @else if (getFilteredMonthRows(group).length) {
+                  <div class="table-container">
+                    <table class="payslip-table">
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Disbursed Date</th>
+                          <th class="text-right">Basic Pay</th>
+                          <th class="text-right">Net Payable</th>
+                          <th class="text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let role of getFilteredMonthRows(group)">
+                          <td>
+                            <div class="employee-meta-cell">
+                              <div class="emp-avatar">
+                                {{ getInitials(role.user?.name) }}
+                              </div>
+                              <div class="emp-details">
+                                <span class="emp-name">{{ role.user?.name || 'Unknown' }}</span>
+                                <span class="emp-id">
+                                  <mat-icon>badge</mat-icon>
+                                  {{ role.user?.empNo || '--' }}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="cell-date">
+                            <span class="date-tag">
+                              <mat-icon>event</mat-icon>
+                              {{ role.payedAt || 'N/A' }}
+                            </span>
+                          </td>
+                          <td class="text-right cell-amount">
+                            ₹{{ role.basic || 0 | number:'1.2-2' }}
+                          </td>
+                          <td class="text-right cell-net-amount">
+                            <span class="net-pill">
+                              ₹{{ role.toPay || 0 | number:'1.2-2' }}
+                            </span>
+                          </td>
+                          <td class="text-center cell-action">
+                            <button
+                              mat-flat-button
+                              color="primary"
+                              class="btn-view-payslip"
+                              (click)="openPayroll(role.id)"
+                              matTooltip="View & Print Official Payslip"
+                            >
+                              <mat-icon>visibility</mat-icon>
+                              <span>View Payslip</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <div class="empty-panel-note">
+                    <mat-icon>search_off</mat-icon>
+                    <span>No employee records match "{{ searchQuery }}" in {{ group }}.</span>
+                  </div>
+                }
+              </div>
+            </mat-expansion-panel>
+          </mat-accordion>
+        } @else {
+          <div class="empty-state-card">
+            <mat-icon>event_busy</mat-icon>
+            <h3>No Pay Cycles Found</h3>
+            <p>No locked payroll cycles match your current search criteria.</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- VIEW MODE 2: EMPLOYEE-WISE ACCORDION -->
+    @if (viewMode === 'employee') {
+      <div class="accordion-wrapper">
+        @if (filteredEmployees && filteredEmployees.length) {
+          <mat-accordion multi="true" class="modern-accordion">
+            <mat-expansion-panel
+              *ngFor="let emp of filteredEmployees"
+              (opened)="loadEmployeePayslips(emp.id)"
+              class="employee-panel"
+            >
+              <mat-expansion-panel-header class="employee-panel-header">
+                <mat-panel-title class="panel-title-wrapper">
+                  <div class="emp-large-avatar">
+                    {{ getInitials(emp.name) }}
+                  </div>
+                  <div class="emp-header-info">
+                    <span class="emp-header-name">{{ emp.name }}</span>
+                    <div class="emp-header-sub">
+                      <span class="sub-id">
+                        <mat-icon>badge</mat-icon>
+                        {{ emp.empNo || 'EMP-' + emp.id }}
+                      </span>
+                      <span class="bullet">&bull;</span>
+                      <span class="sub-designation">
+                        {{ emp.userPosition?.designation?.designationName || emp.userPosition?.department || 'Staff' }}
+                      </span>
+                    </div>
+                  </div>
+                </mat-panel-title>
+
+                <mat-panel-description class="panel-desc-wrapper">
+                  @if (employeePayslips[emp.id]) {
+                    <span class="stat-badge count-badge">
+                      <mat-icon>receipt</mat-icon>
+                      {{ employeePayslips[emp.id].length }} Payslip(s)
+                    </span>
+                    @if (getEmployeeTotalEarned(emp.id) > 0) {
+                      <span class="stat-badge amount-badge">
+                        <mat-icon>account_balance_wallet</mat-icon>
+                        Total: ₹{{ getEmployeeTotalEarned(emp.id) | number:'1.2-2' }}
+                      </span>
+                    }
+                  } @else {
+                    <span class="stat-badge neutral-badge">
+                      <mat-icon>expand_more</mat-icon>
+                      View Archive
+                    </span>
+                  }
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+
+              <!-- Panel Body: Historic Payslips for this Employee -->
+              <div class="panel-content-body">
+                @if (loadingEmployees[emp.id]) {
+                  <div class="panel-spinner">
+                    <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+                    <span>Loading payslips for {{ emp.name }}...</span>
+                  </div>
+                } @else if (employeePayslips[emp.id] && employeePayslips[emp.id].length) {
+                  <div class="table-container">
+                    <table class="payslip-table">
+                      <thead>
+                        <tr>
+                          <th>Pay Period</th>
+                          <th>Disbursed Date</th>
+                          <th class="text-right">Basic Pay</th>
+                          <th class="text-right">Net Payable</th>
+                          <th class="text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let slip of employeePayslips[emp.id]">
+                          <td>
+                            <div class="period-cell">
+                              <mat-icon>date_range</mat-icon>
+                              <span class="period-name">{{ slip.payedFor }}</span>
+                            </div>
+                          </td>
+                          <td class="cell-date">
+                            <span class="date-tag">
+                              <mat-icon>event</mat-icon>
+                              {{ slip.payedAt || 'N/A' }}
+                            </span>
+                          </td>
+                          <td class="text-right cell-amount">
+                            ₹{{ slip.basic || 0 | number:'1.2-2' }}
+                          </td>
+                          <td class="text-right cell-net-amount">
+                            <span class="net-pill">
+                              ₹{{ slip.toPay || 0 | number:'1.2-2' }}
+                            </span>
+                          </td>
+                          <td class="text-center cell-action">
+                            <button
+                              mat-flat-button
+                              color="primary"
+                              class="btn-view-payslip"
+                              (click)="openPayroll(slip.id)"
+                              matTooltip="Open Official Payslip Document"
+                            >
+                              <mat-icon>receipt_long</mat-icon>
+                              <span>Open Payslip</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <div class="empty-panel-note">
+                    <mat-icon>folder_open</mat-icon>
+                    <span>No locked payslips found on record for {{ emp.name }} yet.</span>
+                  </div>
+                }
+              </div>
+            </mat-expansion-panel>
+          </mat-accordion>
+        } @else {
+          <div class="empty-state-card">
+            <mat-icon>person_search</mat-icon>
+            <h3>No Employees Found</h3>
+            <p>No staff members matched your search for "{{ searchQuery }}".</p>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <!-- NON-ADMIN / EMPLOYEE PORTAL VIEW -->
+    <div class="user-payslip-wrapper">
+      <!-- Profile Header Summary Card -->
+      <div class="user-summary-card">
+        <div class="user-card-left">
+          <div class="user-avatar-circle">
+            {{ getInitials(currentUser?.name || 'ME') }}
+          </div>
+          <div class="user-details">
+            <h2>{{ currentUser?.name || 'My Employee Portal' }}</h2>
+            <div class="user-sub-tags">
+              <span class="tag">
+                <mat-icon>email</mat-icon>
+                {{ currentUser?.email || 'N/A' }}
+              </span>
+              <span class="tag">
+                <mat-icon>badge</mat-icon>
+                ID: {{ currentUser?.id }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-card-stats">
+          <div class="stat-box">
+            <span class="stat-label">Total Payslips</span>
+            <span class="stat-value">{{ totalItems }}</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Cumulative Earnings</span>
+            <span class="stat-value net-color">₹{{ myTotalEarnings | number:'1.2-2' }}</span>
+          </div>
+          @if (latestPayslip) {
+            <div class="stat-box">
+              <span class="stat-label">Latest Cycle</span>
+              <span class="stat-value">{{ latestPayslip.payedFor }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Employee Payslips Table -->
+      <div class="table-card">
+        <div class="table-container">
+          <table class="payslip-table">
             <thead>
               <tr>
-                <th>User Name</th>
-                <th>PayedAt</th>
-                <th>PayedAmount</th>
+                <th>Pay Period</th>
+                <th>Disbursed Date</th>
+                <th class="text-right">Net Take-Home</th>
+                <th class="text-center">Action</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let role of monthData[group]" (click)="openPayroll(role.id)">
-                <td>{{ role.user.name }}</td>
-                <td>{{ role.payedAt }}</td>
-                <td>{{ role.toPay }}</td>
-              </tr>
+              @for (role of logs; track $index) {
+                <tr>
+                  <td>
+                    <div class="period-cell">
+                      <mat-icon>calendar_today</mat-icon>
+                      <span class="period-name">{{ role.payedFor }}</span>
+                    </div>
+                  </td>
+                  <td class="cell-date">
+                    <span class="date-tag">
+                      <mat-icon>event</mat-icon>
+                      {{ role.payedAt || 'N/A' }}
+                    </span>
+                  </td>
+                  <td class="text-right cell-net-amount">
+                    <span class="net-pill">
+                      ₹{{ role.toPay || 0 | number:'1.2-2' }}
+                    </span>
+                  </td>
+                  <td class="text-center cell-action">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      class="btn-view-payslip"
+                      (click)="openPayroll(role.id)"
+                      matTooltip="Inspect and download this payslip"
+                    >
+                      <mat-icon>visibility</mat-icon>
+                      <span>View Payslip</span>
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4">
+                    <div class="empty-panel-note">
+                      <mat-icon>receipt_long</mat-icon>
+                      <span>No payslip records available yet. Your payslips will appear here once processed.</span>
+                    </div>
+                  </td>
+                </tr>
+              }
             </tbody>
           </table>
-        </section>
-      </main>
-    </mat-expansion-panel>
-  </mat-accordion>
-}@else {  
-  <main class="table" id="customers_table">
-    <section class="table__body">
-      <table>
-        <thead>
-          <tr>
-            <th> User Name</th>
-            <th> PayedFor </th>
-            <th> PayedAt</th>
-            <th> PayedAmount </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for(role of logs; track $index){
-            <tr (click)="openPayroll(role.id)">
-              <td>{{ role.user.name }}</td>
-              <td>{{ role.payedFor }}</td>
-              <td>{{ role.payedAt }}</td>
-              <td>{{ role.toPay }}</td>
-            </tr>
-          }
+        </div>
 
-        </tbody>
-      </table>
-      <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-       (page)="onPageChange($event)" [pageSizeOptions]="[10, 20,30,40,50,100]">
-      </mat-paginator>
-    </section>
-  </main>
-}
+        <mat-paginator
+          [length]="totalItems"
+          [pageSize]="pageSize"
+          [pageIndex]="currentPage - 1"
+          (page)="onPageChange($event)"
+          [pageSizeOptions]="[10, 20, 30, 50]"
+          class="custom-paginator"
+        >
+        </mat-paginator>
+      </div>
+    </div>
+  }
 
+  <!-- Loading Backdrop -->
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <div class="spinner-card">
+        <mat-spinner diameter="42" strokeWidth="4"></mat-spinner>
+        <span>Loading payslip archives...</span>
+      </div>
+    </div>
+  }
+</div>

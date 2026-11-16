@@ -1,53 +1,77 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CommonModule, DatePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { provideMomentDateAdapter } from '@angular/material-moment-adapter';
 import { MatButtonModule } from '@angular/material/button';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MY_FORMATS } from '../personal-details/personal-details.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+export interface ConfirmationDialogData {
+  id: number;
+  empNo: string;
+  name: string;
+  isTemporary: boolean;
+  defaultTarget?: 'probation' | 'confirmation';
+}
 
 @Component({
   selector: 'app-confirmation-dialog',
-  imports: [MatFormFieldModule, ReactiveFormsModule, MatInputModule, MatButtonModule, CommonModule, MatNativeDateModule,
-    MatDatepickerModule, MatToolbarModule, MatIconModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDialogModule,
+    MatTooltipModule
+  ],
   templateUrl: './confirmation-dialog.component.html',
   styleUrl: './confirmation-dialog.component.scss',
-  standalone: true,
-  providers: [provideMomentDateAdapter(MY_FORMATS), DatePipe],
+  standalone: true
 })
-export class ConfirmationDialogComponent {
-  ngOnDestroy(): void {
-  }
-  ngOnInit(): void {
-
-  }
-
+export class ConfirmationDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
-  public data = inject(MAT_DIALOG_DATA);
+  private dialogRef = inject(MatDialogRef<ConfirmationDialogComponent>);
+  public data: ConfirmationDialogData = inject(MAT_DIALOG_DATA);
 
-  separationForm = this.fb.group({
+  targetStatus: 'probation' | 'confirmation' = 'probation';
+
+  statusForm = this.fb.group({
     note: ['']
   });
 
-  private dialogRef = inject(MatDialogRef<ConfirmationDialogComponent>)
+  ngOnInit(): void {
+    if (this.data?.defaultTarget) {
+      this.targetStatus = this.data.defaultTarget;
+    } else if (this.data?.isTemporary !== undefined) {
+      // If employee is in probation status, enable with confirmation radio button;
+      // if confirmed status, enable the other button (probation).
+      this.targetStatus = this.data.isTemporary ? 'confirmation' : 'probation';
+    } else {
+      this.targetStatus = 'confirmation';
+    }
+  }
+
+  setTargetStatus(status: 'probation' | 'confirmation'): void {
+    this.targetStatus = status;
+  }
+
   onCancel(): void {
     this.dialogRef.close({ confirmed: false });
   }
 
-  datePipe = inject( DatePipe )
   onConfirm(): void {
-    if (this.separationForm.valid) {
+    if (this.statusForm.valid) {
       this.dialogRef.close({
-        confirmed: true, note: this.separationForm.value.note
+        confirmed: true,
+        note: this.statusForm.value.note || '',
+        targetStatus: this.targetStatus,
+        isTemporary: this.targetStatus === 'probation'
       });
     }
   }
-
 }

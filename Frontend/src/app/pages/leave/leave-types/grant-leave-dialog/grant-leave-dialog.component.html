@@ -1,0 +1,455 @@
+<div class="grant-leave-container">
+  @if (grantResult; as result) {
+    <!-- Result Showcase Card -->
+    <div class="grant-result-card">
+      <div class="result-header">
+        <div class="result-icon-badge">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <h1 class="result-title">Leave Granted Successfully</h1>
+        <p class="result-subtitle">
+          1 Sick Leave and 1 Casual Leave have been credited to each selected employee for {{ result.year }}.
+        </p>
+        @if (result.notificationFailures > 0) {
+          <p class="notification-warning">
+            <mat-icon>warning</mat-icon>
+            <span>Leave was granted, but dashboard notifications could not be delivered to {{ result.notificationFailures }} employee(s).</span>
+          </p>
+        }
+      </div>
+
+      <!-- Result Metrics Summary Grid -->
+      <div class="result-stats-grid">
+        <div class="stat-box">
+          <span class="stat-value">{{ result.employees.length }}</span>
+          <span class="stat-label">Employees Credited</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value text-emerald">+1 Day</span>
+          <span class="stat-label">Sick Leave Each</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value text-blue">+1 Day</span>
+          <span class="stat-label">Casual Leave Each</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value text-purple">{{ result.year }}</span>
+          <span class="stat-label">Allocation Year</span>
+        </div>
+      </div>
+
+      <!-- Granted Employee Roster -->
+      <div class="granted-roster-section">
+        <h3>Credited Employee Roster ({{ result.employees.length }})</h3>
+        <div class="granted-roster-list">
+          @for (emp of result.employees; track emp.id) {
+            <div class="granted-roster-item">
+              <div class="emp-profile-left">
+                <div class="roster-avatar" [style.background]="getAvatarGradient(emp.name)">
+                  {{ getInitials(emp.name) }}
+                </div>
+                <div class="emp-profile-details">
+                  <div class="name-line">
+                    <span class="emp-full-name">{{ emp.name }}</span>
+                    @if (emp.empNo) {
+                      <span class="emp-no-pill">{{ emp.empNo }}</span>
+                    }
+                  </div>
+                  <span class="emp-sub-info">
+                    {{ getEmployeeRole(emp) }} • {{ getEmployeeDept(emp) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="emp-credits-badge">
+                <span class="credit-pill badge-sick">
+                  <mat-icon>medical_services</mat-icon>
+                  <span>Sick +1</span>
+                </span>
+                <span class="credit-pill badge-casual">
+                  <mat-icon>beach_access</mat-icon>
+                  <span>Casual +1</span>
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Result Actions -->
+      <div class="result-actions-footer">
+        <button mat-stroked-button class="btn-back-types" (click)="backToLeaveTypes()">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Leave Types</span>
+        </button>
+        <button mat-flat-button color="primary" class="btn-grant-more" (click)="grantMoreLeave()">
+          <mat-icon>person_add</mat-icon>
+          <span>Grant to More Employees</span>
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- Top Action Header Card -->
+    <div class="grant-header-card">
+      <div class="header-left">
+        <button
+          mat-stroked-button
+          class="btn-back"
+          (click)="backToLeaveTypes()"
+          [disabled]="isSubmitting"
+          matTooltip="Return to leave types configuration">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Leave Types</span>
+        </button>
+
+        <div class="header-title-box">
+          <div class="header-icon-badge">
+            <mat-icon>card_giftcard</mat-icon>
+          </div>
+          <div class="header-text-group">
+            <h1 class="page-title">Grant Sick &amp; Casual Leave</h1>
+            <p class="page-subtitle">
+              Manual allocation of 1 Sick Leave and 1 Casual Leave credit for active confirmed employees for {{ currentYear }}.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button
+          mat-flat-button
+          color="primary"
+          class="btn-submit-header"
+          (click)="grantLeave()"
+          [disabled]="isSubmitting || selectedCount === 0 || isLoading">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Granting...</span>
+          } @else {
+            <mat-icon>card_giftcard</mat-icon>
+            <span>Grant Leave ({{ selectedCount }})</span>
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    @if (isLoading) {
+      <div class="loading-state-card">
+        <mat-spinner diameter="44"></mat-spinner>
+        <h3>Loading employee directory...</h3>
+        <p>Please wait while we verify eligible confirmed employee records.</p>
+      </div>
+    } @else if (loadError) {
+      <div class="error-state-card">
+        <mat-icon>error_outline</mat-icon>
+        <h3>Could not load employee records</h3>
+        <p>{{ loadError }}</p>
+        <button mat-flat-button color="primary" (click)="loadEmployees()">
+          <mat-icon>refresh</mat-icon>
+          <span>Retry</span>
+        </button>
+      </div>
+    } @else if (employees.length === 0) {
+      <div class="empty-state-card">
+        <mat-icon>group_off</mat-icon>
+        <h3>No confirmed employees available</h3>
+        <p>No confirmed employees were found in the workforce directory.</p>
+        <button mat-stroked-button (click)="backToLeaveTypes()">
+          <span>Return to Leave Types</span>
+        </button>
+      </div>
+    } @else {
+      <!-- Allocation Rule Banner Card -->
+      <div class="rule-banner-card">
+        <div class="banner-content">
+          <div class="rule-icon-box">
+            <mat-icon>policy</mat-icon>
+          </div>
+          <div class="rule-details">
+            <div class="rule-badge-row">
+              <span class="rule-tag">
+                <mat-icon>check_circle</mat-icon>
+                <span>Statutory Entitlement Policy</span>
+              </span>
+              <span class="rule-year-tag">
+                <mat-icon>calendar_today</mat-icon>
+                <span>Year {{ currentYear }}</span>
+              </span>
+            </div>
+            <h2 class="rule-heading">Manual Leave Allocation Policy</h2>
+            <p class="rule-text">
+              Every selected employee will immediately receive <strong>+1 day</strong> credited to their
+              <strong>Sick Leave</strong> balance and <strong>+1 day</strong> credited to their
+              <strong>Casual Leave</strong> balance for {{ currentYear }}. Notifications are automatically dispatched to recipients.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Metrics KPI Row -->
+      <div class="metrics-grid">
+        <!-- Metric 1: Confirmed Employees -->
+        <div class="metric-card">
+          <div class="metric-icon-box bg-slate">
+            <mat-icon>groups</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Confirmed Staff</span>
+            <span class="metric-value">{{ totalEmployeesCount }}</span>
+            <span class="metric-subtext">Active eligible employees</span>
+          </div>
+        </div>
+
+        <!-- Metric 2: Selected to Grant -->
+        <div class="metric-card" [class.card-highlight-active]="selectedCount > 0">
+          <div class="metric-icon-box bg-emerald">
+            <mat-icon>how_to_reg</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Selected to Grant</span>
+            <span class="metric-value text-emerald">{{ selectedCount }}</span>
+            <span class="metric-subtext">
+              {{ totalEmployeesCount > 0 ? ((selectedCount / totalEmployeesCount) * 100 | number: '1.0-0') : 0 }}% of workforce selected
+            </span>
+          </div>
+        </div>
+
+        <!-- Metric 3: Unselected -->
+        <div class="metric-card">
+          <div class="metric-icon-box bg-amber">
+            <mat-icon>person_outline</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Unselected</span>
+            <span class="metric-value text-amber">{{ unselectedCount }}</span>
+            <span class="metric-subtext">Will not receive credit</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search, Filter & Quick-Actions Toolbar -->
+      <div class="toolbar-filter-card">
+        <div class="toolbar-top-row">
+          <!-- Search Input -->
+          <div class="search-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              placeholder="Search by employee name, ID (empNo), email, or role..."
+              aria-label="Search Employees" />
+            @if (searchQuery) {
+              <button
+                mat-icon-button
+                class="btn-clear-search"
+                (click)="clearSearch()"
+                aria-label="Clear search">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <!-- Department / Team Filter Dropdown -->
+          @if (departments.length > 0) {
+            <div class="dept-select-box">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Department / Team</mat-label>
+                <mat-select [(ngModel)]="selectedDepartment">
+                  <mat-option value="all">All Departments ({{ employees.length }})</mat-option>
+                  @for (dept of departments; track dept) {
+                    <mat-option [value]="dept">{{ dept }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          }
+
+          <!-- Quick Selection Tools -->
+          <div class="selection-tools">
+            <button
+              mat-stroked-button
+              class="btn-tool"
+              (click)="selectAllFiltered()"
+              [disabled]="isAllFilteredSelected || filteredEmployees.length === 0"
+              matTooltip="Select all employees currently visible in this list">
+              <mat-icon>done_all</mat-icon>
+              <span>Select Visible ({{ filteredEmployees.length }})</span>
+            </button>
+
+            <button
+              mat-stroked-button
+              class="btn-tool"
+              (click)="deselectAllFiltered()"
+              [disabled]="filteredEmployees.length === 0"
+              matTooltip="Deselect all employees currently visible in this list">
+              <mat-icon>remove_done</mat-icon>
+              <span>Deselect Visible</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Tabs / Badges Row -->
+        <div class="toolbar-tabs-row">
+          <div class="filter-tabs">
+            <button
+              type="button"
+              class="tab-pill"
+              [class.active]="activeFilterTab === 'all'"
+              (click)="setFilterTab('all')">
+              <span>All Staff</span>
+              <span class="tab-count">{{ employees.length }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="tab-pill tab-selected"
+              [class.active]="activeFilterTab === 'selected'"
+              (click)="setFilterTab('selected')">
+              <span>Selected</span>
+              <span class="tab-count count-emerald">{{ selectedCount }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="tab-pill"
+              [class.active]="activeFilterTab === 'unselected'"
+              (click)="setFilterTab('unselected')">
+              <span>Unselected</span>
+              <span class="tab-count">{{ unselectedCount }}</span>
+            </button>
+          </div>
+
+          <div class="list-summary-stats">
+            Showing <strong>{{ filteredEmployees.length }}</strong> of <strong>{{ employees.length }}</strong> employees
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Cards Grid (Enlarged Card View like Comp-Off) -->
+      @if (filteredEmployees.length > 0) {
+        <div class="employee-cards-grid">
+          @for (emp of filteredEmployees; track emp.id) {
+            @let isChecked = isEmployeeSelected(emp.id);
+
+            <div
+              class="employee-card"
+              [class.card-selected]="isChecked"
+              (click)="toggleEmployee(emp.id)">
+              
+              <!-- Checkbox Control -->
+              <div class="card-checkbox-container" (click)="$event.stopPropagation()">
+                <mat-checkbox
+                  [checked]="isChecked"
+                  (change)="toggleEmployee(emp.id)"
+                  color="primary"
+                  [attr.aria-label]="'Select ' + emp.name">
+                </mat-checkbox>
+              </div>
+
+              <!-- Avatar -->
+              <div class="card-avatar" [style.background]="getAvatarGradient(emp.name)">
+                @if (emp.userImage) {
+                  <img [src]="emp.userImage" [alt]="emp.name" class="avatar-img" />
+                } @else {
+                  <span class="avatar-text">{{ getInitials(emp.name) }}</span>
+                }
+              </div>
+
+              <!-- Employee Info Details -->
+              <div class="card-details">
+                <div class="card-name-row">
+                  <span class="emp-name">{{ emp.name }}</span>
+                  @if (emp.empNo) {
+                    <span class="emp-code-pill">{{ emp.empNo }}</span>
+                  }
+                </div>
+
+                <div class="card-role-row">
+                  <span class="emp-role">
+                    {{ getEmployeeRole(emp) }}
+                  </span>
+                  @if (getEmployeeDept(emp)) {
+                    <span class="role-separator">•</span>
+                    <span class="emp-dept">{{ getEmployeeDept(emp) }}</span>
+                  }
+                </div>
+
+                <div class="card-contact-row">
+                  <mat-icon class="contact-icon">mail_outline</mat-icon>
+                  <span class="contact-email">
+                    {{ emp.email || emp.userPosition?.officialMailId || 'No email provided' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Status Badge Pill -->
+              <div class="card-status-badge">
+                @if (isChecked) {
+                  <span class="badge-granted" matTooltip="+1 Sick Leave & +1 Casual Leave will be credited">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>+1 SL &amp; +1 CL</span>
+                  </span>
+                } @else {
+                  <span class="badge-unassigned">
+                    <span>Not Selected</span>
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Empty Filter State -->
+        <div class="empty-filter-card">
+          <div class="empty-icon-wrap">
+            <mat-icon>person_search</mat-icon>
+          </div>
+          <h3>No employees found</h3>
+          <p>No confirmed employees match your current search query or active filter tab.</p>
+          <button mat-stroked-button color="primary" class="btn-clear-filters" (click)="clearSearch(); setFilterTab('all')">
+            <mat-icon>filter_alt_off</mat-icon>
+            <span>Reset Search &amp; Filters</span>
+          </button>
+        </div>
+      }
+
+      <!-- Sticky Bottom Action Footer Bar -->
+      <div class="sticky-footer-bar">
+        <div class="footer-left">
+          <div class="selection-pill">
+            <mat-icon>how_to_reg</mat-icon>
+            <span class="selection-text">
+              <strong>{{ selectedCount }}</strong> of <strong>{{ totalEmployeesCount }}</strong> selected to grant
+            </span>
+          </div>
+        </div>
+
+        <div class="footer-right">
+          <button
+            mat-stroked-button
+            class="btn-footer-cancel"
+            (click)="backToLeaveTypes()"
+            [disabled]="isSubmitting">
+            <span>Cancel</span>
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            class="btn-footer-submit"
+            (click)="grantLeave()"
+            [disabled]="isSubmitting || selectedCount === 0">
+            @if (isSubmitting) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              <span>Granting Leaves...</span>
+            } @else {
+              <mat-icon>card_giftcard</mat-icon>
+              <span>Grant 1 Sick &amp; 1 Casual Leave ({{ selectedCount }})</span>
+            }
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

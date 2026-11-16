@@ -1,11 +1,47 @@
-
-<div class="custom-dialog">
-  <h1 class="dialog-title">Delete file</h1>
-  <div class="dialog-content">
-    Are you sure you want to delete this item?
+<div class="delete-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-icon-box">
+      <mat-icon>delete_forever</mat-icon>
+    </div>
+    <div class="header-titles">
+      <h2 class="dialog-title">{{ data?.title || 'Confirm Deletion' }}</h2>
+      <p class="dialog-subtitle">This action is permanent and cannot be undone.</p>
+    </div>
+    <button mat-icon-button type="button" class="close-btn" (click)="onCancelClick()" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
   </div>
-  <div class="dialog-actions">
-    <button class="confirm-button" cdkFocusInitial (click)="onConfirmClick()">Yes</button>&nbsp;&nbsp;&nbsp;
-    <button class="cancel-button" (click)="onCancelClick()">No</button>
-  </div>
+
+  <!-- Dialog Body -->
+  <div class="dialog-body">
+    <p class="dialog-message">
+      @if (data?.itemName || data?.name) {
+        Are you sure you want to delete <strong>{{ data.itemName || data.name }}</strong>?
+      } @else if (data?.message) {
+        {{ data.message }}
+      } @else {
+        Are you sure you want to permanently delete this item?
+      }
+    </p>
+
+    <!-- Danger Warning Callout -->
+    <div class="warning-callout">
+      <mat-icon class="warning-icon">warning_amber</mat-icon>
+      <div class="warning-text">
+        Proceeding will permanently erase this record from the database.
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog Footer Actions -->
+  <div class="dialog-footer">
+    <button mat-stroked-button type="button" class="btn-cancel" (click)="onCancelClick()">
+      {{ data?.cancelText || 'Cancel' }}
+    </button>
+    <button mat-flat-button type="button" class="btn-delete" (click)="onConfirmClick()">
+      <mat-icon>delete</mat-icon>
+      <span>{{ data?.confirmText || 'Delete' }}</span>
+    </button>
+  </div>
 </div>

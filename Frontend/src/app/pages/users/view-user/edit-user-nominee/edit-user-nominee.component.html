@@ -1,57 +1,70 @@
-<form [formGroup]="form">
-    <mat-card style="margin-left: 15px;">
-      <mat-card-header><mat-card-title>Nominee Details</mat-card-title></mat-card-header>
-      <div fxLayout="column" class="form-field-outer" style="margin-top: 20px;">
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="nomineeName" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>ContactNumber</mat-label>
-              <input matInput formControlName="nomineeContactNumber" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Relation</mat-label>
-              <mat-select formControlName="nomineeRelation">
-                <mat-option [value]="">No Option</mat-option>
-                @for (relation of relations; track $index) {
-                  <mat-option [value]="relation">
-                    {{ relation }}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Aadhaar Number</mat-label>
-              <input matInput formControlName="aadhaarNumber" >
-            </mat-form-field>
-          </div>
+<div class="edit-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge nominee-badge">
+        <mat-icon>supervised_user_circle</mat-icon>
+      </div>
+      <div class="header-title-box">
+        <h2 class="dialog-title">{{ editStatus ? 'Edit Nominee Details' : 'Add Nominee Details' }}</h2>
+        <p class="dialog-subtitle">Primary beneficiary for employee benefits & gratuity</p>
+      </div>
+    </div>
+    <button mat-icon-button class="dialog-close-btn" (click)="dialogRef?.close()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Form Body -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dialog-body-scrollable">
+      
+      <!-- Section: Nominee Information -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">badge</mat-icon>
+          <span>Beneficiary Information</span>
+        </div>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Nominee Full Name</mat-label>
+            <input matInput formControlName="nomineeName" placeholder="Enter full legal name">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Relationship</mat-label>
+            <mat-select formControlName="nomineeRelation">
+              <mat-option [value]="">No Option</mat-option>
+              @for (relation of relations; track $index) {
+                <mat-option [value]="relation">{{ relation }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Contact Number</mat-label>
+            <input matInput formControlName="nomineeContactNumber" placeholder="10-digit mobile number">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Aadhaar / ID Number</mat-label>
+            <input matInput formControlName="aadhaarNumber" placeholder="Enter government identity number">
+          </mat-form-field>
         </div>
       </div>
-  
-      <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-        <div class="col" style="text-align: right; margin-bottom: 15px;">
-          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="form.pristine || form.invalid" style="margin-left: 10px;">
-            @if (editStatus) {
-                Update
-            } @else {
-                Save
-            }
-          </button>
-          <button mat-raised-button color="primary" (click)="this.dialogRef?.close();" [disabled]="!form.pristine && !form.invalid" style="margin-left: 10px;">
-            Exit
-          </button>
-        </div>
-      </div>
-    </mat-card>
+
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-footer-actions">
+      <button type="button" mat-button class="btn-cancel" (click)="dialogRef?.close()">
+        Cancel
+      </button>
+      <button type="submit" mat-flat-button class="btn-save" [disabled]="form.pristine || form.invalid">
+        <mat-icon>{{ editStatus ? 'check_circle' : 'save' }}</mat-icon>
+        <span>{{ editStatus ? 'Update Nominee' : 'Save Nominee' }}</span>
+      </button>
+    </div>
   </form>
-  
+</div>

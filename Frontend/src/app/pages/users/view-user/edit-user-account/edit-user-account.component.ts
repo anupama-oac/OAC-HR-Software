@@ -1,9 +1,11 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatOptionModule } from '@angular/material/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -15,8 +17,19 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-edit-user-account',
   standalone: true,
-  imports: [ MatFormFieldModule, ReactiveFormsModule, MatOptionModule, MatSelectModule, MatInputModule, MatButtonModule,
-       MatCardModule, MatIconModule ],
+  imports: [ 
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule, 
+    MatOptionModule, 
+    MatSelectModule, 
+    MatInputModule, 
+    MatButtonModule,
+    MatCardModule, 
+    MatIconModule,
+    MatDialogModule,
+    MatTooltipModule
+  ],
   templateUrl: './edit-user-account.component.html',
   styleUrl: './edit-user-account.component.scss'
 })
@@ -53,9 +66,9 @@ export class EditUserAccountComponent implements OnInit, OnDestroy{
   form = this.fb.group({
     userId : [''],
     accountNo : [''],
-    ifseCode : [''],
-    paymentFrequency : [''],
-    modeOfPayment : [''],
+    ifseCode : ['UTIB0000827'],
+    paymentFrequency : ['Monthly'],
+    modeOfPayment : ['BankTransfer'],
     branchName : ['Vyttila'],
     bankName: ['Axis']
   });

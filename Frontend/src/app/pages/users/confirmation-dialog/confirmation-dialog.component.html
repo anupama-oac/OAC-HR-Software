@@ -1,42 +1,133 @@
+<div class="status-dialog-container">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="header-icon-box" [class.probation-accent]="targetStatus === 'probation'" [class.confirmation-accent]="targetStatus === 'confirmation'">
+      <mat-icon>{{ targetStatus === 'probation' ? 'hourglass_top' : 'verified' }}</mat-icon>
+    </div>
+    <div class="header-titles">
+      <h2 class="dialog-title">
+        {{ targetStatus === 'probation' ? 'Set Status to Probation' : 'Confirm Employee' }}
+      </h2>
+      <p class="dialog-subtitle">
+        Update employment status for <strong>{{ data.name }}</strong> ({{ data.empNo }})
+      </p>
+    </div>
+    <button mat-icon-button type="button" class="close-btn" (click)="onCancel()" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
+  <div class="dialog-body">
+    <!-- Current Status Pill -->
+    <div class="current-status-banner">
+      <span class="label">Current Status:</span>
+      <span class="badge" [class.badge-probation]="data.isTemporary" [class.badge-confirmed]="!data.isTemporary">
+        <mat-icon class="badge-icon">{{ data.isTemporary ? 'hourglass_top' : 'verified' }}</mat-icon>
+        <span>{{ data.isTemporary ? 'Probation' : 'Confirmed (Permanent)' }}</span>
+      </span>
+    </div>
 
-<div class="reset-password-container">
-    <mat-toolbar class="bg-blue-900">
-    <!-- @if(data.type === 'update') {
-        Update Status: {{ data.isTemporary ? 'Probation → Confirmation' : 'Confirmation → Probation' }}
-    } @else { -->
-        Probation Status Change: {{ data.isTemporary ? 'Probation → Confirmation' : 'Confirmation → Probation' }}
-    <!-- } -->
-    <mat-icon (click)="onCancel()" style="margin-left: auto;">close</mat-icon>
-    </mat-toolbar>
+    <!-- Status Option Cards -->
+    <div class="status-selector-label">Select Target Employment Status:</div>
+    <div class="status-options-grid">
+      <!-- Option: Probation -->
+      <div
+        class="status-card"
+        [class.card-probation]="targetStatus === 'probation'"
+        (click)="setTargetStatus('probation')"
+      >
+        <div class="card-radio">
+          <div class="radio-circle" [class.checked]="targetStatus === 'probation'">
+            @if (targetStatus === 'probation') {
+              <div class="inner-dot"></div>
+            }
+          </div>
+        </div>
+        <div class="card-icon probation-icon">
+          <mat-icon>hourglass_top</mat-icon>
+        </div>
+        <div class="card-text">
+          <div class="card-title-row">
+            <span class="card-title">Probation Period</span>
+            @if (data.isTemporary) {
+              <span class="status-current-chip">Current</span>
+            }
+          </div>
+          <div class="card-desc">Temporary evaluation & review status</div>
+        </div>
+      </div>
 
-  <form [formGroup]="separationForm" style="padding: 20px;">
-    <div mat-dialog-content>
-        <p style="font-size: 16px; margin-bottom: 15px;">
-        @if(data.isTemporary === false) {
-            You are changing status from <strong>Confirmation</strong> to <strong>Probation</strong> 
-            for <strong>{{ data.name }} ({{ data.empNo }})</strong>.
+      <!-- Option: Confirmation -->
+      <div
+        class="status-card"
+        [class.card-confirmation]="targetStatus === 'confirmation'"
+        (click)="setTargetStatus('confirmation')"
+      >
+        <div class="card-radio">
+          <div class="radio-circle" [class.checked]="targetStatus === 'confirmation'">
+            @if (targetStatus === 'confirmation') {
+              <div class="inner-dot"></div>
+            }
+          </div>
+        </div>
+        <div class="card-icon confirmation-icon">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <div class="card-text">
+          <div class="card-title-row">
+            <span class="card-title">Confirmation</span>
+            @if (!data.isTemporary) {
+              <span class="status-current-chip">Current</span>
+            }
+          </div>
+          <div class="card-desc">Full-time permanent staff status</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Callout Banner -->
+    <div class="action-summary-card" [class.summary-probation]="targetStatus === 'probation'" [class.summary-confirmation]="targetStatus === 'confirmation'">
+      <mat-icon class="summary-icon">{{ targetStatus === 'probation' ? 'info' : 'task_alt' }}</mat-icon>
+      <div class="summary-text">
+        @if (targetStatus === 'probation') {
+          You are changing status to <strong>Probation</strong> for <strong>{{ data.name }} ({{ data.empNo }})</strong>.
         } @else {
-            You are changing status from <strong>Probation</strong> to <strong>Confirmation</strong> 
-            for <strong>{{ data.name }} ({{ data.empNo }})</strong>.
+          You are changing status to <strong>Confirmation</strong> for <strong>{{ data.name }} ({{ data.empNo }})</strong>.
         }
-        </p>
-        @if(data.isTemporary) {
-            <mat-form-field appearance="fill" style="width: 100%;">
-                <mat-label>Note</mat-label>
-                <textarea matInput formControlName="note" rows="3" placeholder="" ></textarea>
-            </mat-form-field>
-        }
+      </div>
     </div>
 
-    <div mat-dialog-actions style="justify-content: space-between;">
-      <button mat-button color="warn" (click)="onConfirm()" [disabled]="separationForm.invalid">
-        @if(data.type === 'update'){
-          Update
-        }@else {
-          Confirm
-        }
-      </button>
-    </div>
-  </form>
+    <!-- Note Form -->
+    <form [formGroup]="statusForm" class="dialog-form">
+      <mat-form-field appearance="outline" class="modern-field">
+        <mat-label>Notes & Justification</mat-label>
+        <mat-icon matPrefix class="field-icon">edit_note</mat-icon>
+        <textarea
+          matInput
+          formControlName="note"
+          rows="3"
+          placeholder="Add reason, evaluation remarks, or probation details..."
+        ></textarea>
+        <mat-hint>Optional remarks recorded with this status update</mat-hint>
+      </mat-form-field>
+    </form>
+  </div>
+
+  <!-- Actions -->
+  <div class="dialog-footer">
+    <button mat-stroked-button type="button" class="btn-cancel" (click)="onCancel()">
+      Cancel
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="btn-submit"
+      [class.btn-probation]="targetStatus === 'probation'"
+      [class.btn-confirmation]="targetStatus === 'confirmation'"
+      (click)="onConfirm()"
+    >
+      <mat-icon>{{ targetStatus === 'probation' ? 'hourglass_top' : 'check_circle' }}</mat-icon>
+      <span>{{ targetStatus === 'probation' ? 'Set to Probation' : 'Confirm Employee' }}</span>
+    </button>
+  </div>
 </div>

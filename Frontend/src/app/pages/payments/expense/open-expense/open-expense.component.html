@@ -1,145 +1,334 @@
+@if (pi) {
+  <div class="open-expense-container">
+    
+    <!-- Top Breadcrumb -->
+    <div class="breadcrumb-nav">
+      <a (click)="goBack()" class="breadcrumb-link">
+        <mat-icon class="bc-icon">home</mat-icon>
+        <span>Expenses</span>
+      </a>
+      <mat-icon class="bc-sep">chevron_right</mat-icon>
+      <span class="breadcrumb-current">{{ piNo | uppercase }}</span>
+    </div>
 
-@if(pi){
-    <div class="row">
-      <div class="col">
-        <mat-card-header>
-          <mat-card-title>
-            Expense No: {{ piNo | uppercase }} 
-          </mat-card-title>
-        </mat-card-header>
+    <!-- Main Header Card -->
+    <div class="header-card">
+      <div class="header-left">
+        <div class="header-icon-box">
+          <mat-icon>receipt_long</mat-icon>
+        </div>
+        <div class="header-info">
+          <div class="title-status-row">
+            <h1 class="header-title">{{ piNo | uppercase }}</h1>
+            <span class="status-badge" [ngClass]="getStatusClass(pi.status)">
+              <mat-icon class="status-icon">
+                {{ ((pi.status || '').toLowerCase().includes('approved') || (pi.status || '').toLowerCase().includes('transferred')) ? 'payments' : (((pi.status || '').toLowerCase().includes('reject') || (pi.status || '').toLowerCase().includes('revert')) ? 'reply' : 'schedule') }}
+              </mat-icon>
+              <span>{{ formatStatus(pi.status) }}</span>
+            </span>
+          </div>
+          <p class="header-meta">
+            <span>Submitted by <strong>{{ pi.user?.name || 'Employee' }}</strong></span>
+            @if (pi.user?.empNo) {
+              <span class="meta-dot">·</span>
+              <span class="emp-no-tag">#{{ pi.user?.empNo }}</span>
+            }
+            <span class="meta-dot">·</span>
+            <span class="date-tag">
+              <mat-icon class="meta-icon">calendar_today</mat-icon>
+              {{ (pi.expenseDate || pi.createdAt) | date: 'mediumDate' }}
+            </span>
+          </p>
+        </div>
       </div>
-  
-      <div class="col">
-        <mat-card-header>
-          <a style="color: black; font-style: italic; margin-left: auto;">Added by: {{pi.user.name}}</a>
-          <button mat-mini-fab color="primary" type="button" aria-label="Example icon button with a home icon"
-            class="d-block mr-0 ml-auto" onClick="history.back()" style="margin-left: auto;">
-            <mat-icon>exit_to_app</mat-icon>
-          </button>
-          @if ((pi.status === 'BANK SLIP ISSUED' || pi.status === 'CARD PAYMENT SUCCESS') && ma) {
-            <button mat-mini-fab color="primary" type="button" aria-label="Example icon button with a home icon"
-              class="d-block mr-0 ml-auto" (click)="makeExcel()" style="margin-left: 5px;">
-              <mat-icon>sim_card_download</mat-icon>
+
+      <div class="header-right">
+        @if (pi.approveButtonStatus) {
+          <div class="approval-header-actions">
+            <button
+              type="button"
+              mat-flat-button
+              class="btn-action-approve"
+              (click)="verified('approved', piNo, pi.user?.name, pi.id, pi.status)"
+              matTooltip="Confirm amount transferred to employee">
+              <mat-icon>payments</mat-icon>
+              <span>Amount Transferred</span>
             </button>
-          }
-        </mat-card-header>
+            <button
+              type="button"
+              mat-stroked-button
+              class="btn-action-reject"
+              (click)="verified('rejected', piNo, pi.user?.name, pi.id, pi.status)"
+              matTooltip="Revert expense claim back to employee">
+              <mat-icon>reply</mat-icon>
+              <span>Revert to Employee</span>
+            </button>
+          </div>
+        }
+
+        @if ((pi.status === 'BANK SLIP ISSUED' || pi.status === 'CARD PAYMENT SUCCESS') && ma) {
+          <button
+            type="button"
+            mat-stroked-button
+            class="btn-excel-export"
+            (click)="makeExcel()"
+            matTooltip="Export expense record to Excel">
+            <mat-icon>download</mat-icon>
+            <span>Export</span>
+          </button>
+        }
+
+        <button type="button" mat-stroked-button class="btn-back" (click)="goBack()">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back</span>
+        </button>
       </div>
     </div>
-  
-    <mat-card>
-  
-      <table class="table table-bordered">
-        <tbody>
-          <tr>
-            <td><strong>Amount:</strong> {{ pi.totalAmount }} {{pi.currency}}</td>
-            <td colspan="2">
-              <strong>Notes:</strong>
-              <span style="color: black;" [innerHTML]="formatNotes(pi.notes)"></span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-  
-      <mat-tab-group>
-        @for (url of signedUrl; let i = $index; track $index) {
-          <mat-tab [label]="'Document ' + (i + 1)">
-            <div class="pdf-container">
-              <iframe [src]="url.url | safe" width="100%" height="600px"></iframe>
+
+    <!-- Metrics Stat Grid -->
+    <div class="metrics-grid">
+      <!-- Card 1: Total Amount -->
+      <div class="metric-card card-amount">
+        <div class="metric-icon-box">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Total Amount</span>
+          <div class="metric-value-row">
+            <span class="metric-value">{{ pi.amount | number: '1.2-2' }}</span>
+            <span class="metric-currency">{{ pi.currency || 'INR' }}</span>
+          </div>
+          <span class="metric-sub">Submitted expense total</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Payment Mode -->
+      <div class="metric-card card-mode">
+        <div class="metric-icon-box">
+          <mat-icon>{{ getPaymentModeIcon(pi.paymentMode) }}</mat-icon>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Payment Mode</span>
+          <div class="metric-value-row">
+            <span class="metric-value mode-text">{{ pi.paymentMode || 'Standard' }}</span>
+          </div>
+          <span class="metric-sub">
+            {{ pi.paymentMode === 'Petty Cash' ? 'Debited from petty cash' : (pi.paymentMode === 'Card' ? 'Operations card approval' : 'Standard disbursement') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card 3: Expense Date -->
+      <div class="metric-card card-date">
+        <div class="metric-icon-box">
+          <mat-icon>calendar_month</mat-icon>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Expense Date</span>
+          <div class="metric-value-row">
+            <span class="metric-value date-text">{{ (pi.expenseDate || pi.createdAt) | date: 'mediumDate' }}</span>
+          </div>
+          <span class="metric-sub">Recorded transaction date</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Employee Details -->
+      <div class="metric-card card-employee">
+        <div class="metric-icon-box">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Assigned Employee</span>
+          <div class="metric-value-row">
+            <span class="metric-value emp-text">{{ pi.user?.name || 'Employee' }}</span>
+          </div>
+          <span class="metric-sub">
+            {{ pi.user?.empNo ? 'Employee #' + pi.user.empNo : 'User ID: ' + pi.userId }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description & Purpose Card -->
+    <div class="content-panel-card">
+      <div class="panel-card-header">
+        <div class="panel-header-left">
+          <div class="panel-icon-bubble">
+            <mat-icon>notes</mat-icon>
+          </div>
+          <div>
+            <h3 class="panel-section-title">Expense Purpose & Description</h3>
+            <p class="panel-section-sub">Stated reason and remarks submitted with this claim</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card-body">
+        @if (pi.description) {
+          <div class="description-box">
+            <mat-icon class="quote-icon">format_quote</mat-icon>
+            <div class="description-content" [innerHTML]="formatNotes(pi.description)"></div>
+          </div>
+        } @else {
+          <div class="no-description-box">
+            <mat-icon>info</mat-icon>
+            <span>No specific notes or description provided for this expense.</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Supporting Receipts & Documents Card -->
+    <div class="content-panel-card documents-panel">
+      <div class="panel-card-header">
+        <div class="panel-header-left">
+          <div class="panel-icon-bubble bubble-indigo">
+            <mat-icon>attachment</mat-icon>
+          </div>
+          <div>
+            <h3 class="panel-section-title">Supporting Receipts & Documents</h3>
+            <p class="panel-section-sub">Attached invoices, payment proofs, and vouchers</p>
+          </div>
+        </div>
+
+        <div class="panel-header-right">
+          <span class="doc-count-pill">
+            <mat-icon>description</mat-icon>
+            <span>{{ signedUrl.length }} {{ signedUrl.length === 1 ? 'Attachment' : 'Attachments' }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="panel-card-body p-0">
+        @if (signedUrl.length === 0 && !bankSlip) {
+          <div class="no-documents-state">
+            <div class="no-doc-icon-wrap">
+              <mat-icon>receipt</mat-icon>
             </div>
-            <a>remarks: {{url.remarks}}</a>
-          </mat-tab>
-        }
-        @if(bankSlip){
-          <mat-tab label="WireSlip">
-            <div class="pdf-container">
-              <iframe [src]="bankSlip | safe" width="100%" height="600px"></iframe>
-            </div>
-          </mat-tab>
-        }
-      </mat-tab-group>
-  
-      <mat-card-actions>
-        @if(pi.approveButtonStatus) {
-          <button mat-button class="approve-button" (click)="verified('approved', pi.exNo, pi.user.name, pi.id, pi.status)">
-            APPROVE
-          </button>
-  
-          <!-- Reject Button -->
-          <button mat-raised-button class="reject-button" (click)="verified('rejected', pi.exNo, pi.user.name, pi.id, pi.status)">
-            REJECT
-          </button>
-        }
-      </mat-card-actions>
-    @if((ma && pi.status === 'AM Verified') || (admin && pi.status === 'AM Verified')){
-      <mat-card-actions>
-        <button mat-raised-button type="button" class="btn btn-success" (click)="addBankSlip(piNo, pi.id, pi.status)">
-          <mat-icon style="font-size: 25px;">task_alt</mat-icon>ADD WIRESLIP
-        </button>
-      </mat-card-actions>
-    }
-  
-    <!-- @if((ma && pi.status !== 'BANK SLIP ISSUED') || (admin && pi.status !== 'BANK SLIP ISSUED')){
-      <button mat-raised-button class="add-bank-slip-button"
-      (click)="addBankSlip(pi.piNo, pi.id, pi.status)"> ATTACH
-      </button>
-    } -->
-  
-      <mat-card>
-        <!DOCTYPE html>
-        <html lang="en">
-  
-        <head>
-  
-        </head>
-  
-        <body>
-  
-          <main class="table" id="customers_table">
-            <section class="table__header">
-              <div class="row">
-                <div class="col">
-                  <h4>STATUS</h4>
-                </div>
-  
-                <div class="col" style="margin-top: 0;">
-                  <div class="input-group">
-                    <input type="search" placeholder="Search Data by status..." (keyup)="applyFilter($event)">
+            <h4 class="no-doc-title">No Documents Attached</h4>
+            <p class="no-doc-sub">This expense claim has no receipt or invoice files attached.</p>
+          </div>
+        } @else {
+          <mat-tab-group class="custom-doc-tabs" animationDuration="200ms">
+            @for (doc of signedUrl; let i = $index; track $index) {
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <mat-icon class="tab-label-icon">{{ isImageFile(doc.type) ? 'image' : 'picture_as_pdf' }}</mat-icon>
+                  <span>Document #{{ i + 1 }}</span>
+                </ng-template>
+
+                <div class="doc-tab-content">
+                  <!-- Document Meta / Action Bar -->
+                  <div class="doc-meta-bar">
+                    <div class="doc-meta-left">
+                      <span class="file-type-chip" [class.chip-pdf]="!isImageFile(doc.type)">
+                        {{ isImageFile(doc.type) ? 'IMAGE FILE' : 'PDF / DOCUMENT' }}
+                      </span>
+                      @if (doc.remarks) {
+                        <span class="doc-remarks-text">
+                          <strong>Remarks:</strong> {{ doc.remarks }}
+                        </span>
+                      }
+                    </div>
+
+                    <div class="doc-meta-right">
+                      <button
+                        type="button"
+                        mat-stroked-button
+                        class="btn-open-new-tab"
+                        (click)="openDocumentInNewTab(doc.url)"
+                        matTooltip="Open full-resolution file in a new tab">
+                        <mat-icon>open_in_new</mat-icon>
+                        <span>Open Full Size</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Document Viewer -->
+                  <div class="doc-viewer-wrap">
+                    @if (isImageFile(doc.type)) {
+                      <div class="image-preview-box">
+                        <img
+                          [src]="doc.url"
+                          alt="Expense Receipt"
+                          class="preview-img"
+                          (click)="openDocumentInNewTab(doc.url)"
+                          matTooltip="Click to open full size" />
+                      </div>
+                    } @else {
+                      <div class="iframe-preview-box">
+                        <iframe [src]="doc.url | safe" class="preview-iframe" title="Expense Document"></iframe>
+                      </div>
+                    }
                   </div>
                 </div>
-              </div>
-            </section>
-  
-            <section class="table__body">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Remarks</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for(row of pi.expensestatuses;  track $index){
-                    <tr>
-                      <td>{{row.status}} {{row.count}}</td>
-  
-                      <td>
-                        <span [innerHTML]="formatRemarks(row.remarks)"></span>
-                      </td>
-                      <td>{{row.date | date: 'dd/MM/yyyy HH:mm:ss'}}</td>
-                    </tr>
-                  }
-  
-                </tbody>
-              </table>
-            </section>
-          </main>
-        </body>
-  
-        </html>
-  
-      </mat-card>
-    </mat-card>
-  }
-  
-  
+              </mat-tab>
+            }
+
+            @if (bankSlip) {
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <mat-icon class="tab-label-icon">receipt</mat-icon>
+                  <span>WireSlip / Bank Slip</span>
+                </ng-template>
+
+                <div class="doc-tab-content">
+                  <div class="doc-meta-bar">
+                    <span class="file-type-chip chip-pdf">BANK SLIP</span>
+                    <button
+                      type="button"
+                      mat-stroked-button
+                      class="btn-open-new-tab"
+                      (click)="openDocumentInNewTab(bankSlip)">
+                      <mat-icon>open_in_new</mat-icon>
+                      <span>Open Full Size</span>
+                    </button>
+                  </div>
+                  <div class="doc-viewer-wrap">
+                    <iframe [src]="bankSlip | safe" class="preview-iframe" title="Bank Slip"></iframe>
+                  </div>
+                </div>
+              </mat-tab>
+            }
+          </mat-tab-group>
+        }
+      </div>
+    </div>
+
+    <!-- Sticky Bottom Approval Action Bar -->
+    @if (pi.approveButtonStatus) {
+      <div class="sticky-action-bar">
+        <div class="action-bar-inner">
+          <div class="action-prompt">
+            <mat-icon class="prompt-icon">verified_user</mat-icon>
+            <div>
+              <span class="prompt-title">Action Required: Disbursement Sign-off</span>
+              <span class="prompt-sub">Confirm amount transfer to employee or revert claim back with feedback remarks.</span>
+            </div>
+          </div>
+
+          <div class="action-buttons-group">
+            <button
+              type="button"
+              mat-stroked-button
+              class="btn-footer-reject"
+              (click)="verified('rejected', piNo, pi.user?.name, pi.id, pi.status)">
+              <mat-icon>reply</mat-icon>
+              <span>Revert to Employee</span>
+            </button>
+
+            <button
+              type="button"
+              mat-flat-button
+              class="btn-footer-approve"
+              (click)="verified('approved', piNo, pi.user?.name, pi.id, pi.status)">
+              <mat-icon>payments</mat-icon>
+              <span>Amount Transferred</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+}

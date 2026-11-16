@@ -1,127 +1,343 @@
-<div class="row">
-  @for(leave of userLeaves; track $index) {
-    @if(leave.leaveType.leaveTypeName !== 'LOP'){
-      <div class="col">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-subtitle>{{leave.leaveType.leaveTypeName}}</mat-card-subtitle>
-            <mat-chip-set style="margin-left: auto;">
-              <mat-chip color="primary" highlighted="true" class="info-chip">
-                <mat-icon class="icon-sm">numbers</mat-icon>
-                {{leave.leaveBalance}}
-              </mat-chip>
-            </mat-chip-set>
-          </mat-card-header>
-        </mat-card>
+<div class="apply-leave-container">
+  <!-- Top Navigation & Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a mat-icon-button routerLink="/login/leave" class="back-btn" matTooltip="Back to Leaves">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div>
+        <div class="header-badge">
+          <mat-icon class="icon-xs">event_available</mat-icon>
+          <span>LEAVE MANAGEMENT</span>
+        </div>
+        <h1 class="page-title">{{ isEditMode ? 'Edit Leave Request' : 'Apply for Leave' }}</h1>
+        <p class="page-subtitle">Configure your leave dates, schedule daily sessions, and provide supporting notes</p>
       </div>
-    }
-  }
-</div><br>
+    </div>
+  </div>
 
-<mat-card class="leave-card">
-  <mat-card-content class="form-wrapper">
-    <form [formGroup]="leaveRequestForm" (ngSubmit)="onSubmit()">
-      <div class="form-row">
-        @if(!employeeStat){
-          <mat-form-field class="half-width" appearance="outline" >
-            <mat-label>Employee</mat-label>
-            <input matInput placeholder="Select Employee" formControlName="userName" [matAutocomplete]="auto" (keyup)="search($event)">
-            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="patch($event.option.value)">
-              <mat-option *ngFor="let suggestion of filteredOptions" [value]="suggestion">
-                {{ suggestion.name }}
-              </mat-option>
-            </mat-autocomplete>
-          </mat-form-field>
-        }
-
-        <!-- Leave Type -->
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>Leave Type</mat-label>
-          <mat-select formControlName="leaveTypeId" placeholder="Select leave type" required>
-            @for(leaveType of leaveTypes; track $index){
-              <mat-option [value]="leaveType.id">
-                {{ leaveType.leaveTypeName }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <!-- Start Date -->
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>Start Date</mat-label>
-          <input matInput [matDatepicker]="startDatePicker" formControlName="startDate" placeholder="Choose start date" 
-          (dateChange)="onDateChange()" required [max]="maxDate">
-          <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
-          <mat-datepicker #startDatePicker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="half-width">
-          <mat-label>End Date</mat-label>
-          <input matInput [matDatepicker]="endDatePicker" formControlName="endDate" placeholder="Choose end date" (dateChange)="onEndDateChange()" required
-          [matDatepickerFilter]="endDateFilter" [max]="maxEndDate">
-          <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
-          <mat-datepicker #endDatePicker></mat-datepicker>
-        </mat-form-field>
+  <!-- Leave Balance Cards -->
+  @if(userLeaves && userLeaves.length > 0) {
+    <div class="balance-section">
+      <div class="section-title-row">
+        <h3 class="section-title">Your Available Balances</h3>
+        <span class="section-hint">Click a balance card to quickly select that leave type</span>
       </div>
 
-      <div class="form-row">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Reason</mat-label>
-          <textarea matInput formControlName="notes" placeholder="Enter reason" required (input)="convertToLowercase();employeeStat === false ? prefixEmergency() : null"> </textarea>
-        </mat-form-field>
-      </div>
-
-      <!-- @if(isSickLeaveAndMoreThanThreeDays()){ -->
-        @if(isSick && !imageUrl){
-          <div class="col">
-            <input type="file" class="file-input" hidden #fileInput (change)="uploadFile($event)">
-            <mat-icon class="file-upload-icon" (click)="fileInput.click()">cloud_upload</mat-icon>
-            <p class="file-upload-text" (click)="fileInput.click()">Browse file to upload</p>
-          </div>
-        }
-        @else if(isSick){
-        <div class="col">
-            <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                <iframe [src]="imageUrl | safe" width="100%" height="300px"></iframe>
-                <mat-icon style="color: red;" (click)="onDeleteImage()">delete</mat-icon>
+      <div class="balance-cards-grid">
+        @for(leave of userLeaves; track $index) {
+          @if(leave.leaveType?.leaveTypeName !== 'LOP') {
+            <div class="balance-card"
+                 [ngClass]="[getLeaveTypeClass(leave.leaveType?.leaveTypeName), leaveRequestForm.get('leaveTypeId')?.value === leave.leaveTypeId ? 'selected-card' : '']"
+                 (click)="selectLeaveType(leave.leaveTypeId)">
+              <div class="card-top">
+                <div class="card-icon-wrapper">
+                  <mat-icon>{{ getLeaveTypeIcon(leave.leaveType?.leaveTypeName) }}</mat-icon>
+                </div>
+                @if(leaveRequestForm.get('leaveTypeId')?.value === leave.leaveTypeId) {
+                  <span class="selected-badge">
+                    <mat-icon>check_circle</mat-icon> Selected
+                  </span>
+                }
+              </div>
+              <div class="card-body">
+                <span class="type-name">{{ leave.leaveType?.leaveTypeName }}</span>
+                <div class="balance-number-row">
+                  <span class="balance-val">{{ leave.leaveBalance }}</span>
+                  <span class="balance-unit">days left</span>
+                </div>
+              </div>
+              <div class="card-footer">
+                <span class="used-text">{{ leave.takenLeaves || 0 }} days used</span>
+                <span class="total-text">Total: {{ leave.noOfDays || 0 }}</span>
+              </div>
             </div>
-        </div>
+          }
         }
-@if(isSick && !imageUrl && isFileSelected){
-  <div style="color: red; margin-top: 10px; font-weight: bold;">
-    Note: Medical certificate is mandatory for Sick Leave on Mondays, Fridays, Saturdays  or durations over 2 days.
-  </div>
-}
-      <!-- }<br> -->
+      </div>
+    </div>
+  }
 
-      <div formArrayName="leaveDates">
-        <div *ngFor="let leaveDate of leaveDates.controls; let i = index" [formGroupName]="i" class="leave-session-card">
-          <div class="leave-session-row">
-            <mat-card-title>{{ leaveDate.get('date')?.value | date: 'dd-MM-yyyy' }}</mat-card-title>
-            <mat-checkbox [checked]="leaveDate.get('session1')?.value" (change)="onSessionChange(i, 'session1')">
-              Session 1
-            </mat-checkbox>
-            <mat-checkbox [checked]="leaveDate.get('session2')?.value" (change)="onSessionChange(i, 'session2')">
-              Session 2
-            </mat-checkbox>
+  <!-- Main Application Form Card -->
+  <mat-card class="form-card">
+    <mat-card-content class="form-card-content">
+      <form [formGroup]="leaveRequestForm" (ngSubmit)="onSubmit()">
+        
+        <!-- STEP 1: Employee & Leave Type -->
+        <div class="form-block">
+          <div class="block-header">
+            <span class="block-step">1</span>
+            <div class="block-info">
+              <h4 class="block-title">Leave Details</h4>
+              <p class="block-sub">Select the leave type and employee</p>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <!-- Employee Selection (Admin / HR view) -->
+            @if(!employeeStat) {
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Employee</mat-label>
+                <mat-icon matPrefix class="field-icon">person</mat-icon>
+                <input matInput placeholder="Search employee by name or ID" formControlName="userName" [matAutocomplete]="auto" (keyup)="search($event)">
+                <mat-autocomplete #auto="matAutocomplete" (optionSelected)="patch($event.option.value)">
+                  @for(suggestion of filteredOptions; track suggestion.id) {
+                    <mat-option [value]="suggestion">
+                      <div class="emp-option">
+                        <span class="emp-avatar">{{ suggestion.name?.charAt(0) }}</span>
+                        <div class="emp-details">
+                          <span class="emp-name">{{ suggestion.name }}</span>
+                          <span class="emp-no">Emp #{{ suggestion.empNo }}</span>
+                        </div>
+                      </div>
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+            }
+
+            <!-- Leave Type Dropdown -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Leave Type</mat-label>
+              <mat-icon matPrefix class="field-icon">category</mat-icon>
+              <mat-select formControlName="leaveTypeId" placeholder="Select leave type" (selectionChange)="onLeaveTypeChange()" required>
+                @for(lt of leaveTypes; track lt.id) {
+                  <mat-option [value]="lt.id">
+                    <div class="select-type-item">
+                      <mat-icon class="icon-sm">{{ getLeaveTypeIcon(lt.leaveTypeName) }}</mat-icon>
+                      <span>{{ lt.leaveTypeName }}</span>
+                    </div>
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
           </div>
         </div>
-      </div>
 
-      <br>
-      <div *ngIf="isLeaveDurationInvalid()" style="color: red;">
-        Leave duration cannot be more than 3 days unless it is Sick Leave.
-      </div>
-    
-      <button mat-raised-button type="submit" color="primary" class="submit-btn"
-        [disabled]="leaveRequestForm.pristine || !leaveRequestForm.valid || isLeaveDurationInvalid() || isFileSelected">
-        {{ isEditMode ? 'Update' : 'Apply' }} Leave
-      </button>
-    </form>
-  </mat-card-content>
-</mat-card>
-@if(isLoading) {
-  <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-      <mat-spinner color="primary"></mat-spinner>
-  </div>
-}
+        <!-- STEP 2: Date Range -->
+        <div class="form-block">
+          <div class="block-header">
+            <span class="block-step">2</span>
+            <div class="block-info">
+              <h4 class="block-title">Date Range</h4>
+              <p class="block-sub">Choose when your leave begins and ends</p>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <!-- Start Date -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Start Date</mat-label>
+              <mat-icon matPrefix class="field-icon">calendar_today</mat-icon>
+              <input matInput [matDatepicker]="startDatePicker" formControlName="startDate" placeholder="DD/MM/YYYY"
+                     (dateChange)="onDateChange()" required [max]="maxDate">
+              <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #startDatePicker></mat-datepicker>
+              <mat-hint>Up to 7 days in advance</mat-hint>
+            </mat-form-field>
+
+            <!-- End Date -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>End Date</mat-label>
+              <mat-icon matPrefix class="field-icon">event</mat-icon>
+              <input matInput [matDatepicker]="endDatePicker" formControlName="endDate" placeholder="DD/MM/YYYY"
+                     (dateChange)="onEndDateChange()" required [matDatepickerFilter]="endDateFilter" [max]="maxEndDate">
+              <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #endDatePicker></mat-datepicker>
+              <mat-hint>Must be on or after Start Date</mat-hint>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- STEP 3: Daily Session Schedule -->
+        <div class="form-block">
+          <div class="block-header session-header-row">
+            <div class="block-header-left">
+              <span class="block-step">3</span>
+              <div class="block-info">
+                <h4 class="block-title">Session Schedule</h4>
+                <p class="block-sub">Configure morning and afternoon sessions for each selected day</p>
+              </div>
+            </div>
+
+            @if(leaveDates.controls.length > 0) {
+              <div class="session-actions">
+                <div class="duration-pill">
+                  <mat-icon class="icon-sm">schedule</mat-icon>
+                  <span><strong>{{ totalCalculatedDays }}</strong> Day{{ totalCalculatedDays === 1 ? '' : 's' }}</span>
+                </div>
+                <button type="button" mat-stroked-button class="quick-btn" (click)="setAllSessions(true)">
+                  <mat-icon class="icon-sm">done_all</mat-icon> Full Day for All
+                </button>
+                <button type="button" mat-button class="clear-btn" (click)="setAllSessions(false)">
+                  Clear
+                </button>
+              </div>
+            }
+          </div>
+
+          @if(leaveDates.controls.length === 0) {
+            <div class="empty-sessions-placeholder">
+              <mat-icon class="placeholder-icon">date_range</mat-icon>
+              <p class="placeholder-title">No Dates Selected Yet</p>
+              <p class="placeholder-sub">Please select a Start Date and End Date above to view and configure session timings.</p>
+            </div>
+          } @else {
+            <div formArrayName="leaveDates" class="sessions-list">
+              @for(leaveDate of leaveDates.controls; track $index) {
+                <div [formGroupName]="$index" class="session-card">
+                  <div class="session-date-col">
+                    <span class="session-date">{{ leaveDate.get('date')?.value | date: 'EEE, dd MMM yyyy' }}</span>
+                    @if(isSick) {
+                      <span class="critical-badge" matTooltip="Certificate mandatory for this day">
+                        <mat-icon class="icon-xs">warning</mat-icon> Cert Required
+                      </span>
+                    }
+                  </div>
+
+                  <div class="session-toggles-col">
+                    <label class="session-toggle" [class.active]="leaveDate.get('session1')?.value">
+                      <input type="checkbox" formControlName="session1" (change)="onSessionChange($index, 'session1')">
+                      <span class="toggle-pill">
+                        <mat-icon class="icon-xs">wb_sunny</mat-icon>
+                        Session 1 (Morning)
+                      </span>
+                    </label>
+
+                    <label class="session-toggle" [class.active]="leaveDate.get('session2')?.value">
+                      <input type="checkbox" formControlName="session2" (change)="onSessionChange($index, 'session2')">
+                      <span class="toggle-pill">
+                        <mat-icon class="icon-xs">nights_stay</mat-icon>
+                        Session 2 (Afternoon)
+                      </span>
+                    </label>
+
+                    <button type="button" mat-icon-button class="row-full-btn" (click)="toggleDayFull($index)"
+                            [matTooltip]="leaveDate.get('session1')?.value && leaveDate.get('session2')?.value ? 'Toggle off' : 'Mark Full Day'">
+                      <mat-icon class="icon-sm">{{ leaveDate.get('session1')?.value && leaveDate.get('session2')?.value ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- STEP 4: Reason & Supporting Documents -->
+        <div class="form-block">
+          <div class="block-header">
+            <span class="block-step">4</span>
+            <div class="block-info">
+              <h4 class="block-title">Reason & Documents</h4>
+              <p class="block-sub">State the reason for leave and attach supporting proof if required</p>
+            </div>
+          </div>
+
+          <!-- Reason Textarea -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Reason for Leave</mat-label>
+            <mat-icon matPrefix class="field-icon">description</mat-icon>
+            <textarea matInput formControlName="notes" rows="3" placeholder="Provide a detailed explanation for your leave request..."
+                      required (input)="convertToLowercase(); employeeStat === false ? prefixEmergency() : null"></textarea>
+            <mat-hint>Please be clear and specific</mat-hint>
+          </mat-form-field>
+
+          <!-- Medical Certificate Upload Area (For Sick Leave) -->
+          @if(isSick) {
+            <div class="upload-section">
+              <div class="upload-header">
+                <div class="upload-title-row">
+                  <mat-icon class="upload-header-icon">attachment</mat-icon>
+                  <div>
+                    <span class="upload-heading">Medical Certificate</span>
+                    <p class="upload-desc">Medical certificate is mandatory for all sick leave applications.</p>
+                  </div>
+                </div>
+                @if(isCertificateRequired) {
+                  <span class="mandate-chip">Mandatory</span>
+                } @else {
+                  <span class="optional-chip">Optional</span>
+                }
+              </div>
+
+              @if(!imageUrl) {
+                <div class="drop-zone" (click)="fileInput.click()">
+                  <input type="file" class="file-input" hidden #fileInput (change)="uploadFile($event)">
+                  <div class="drop-content">
+                    <div class="upload-circle">
+                      <mat-icon>cloud_upload</mat-icon>
+                    </div>
+                    <span class="drop-title">Click to upload Medical Certificate</span>
+                    <span class="drop-subtitle">Supported formats: PDF, JPEG, JPG, PNG (Max 10MB)</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="uploaded-file-card">
+                  <div class="file-preview-row">
+                    <div class="file-icon-box">
+                      <mat-icon>insert_drive_file</mat-icon>
+                    </div>
+                    <div class="file-meta">
+                      <span class="file-name">{{ fileName || 'Medical_Certificate' }}</span>
+                      <span class="file-status">Document Attached Successfully</span>
+                    </div>
+                    <div class="file-actions">
+                      <a [href]="imageUrl | safe" target="_blank" mat-stroked-button class="view-file-btn">
+                        <mat-icon class="icon-sm">visibility</mat-icon> View
+                      </a>
+                      <button type="button" mat-icon-button color="warn" (click)="onDeleteImage()" matTooltip="Delete file">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Warning / Validation Banners -->
+        @if(isLeaveDurationInvalid()) {
+          <div class="alert-banner alert-warning">
+            <mat-icon class="alert-icon">warning_amber</mat-icon>
+            <div class="alert-content">
+              <strong>Duration Exceeded:</strong> Non-sick leave cannot exceed 3 consecutive days. Please adjust your date range or choose an appropriate leave type.
+            </div>
+          </div>
+        }
+
+        @if(isSick && isCertificateRequired && !imageUrl) {
+          <div class="alert-banner alert-danger">
+            <mat-icon class="alert-icon">error_outline</mat-icon>
+            <div class="alert-content">
+              <strong>Certificate Required:</strong> A medical certificate is mandatory for all Sick Leave applications. Please attach a valid certificate to proceed.
+            </div>
+          </div>
+        }
+
+        <!-- Actions Footer -->
+        <div class="form-actions-bar">
+          <a mat-button routerLink="/login/leave" class="cancel-btn">
+            Cancel
+          </a>
+          <button mat-flat-button color="primary" type="submit" class="submit-btn" [disabled]="isSubmitDisabled">
+            @if(isLoading) {
+              <mat-spinner diameter="20" class="spinner-btn"></mat-spinner>
+            } @else {
+              <mat-icon class="icon-sm">{{ isEditMode ? 'save' : 'send' }}</mat-icon>
+            }
+            <span>{{ isEditMode ? 'Update Leave Request' : 'Submit Leave Request' }}</span>
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Fullscreen Loading Spinner -->
+  @if(isLoading) {
+    <div class="user-spinner">
+      <mat-spinner diameter="48" color="primary"></mat-spinner>
+    </div>
+  }
+</div>

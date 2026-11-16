@@ -1,56 +1,385 @@
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-        <!-- <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="add" (click)="openRoleDialog(null)"><mat-icon>person_add</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group> -->
+<div class="separated-page-container">
+  <!-- Top Navigation & Page Header -->
+  <header class="page-header">
+    <div class="header-top-nav">
+      <button mat-button class="back-link-btn" (click)="goBack()" matTooltip="Return to active users directory">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Directory</span>
+      </button>
+      <div class="header-actions">
+        <button mat-stroked-button class="refresh-btn" (click)="getSeparatedUsers()" matTooltip="Refresh list">
+          <mat-icon [class.spin]="isLoading">refresh</mat-icon>
+          <span>Refresh</span>
+        </button>
+      </div>
     </div>
-    <!-- <div fxLayout="row" class="col">
-      <form class="user-search" [class.show]="controls.value == 'search'">
-        <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search designation..." name="search" (keyup)="search($event)">
-        </mat-form-field>
-      </form>
-    </div> -->
-  </div>
 
-  <main class="table" id="customers_table">
-    <section class="table__body">
-      <table>
-        <thead>
-          <tr>
-            <th> Name </th>
-            <th> Role </th>
-            <th> SeparatedNote</th>
-            <th> SeparatedDate </th>
-            <th> Manage </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for(user of users; track $index){
-            <tr>
-              <td>{{ user.name }}</td>
-              <td>{{ user.role.roleName }}</td>
-              <td>{{ user.separationNote }}</td>
-              <td>{{ user.separationDate | date: 'dd-MM-yyyy' }}</td>
-              <td>
-                <button mat-icon-button (click)="employeeBack(user.id)"><mat-icon>keyboard_return</mat-icon> </button>
-                <button mat-icon-button (click)="editNote(user.id, user.empNo, user.name)">
-                  <mat-icon>edit_note</mat-icon>
-                </button>
-              </td>
-            </tr>
+    <div class="header-main-row">
+      <div class="header-brand">
+        <div class="header-icon-box">
+          <mat-icon>no_accounts</mat-icon>
+        </div>
+        <div class="header-titles">
+          <div class="title-with-pill">
+            <h1 class="page-title">Separated Employees</h1>
+            <span class="count-pill">{{ users.length }} Archived</span>
+          </div>
+          <p class="page-subtitle">
+            Registry of resigned, retired, and offboarded staff members with their separation records.
+          </p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Statistics Cards -->
+  <section class="metrics-grid">
+    <div class="metric-card card-total">
+      <div class="metric-icon-box icon-red">
+        <mat-icon>person_remove</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Total Separated</span>
+        <div class="metric-value">{{ totalSeparatedCount }}</div>
+        <span class="metric-desc">Lifetime employee exits</span>
+      </div>
+    </div>
+
+    <div class="metric-card card-recent">
+      <div class="metric-icon-box icon-amber">
+        <mat-icon>history_toggle_off</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Recent Exits (30 Days)</span>
+        <div class="metric-value">{{ recentSeparatedCount }}</div>
+        <span class="metric-desc">Offboarded this past month</span>
+      </div>
+    </div>
+
+    <div class="metric-card card-reason">
+      <div class="metric-icon-box icon-purple">
+        <mat-icon>pie_chart</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Top Reason</span>
+        <div class="metric-value reason-val">{{ mostCommonReason }}</div>
+        <span class="metric-desc">Primary departure category</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Search & Filter Control Bar -->
+  <section class="controls-card">
+    <div class="search-input-wrap">
+      <mat-icon class="search-prefix-icon">search</mat-icon>
+      <input
+        type="text"
+        class="modern-search-input"
+        placeholder="Search by employee name, ID, role, or note remarks..."
+        [(ngModel)]="searchQuery"
+        (input)="applyFilters()"
+      />
+      @if (searchQuery) {
+        <button type="button" class="clear-search-btn" (click)="clearSearch()" matTooltip="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="filter-controls-group">
+      <!-- Reason Category Filter -->
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Separation Reason</mat-label>
+        <mat-icon matPrefix class="field-icon">category</mat-icon>
+        <mat-select [(ngModel)]="selectedReasonFilter" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Reasons</mat-option>
+          <mat-option value="resignation">Resignation</mat-option>
+          <mat-option value="retirement">Retirement</mat-option>
+          <mat-option value="contract">Contract End</mat-option>
+          <mat-option value="mutual">Mutual Agreement</mat-option>
+          <mat-option value="career">Career Break</mat-option>
+          <mat-option value="termination">Termination</mat-option>
+          <mat-option value="health">Health Reasons</mat-option>
+          <mat-option value="other">Other / Custom</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Sort Filter -->
+      <mat-form-field appearance="outline" class="filter-field sort-field">
+        <mat-label>Sort By</mat-label>
+        <mat-icon matPrefix class="field-icon">sort</mat-icon>
+        <mat-select [(ngModel)]="sortBy" (selectionChange)="applyFilters()">
+          <mat-option value="date-desc">Exit Date (Newest first)</mat-option>
+          <mat-option value="date-asc">Exit Date (Oldest first)</mat-option>
+          <mat-option value="name-asc">Name (A to Z)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- View Mode Toggle -->
+      <mat-button-toggle-group [(ngModel)]="viewMode" appearance="legacy" class="view-toggle-group" hideSingleSelectionIndicator="true">
+        <mat-button-toggle value="table" matTooltip="Table view">
+          <mat-icon>view_list</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle value="grid" matTooltip="Grid cards view">
+          <mat-icon>grid_view</mat-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </section>
+
+  <!-- Main Content: Table or Grid -->
+  <main class="content-wrapper">
+    <!-- Loading State -->
+    @if (isLoading) {
+      <div class="empty-state-box">
+        <div class="spinner-container">
+          <mat-icon class="loading-spin-icon">sync</mat-icon>
+        </div>
+        <h3 class="state-title">Loading separated staff...</h3>
+        <p class="state-subtitle">Retrieving archived offboarding records</p>
+      </div>
+    }
+
+    <!-- No Records Found State -->
+    @else if (filteredUsers.length === 0) {
+      <div class="empty-state-box">
+        <div class="empty-icon-circle">
+          <mat-icon>{{ searchQuery || selectedReasonFilter !== 'all' ? 'search_off' : 'verified_user' }}</mat-icon>
+        </div>
+        <h3 class="state-title">
+          {{ searchQuery || selectedReasonFilter !== 'all' ? 'No matching records found' : 'No separated employees' }}
+        </h3>
+        <p class="state-subtitle">
+          @if (searchQuery || selectedReasonFilter !== 'all') {
+            Try adjusting your search criteria or clearing filters to find employees.
+          } @else {
+            All employees in the database are currently active.
           }
+        </p>
+        @if (searchQuery || selectedReasonFilter !== 'all') {
+          <button mat-stroked-button color="primary" class="reset-btn" (click)="clearSearch(); selectedReasonFilter = 'all'; applyFilters()">
+            Clear Filters
+          </button>
+        }
+      </div>
+    }
 
-        </tbody>
-      </table>
-      <!-- <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageIndex]="currentPage - 1"
-       (page)="onPageChange($event)" [pageSizeOptions]="[10, 20,30,40,50,100]">
-      </mat-paginator> -->
-    </section>
+    <!-- Table View -->
+    @else if (viewMode === 'table') {
+      <div class="table-card">
+        <div class="table-scroll-wrap">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="col-emp">Employee</th>
+                <th class="col-role">Designation / Role</th>
+                <th class="col-reason">Exit Category & Remarks</th>
+                <th class="col-date">Separation Date</th>
+                <th class="col-actions">Manage</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of paginatedUsers; track user.id) {
+                @let reasonInfo = getReasonInfo(user.separationNote);
+                <tr class="table-row">
+                  <!-- Employee Identity -->
+                  <td class="col-emp">
+                    <div class="emp-profile-row clickable-profile" (click)="viewEmployee(user.id)" matTooltip="Click to view complete employee profile">
+                      <div class="avatar-box">
+                        {{ getInitials(user.name) }}
+                      </div>
+                      <div class="emp-details">
+                        <span class="emp-name link-style">{{ user.name }}</span>
+                        <div class="emp-subline">
+                          <span class="emp-id-chip">#{{ user.empNo }}</span>
+                          @if (user.email) {
+                            <span class="emp-bullet">•</span>
+                            <span class="emp-email">{{ user.email }}</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Role / Position -->
+                  <td class="col-role">
+                    <span class="role-chip">
+                      <mat-icon class="role-icon">badge</mat-icon>
+                      <span>{{ user.userPosition?.designation?.designationName || user.role?.roleName || 'Employee' }}</span>
+                    </span>
+                  </td>
+
+                  <!-- Reason & Notes -->
+                  <td class="col-reason">
+                    <div class="reason-stack">
+                      <span class="reason-pill" [ngClass]="reasonInfo.badgeClass">
+                        {{ reasonInfo.reason }}
+                      </span>
+                      <p class="note-snippet" [matTooltip]="reasonInfo.text" matTooltipPosition="above">
+                        {{ reasonInfo.text }}
+                      </p>
+                    </div>
+                  </td>
+
+                  <!-- Exit Date -->
+                  <td class="col-date">
+                    <div class="date-stack">
+                      <div class="date-row">
+                        <mat-icon class="date-icon">event</mat-icon>
+                        <span class="date-val">
+                          {{ user.separationDate ? (user.separationDate | date: 'dd MMM yyyy') : 'Not specified' }}
+                        </span>
+                      </div>
+                      @if (user.separationDate) {
+                        <span class="time-ago-tag">{{ getTimeAgo(user.separationDate) }}</span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="col-actions">
+                    <div class="actions-row">
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        class="btn-action-view"
+                        (click)="viewEmployee(user.id)"
+                        matTooltip="View complete employee profile & records"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                        <span>View</span>
+                      </button>
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        class="btn-action-rejoin"
+                        (click)="employeeBack(user)"
+                        matTooltip="Rejoin / Reactivate employee access"
+                      >
+                        <mat-icon>replay</mat-icon>
+                        <span>Rejoin</span>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="btn-action-edit"
+                        (click)="editNote(user.id, user.empNo, user.name)"
+                        matTooltip="Edit separation date & notes"
+                      >
+                        <mat-icon>edit_note</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginator Footer -->
+        <mat-paginator
+          class="modern-paginator"
+          [length]="filteredUsers.length"
+          [pageSize]="pageSize"
+          [pageIndex]="currentPage - 1"
+          [pageSizeOptions]="pageSizeOptions"
+          (page)="onPageChange($event)"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    }
+
+    <!-- Grid Cards View -->
+    @else {
+      <div class="cards-grid">
+        @for (user of paginatedUsers; track user.id) {
+          @let reasonInfo = getReasonInfo(user.separationNote);
+          <div class="employee-card">
+            <div class="card-top-header">
+              <div class="avatar-box card-avatar">
+                {{ getInitials(user.name) }}
+              </div>
+              <span class="status-badge-separated">
+                <span class="dot"></span> Separated
+              </span>
+            </div>
+
+            <div class="card-main-info clickable-profile" (click)="viewEmployee(user.id)" matTooltip="Click to view full employee profile">
+              <h3 class="card-name link-style">{{ user.name }}</h3>
+              <div class="card-meta">
+                <span class="card-id">#{{ user.empNo }}</span>
+                <span class="card-bullet">•</span>
+                <span class="card-role">{{ user.userPosition?.designation?.designationName || user.role?.roleName || 'Employee' }}</span>
+              </div>
+            </div>
+
+            <div class="card-details-box">
+              <div class="detail-item">
+                <span class="detail-label">Exit Category</span>
+                <span class="reason-pill" [ngClass]="reasonInfo.badgeClass">
+                  {{ reasonInfo.reason }}
+                </span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Last Working Day</span>
+                <div class="detail-val-date">
+                  <mat-icon>event</mat-icon>
+                  <span>{{ user.separationDate ? (user.separationDate | date: 'dd MMM yyyy') : 'N/A' }}</span>
+                  <span class="sub-ago">({{ getTimeAgo(user.separationDate) }})</span>
+                </div>
+              </div>
+
+              <div class="detail-item full-width">
+                <span class="detail-label">Remarks</span>
+                <p class="card-note" [matTooltip]="reasonInfo.text">{{ reasonInfo.text }}</p>
+              </div>
+            </div>
+
+            <div class="card-actions-footer">
+              <button
+                mat-stroked-button
+                class="btn-card-view"
+                (click)="viewEmployee(user.id)"
+                matTooltip="View complete employee profile & records"
+              >
+                <mat-icon>visibility</mat-icon>
+                <span>View Details</span>
+              </button>
+              <button
+                mat-stroked-button
+                class="btn-card-rejoin"
+                (click)="employeeBack(user)"
+                matTooltip="Rejoin employee into active workforce"
+              >
+                <mat-icon>replay</mat-icon>
+                <span>Rejoin</span>
+              </button>
+              <button
+                mat-icon-button
+                class="btn-action-edit"
+                (click)="editNote(user.id, user.empNo, user.name)"
+                matTooltip="Edit separation notes"
+              >
+                <mat-icon>edit_note</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Paginator for Grid -->
+      <div class="grid-paginator-card">
+        <mat-paginator
+          class="modern-paginator"
+          [length]="filteredUsers.length"
+          [pageSize]="pageSize"
+          [pageIndex]="currentPage - 1"
+          [pageSizeOptions]="pageSizeOptions"
+          (page)="onPageChange($event)"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    }
   </main>
-</body>
-</html>
+</div>

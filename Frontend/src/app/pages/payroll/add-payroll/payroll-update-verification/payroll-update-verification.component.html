@@ -1,12 +1,90 @@
-<div class="dialog">
-    <div class="dialog-content">
-      <p><strong>{{dialogData.userName}}</strong>'s salary has been updated.</p>
-      <p><strong>Old Salary:</strong> {{dialogData.currentPay}}</p>
-      <p><strong>New Salary:</strong> {{dialogData.updated}}</p>
-      <div class="dialog-buttons">
-        <button class="ok-btn" (click)="onOkClick()">OK</button>
-        <button class="cancel-btn" (click)="onCancelClick()">Cancel</button>
+<div class="verification-modal-wrapper">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>price_change</mat-icon>
+      </div>
+      <div class="header-titles">
+        <h2 class="dialog-title">Confirm Salary Revision</h2>
+        <p class="dialog-subtitle">Verify the compensation adjustments before saving to records.</p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" type="button" (click)="onCancelClick()" matTooltip="Cancel revision">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Body -->
+  <div class="dialog-body">
+    <!-- Employee Meta Strip -->
+    <div class="employee-pill-box">
+      <div class="emp-avatar-circle">
+        {{ getInitials() }}
+      </div>
+      <div class="emp-info">
+        <span class="emp-name">{{ dialogData.userName || 'Employee' }}</span>
+        <span class="emp-action-desc">Salary structure modification</span>
+      </div>
+      <span class="revision-pill">
+        <span class="dot"></span> Revision
+      </span>
+    </div>
+
+    <!-- Salary Before vs After Transition Card -->
+    <div class="salary-comparison-card">
+      <!-- Old Salary -->
+      <div class="compare-side old-side">
+        <span class="compare-caption">Current Gross</span>
+        <span class="compare-amount">₹{{ (dialogData.currentPay || 0) | number:'1.0-0' }}</span>
+        <span class="compare-sub">Monthly Base</span>
+      </div>
+
+      <!-- Arrow & Increment Badge -->
+      <div class="compare-flow">
+        <div class="flow-icon-circle">
+          <mat-icon>trending_up</mat-icon>
+        </div>
+        @if (getSalaryDifference() !== 0) {
+          <div class="diff-badge" [class.negative]="getSalaryDifference() < 0">
+            @if (getSalaryDifference() > 0) {
+              <span>+₹{{ getSalaryDifference() | number:'1.0-0' }}</span>
+              <span class="diff-pct">(+{{ getPercentageChange() | number:'1.0-1' }}%)</span>
+            } @else {
+              <span>-₹{{ (-getSalaryDifference()) | number:'1.0-0' }}</span>
+              <span class="diff-pct">({{ getPercentageChange() | number:'1.0-1' }}%)</span>
+            }
+          </div>
+        } @else {
+          <span class="no-diff-tag">No Change</span>
+        }
+      </div>
+
+      <!-- New Salary -->
+      <div class="compare-side new-side">
+        <span class="compare-caption">Revised Gross</span>
+        <span class="compare-amount">₹{{ (dialogData.updated || 0) | number:'1.0-0' }}</span>
+        <span class="compare-sub">Updated Monthly</span>
+      </div>
+    </div>
+
+    <!-- Audit Information Callout -->
+    <div class="audit-callout-box">
+      <mat-icon class="audit-icon">info</mat-icon>
+      <div class="audit-text">
+        <strong>Audit Trail Notice:</strong> This change will update the active salary structure and log a new entry in the employee's compensation history log.
       </div>
     </div>
   </div>
-  
+
+  <!-- Dialog Footer Actions -->
+  <div class="dialog-actions">
+    <button mat-button type="button" class="btn-cancel" (click)="onCancelClick()">
+      Cancel
+    </button>
+    <button mat-raised-button type="button" class="btn-confirm" (click)="onOkClick()">
+      <mat-icon>check_circle</mat-icon>
+      <span>Confirm & Update</span>
+    </button>
+  </div>
+</div>

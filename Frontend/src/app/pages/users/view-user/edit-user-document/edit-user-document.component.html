@@ -1,53 +1,113 @@
+<div class="edit-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge doc-badge">
+        <mat-icon>folder_shared</mat-icon>
+      </div>
+      <div class="header-title-box">
+        <h2 class="dialog-title">Manage Employee Documents</h2>
+        <p class="dialog-subtitle">Upload, preview and manage employee certificates & documents</p>
+      </div>
+    </div>
+    <button mat-icon-button class="dialog-close-btn" (click)="dialogRef?.close()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-<form [formGroup]="mainForm" enctype="multipart/form-data">
-    <mat-card style="width: 100%; margin-left: 15px;">
-      <mat-card-header><mat-card-title>Documents</mat-card-title></mat-card-header>
-      <div fxLayout="column" class="form-field-outer">
-        <div formArrayName="uploadForms">
-          <div *ngFor="let uploadForm of doc().controls; let i = index;" [formGroupName]="i" class="form-instance">
-            <div class="row" style="margin-top: 20px;">
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label>Document Type</mat-label>
-                  <input matInput formControlName="docName">
-                </mat-form-field>
+  <!-- Dialog Form Body -->
+  <form [formGroup]="mainForm" (ngSubmit)="$event.preventDefault()" enctype="multipart/form-data">
+    <div class="dialog-body-scrollable">
+      
+      <div formArrayName="uploadForms" class="documents-list-container">
+        @for(uploadForm of doc().controls; track $index; let i = $index){
+          <div [formGroupName]="i" class="document-entry-card">
+            
+            <div class="entry-card-header">
+              <div class="entry-title-box">
+                <span class="entry-index-chip">#{{ i + 1 }}</span>
+                <span class="entry-title">{{ uploadForm.get('docName')?.value || 'New Document' }}</span>
               </div>
-    
-              @if(!imageUrl[i]){
-                <div class="col">
-                  <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event, i)">
-                  <mat-icon (click)="fileInput.click()">cloud_upload</mat-icon>
-                  <p class="file-upload-text" (click)="fileInput.click()">Browse file to upload</p>
-                </div>
-              }
-              @else{
-                <div class="col">
-                  <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                    <iframe [src]="imageUrl[i] | safe" width="100%" height="300px"></iframe>
-                    <mat-icon style="color: red;" (click)="onDeleteImage(i)">delete</mat-icon>
-                  </div>
-                </div>
-              }
-              <div class="col">
-                <button mat-raised-button color="primary" type="button" (click)="onSubmit(i)" 
-                [disabled]="uploadForm.pristine || !uploadForm.valid"> {{ editStatus[i] ? 'Update' : 'Save' }}
-                </button>
-                <button mat-icon-button color="warn" (click)="removeData(i)">
-                  <mat-icon>remove_circle</mat-icon>
+              <div class="entry-actions">
+                <button type="button" mat-icon-button class="delete-entry-btn" (click)="removeData(i)" matTooltip="Remove this document slot">
+                  <mat-icon>delete_outline</mat-icon>
                 </button>
               </div>
             </div>
+
+            <div class="entry-card-body">
+              <div class="doc-input-row">
+                <mat-form-field appearance="outline" class="w-100">
+                  <mat-label>Document Name / Type</mat-label>
+                  <input matInput formControlName="docName" placeholder="e.g. Degree Certificate, Passport Copy, Resume">
+                </mat-form-field>
+              </div>
+
+              <!-- Upload Drop Area / Preview -->
+              @if(!imageUrl[i]){
+                <div class="upload-dropzone" (click)="fileInput.click()">
+                  <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event, i)" accept=".pdf,.jpeg,.jpg,.png">
+                  <div class="dropzone-icon-box">
+                    <mat-icon>cloud_upload</mat-icon>
+                  </div>
+                  <div class="dropzone-text">
+                    <span class="primary-text">Click to browse file to upload</span>
+                    <span class="sub-text">Supported formats: PDF, JPEG, JPG, PNG</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="preview-box-container">
+                  <div class="preview-header">
+                    <span class="preview-title">Document Preview</span>
+                    <button type="button" mat-button class="delete-file-btn" (click)="onDeleteImage(i)">
+                      <mat-icon>delete</mat-icon>
+                      <span>Delete & Re-upload</span>
+                    </button>
+                  </div>
+                  <div class="preview-frame-wrapper">
+                    <iframe [src]="imageUrl[i] | safe" class="embedded-preview-frame" title="Document Preview"></iframe>
+                  </div>
+                </div>
+              }
+
+              <!-- Row Action Buttons -->
+              <div class="entry-footer-actions">
+                <button
+                  type="button"
+                  mat-flat-button
+                  class="save-entry-btn"
+                  (click)="onSubmit(i)"
+                  [disabled]="uploadForm.pristine || !uploadForm.valid"
+                >
+                  <mat-icon>{{ editStatus[i] ? 'check_circle' : 'save' }}</mat-icon>
+                  <span>{{ editStatus[i] ? 'Update Document' : 'Save Document' }}</span>
+                </button>
+              </div>
+            </div>
+
           </div>
-        </div>
-        <button mat-raised-button color="primary" (click)="addDoc()"  style="margin-left: 10px; "
-        [disabled]="!isAllFormsValidAndSaved()">New Line</button>
-        <button mat-raised-button color="warn" (click)="completeForm()"
-        [disabled]="!isAllFormsValidAndSaved()">Complete</button>
-        <button mat-raised-button color="primary" (click)="this.dialogRef?.close();" style="margin-left: 10px;"
-          [disabled]="isAnyFormClicked()">
-          Exit
+        }
+      </div>
+
+      <!-- Add New Document Button -->
+      <div class="add-document-bar">
+        <button type="button" mat-stroked-button class="btn-add-line" (click)="addDoc()">
+          <mat-icon>add_circle_outline</mat-icon>
+          <span>Add Another Document</span>
         </button>
       </div>
-    </mat-card>
+
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-footer-actions">
+      <button type="button" mat-button class="btn-cancel" (click)="dialogRef?.close()">
+        Close
+      </button>
+      <button type="button" mat-flat-button class="btn-save" (click)="completeForm()">
+        <mat-icon>done_all</mat-icon>
+        <span>Finish & Done</span>
+      </button>
+    </div>
   </form>
-<!-- </div> -->
+</div>

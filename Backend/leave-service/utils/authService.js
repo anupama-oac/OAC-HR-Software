@@ -25,6 +25,18 @@ const authService = {
     }
   },
 
+  async getConfirmedEmployees(authorization) {
+    const response = await axios.get(`${AUTH_SERVICE_URL}/user/confirmed`, {
+      headers: { Authorization: authorization }
+    });
+
+    if (!Array.isArray(response.data)) {
+      throw new Error('Auth Service returned an invalid confirmed employee list.');
+    }
+
+    return response.data;
+  },
+
   /**
    * Get HR Administrator details
    */

@@ -19,14 +19,22 @@ anService = inject(AnnouncementsService);
   }
 
   annSub!: Subscription;
+  dismissedSub?: Subscription;
   ann: Announcement[] = [];
   getBirthdays(){
+    this.annSub?.unsubscribe();
     this.annSub = this.anService.getAnnouncement().subscribe(res=>{
-      this.ann = res;
-    })
+      this.ann = (res || []).filter(item => !this.anService.isDismissed(item.id));
+    });
+
+    this.dismissedSub?.unsubscribe();
+    this.dismissedSub = this.anService.dismissedChanged$.subscribe(() => {
+      this.getBirthdays();
+    });
   }
 
   ngOnDestroy(): void {
     this.annSub?.unsubscribe();
+    this.dismissedSub?.unsubscribe();
   }
 }

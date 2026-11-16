@@ -14,6 +14,12 @@ const Notification = require('./notification');
 const UserAsset = require('./userAsset');
 const UserQualification = require('./userQualification');
 const UserNominee = require('./userNominee');
+const CompanyAsset = require('./companyAsset');
+const Asset = require('./asset');
+const AssetDetail = require('./assetDetail');
+const Announcement = require('./announcement');
+const CelebrationWish = require('./celebrationWish');
+const { Team, TeamLeader, TeamMember } = require('./team');
 
 
 // --- Organizational Associations ---
@@ -32,7 +38,7 @@ UserPosition.belongsTo(Designation, { foreignKey: 'designationId', as: 'designat
 // ----------------------------------------------------
 
 // Reporting Manager Self-Association (Using reportingMangerId)
-User.hasMany(UserPersonal, { foreignKey: 'reportingMangerId', as: 'Subordinates' });
+User.hasMany(UserPersonal, { foreignKey: 'reportingMangerId', as: 'Subordinates', constraints: false });
 UserPersonal.belongsTo(User, { foreignKey: 'reportingMangerId', as: 'ReportingManager' });
 
 // Notifications
@@ -66,10 +72,28 @@ profileModels.forEach(({ model, as }) => {
 
 // --- Records & History (One-to-Many) ---
 User.hasMany(Promotion, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Promotion.belongsTo(User, { foreignKey: 'userId' });
+Promotion.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Promotion.belongsTo(Designation, { foreignKey: 'designationId', as: 'Designation' });
+Promotion.belongsTo(Designation, { foreignKey: 'oldDesignationId', as: 'oldDesignation' });
+Designation.hasMany(Promotion, { foreignKey: 'designationId' });
+Designation.hasMany(Promotion, { foreignKey: 'oldDesignationId' });
 
 User.hasMany(UserDocument, { foreignKey: 'userId', onDelete: 'CASCADE' });
 UserDocument.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(CelebrationWish, { foreignKey: 'userId', as: 'celebrationWishes', onDelete: 'CASCADE' });
+CelebrationWish.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// --- Team & Membership Associations ---
+Team.hasMany(TeamLeader, { foreignKey: 'teamId', onDelete: 'CASCADE' });
+TeamLeader.belongsTo(Team, { foreignKey: 'teamId' });
+TeamLeader.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(TeamLeader, { foreignKey: 'userId' });
+
+Team.hasMany(TeamMember, { foreignKey: 'teamId', onDelete: 'CASCADE' });
+TeamMember.belongsTo(Team, { foreignKey: 'teamId' });
+TeamMember.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(TeamMember, { foreignKey: 'userId' });
 
 module.exports = {
   sequelize,
@@ -85,5 +109,13 @@ module.exports = {
   Notification,
   UserAsset,
   UserQualification,
-  UserNominee
+  UserNominee,
+  CompanyAsset,
+  Asset,
+  AssetDetail,
+  Announcement,
+  CelebrationWish,
+  Team,
+  TeamLeader,
+  TeamMember
 };

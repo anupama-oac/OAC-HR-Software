@@ -1,126 +1,458 @@
+<div class="monthend-page-container">
+  <!-- Executive Header Banner -->
+  <div class="executive-header">
+    <div class="header-left">
+      <div class="breadcrumb-tag">
+        <mat-icon>account_balance</mat-icon>
+        <span>Payroll Operations</span>
+        <span class="separator">/</span>
+        <span class="active-crumb">Month-End Processing</span>
+      </div>
+      <h1 class="page-title">
+        Month-End Salary Processing
+        <span class="period-pill">
+          <mat-icon>calendar_today</mat-icon>
+          {{ month }} {{ currentYear }} • {{ daysInMonth }} Days
+        </span>
+      </h1>
+      <p class="page-subtitle">
+        Review employee attendance, verify allowances & deductions, calculate live LOP, and disburse final salaries.
+      </p>
+    </div>
 
-<div class="payroll-header">
-    <h2>Monthend Calculation - @if (updateStatus) {Update} 
-        {{month}} - {{daysInMonth}} days
-        @if (approval){- Sent for Approval} 
-        @if (isApproved){- Approved} 
-        @if (isRejected) {- Rejected}
-        @if( isLocked ) {- Payroll Completed}
-    </h2>
-    <button mat-mini-fab color="primary" type="button" aria-label="Example icon button with a home icon" 
-        class="d-block mr-0 ml-auto" (click)="downloadExcelOnly()" style="margin-left: auto; ">
-    <mat-icon>download</mat-icon>
-  </button>
-</div>
+    <div class="header-right">
+      <div class="workflow-status-badge" [ngClass]="getStatusBadge().class">
+        <mat-icon>{{ getStatusBadge().icon }}</mat-icon>
+        <span>{{ getStatusBadge().label }}</span>
+      </div>
 
-<form [formGroup]="payrollForm">
-    <mat-form-field appearance="fill">
-        <mat-label>Select Year</mat-label>
-        <mat-select #yearSelect [(value)]="currentYear" (selectionChange)="onYearChange( yearSelect.value )">
+      <button mat-stroked-button class="btn-export-excel" type="button" (click)="downloadExcelOnly()" matTooltip="Download Excel Spreadsheet Report">
+        <mat-icon>file_download</mat-icon>
+        <span>Export Excel</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 Executive KPI Metric Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card card-headcount">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>groups</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Processed Employees</span>
+        <h3 class="kpi-value">{{ totalHeadcount }}</h3>
+        <span class="kpi-hint">Total in {{ month }} cycle</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-gross">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Gross Earnings</span>
+        <h3 class="kpi-value">₹{{ totalGrossPayout | number:'1.2-2' }}</h3>
+        <span class="kpi-hint">Allowances, OT & Incentives</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-deductions">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>trending_down</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Deductions</span>
+        <h3 class="kpi-value">₹{{ totalDeductions | number:'1.2-2' }}</h3>
+        <span class="kpi-hint">PF, ESI, TDS, LOP & Advance</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-net">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Net Disbursement</span>
+        <h3 class="kpi-value">₹{{ totalNetPayout | number:'1.2-2' }}</h3>
+        <span class="kpi-hint">Final Net Payable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control & Filter Toolbar -->
+  <div class="filter-toolbar">
+    <div class="period-selectors">
+      <mat-form-field appearance="outline" class="selector-field">
+        <mat-label>Pay Year</mat-label>
+        <mat-select #yearSelect [(value)]="currentYear" (selectionChange)="onYearChange(yearSelect.value)">
           <mat-option *ngFor="let year of years" [value]="year">{{ year }}</mat-option>
         </mat-select>
-    </mat-form-field>
+        <mat-icon matPrefix>date_range</mat-icon>
+      </mat-form-field>
 
-    <mat-form-field appearance="fill">
-        <mat-label>Select Month</mat-label>
-        <mat-select #id [(value)]="selectedMonth" (selectionChange)="onMonthYearChange(id.value)">
-          <mat-option *ngFor="let month of months" [value]="month.value">{{ month.name }}</mat-option>
+      <mat-form-field appearance="outline" class="selector-field">
+        <mat-label>Pay Month</mat-label>
+        <mat-select #monthSelect [(value)]="selectedMonth" (selectionChange)="onMonthYearChange(monthSelect.value)">
+          <mat-option *ngFor="let m of months" [value]="m.value">{{ m.name }}</mat-option>
         </mat-select>
-    </mat-form-field>
+        <mat-icon matPrefix>event</mat-icon>
+      </mat-form-field>
+    </div>
 
-    @if(doc().controls && doc().controls.length){
-        <table formArrayName="payrolls">
-            <tr>
-                <th rowspan="2">Employee Name</th>
-                <th rowspan="2">Employee ID</th>
-                <th rowspan="2">PerDay</th>
-                @if(month === 'January'){
-                    <th colspan="12">Earnings</th>
-                }@else {
-                    <th colspan="8">Earnings</th>
-                }
-                <th colspan="6">Deductions</th>
-                <th>Net Salary</th>
-            </tr>
-
-            <tr>
-                <th class="earnings">Basic (₹)</th>
-                <th class="earnings">HRA (₹)</th>
-                <th class="earnings">CA(₹)</th>
-                <th class="earnings">LTA</th>
-                <th class="earnings">SA</th>
-                <th class="earnings">OT</th>
-                <th class="earnings">Incentive</th>
-                <th class="earnings">PayOut</th>
-                @if(month === 'January'){
-                    <th class="earnings" colspan="4">LeaveBalance</th>
-                }
-                <th class="deductions">PF</th>
-                <th class="deductions">ESI</th>
-                <th class="deductions">PT</th>
-                <th class="deductions">TDS</th>
-                <th class="deductions">LOP</th>
-                <th class="deductions">Advance</th>
-                <th>ToPay</th>
-            </tr>
-            @for (payroll of doc().controls; track $index; let i = $index) {
-                <tr [formGroupName]="i">
-                    <td><input type="text" placeholder="Employee" formControlName="userName"></td>
-                    <td><input type="text" placeholder="EmployeeId" formControlName="employeeId"></td>
-                    <td><input type="text" placeholder="PerDay" formControlName="perDay"></td>
-                    <td><input type="number" class="no-spinner"placeholder="Basic" formControlName="basic"></td>
-                    <td><input type="number" class="no-spinner"placeholder="HRA" formControlName="hra"></td>
-                    <td><input type="number" class="no-spinner"placeholder="CA" formControlName="conveyanceAllowance"></td>
-                    <td><input type="number" class="no-spinner"placeholder="LTA" formControlName="lta"></td>
-                    <td><input type="number" class="no-spinner"placeholder="SA" formControlName="specialAllowance"></td>
-                    <td><input type="number" class="no-spinner"placeholder="OT" formControlName="ot"></td>
-                    <td><input type="number" class="no-spinner"placeholder="Incentive" formControlName="incentive"></td>
-                    <td><input type="number" class="no-spinner"placeholder="PayOut" formControlName="payOut"></td>
-                    @if(month === 'January'){
-                        <td><input type="number" class="no-spinner"placeholder="CL" formControlName="cl" style="width: 25px;"></td>
-                        <td><input type="number" class="no-spinner"placeholder="CombOff" formControlName="combOff" style="width: 25px;"></td>
-                        <td><input type="number" class="no-spinner"placeholder="LeaveEncashment" formControlName="leaveEncashment" style="width: 25px;"></td>
-                        <td><input type="number" class="no-spinner"placeholder="LeaveEncashmentAmount" formControlName="leaveEncashmentAmount"></td>
-                    }
-                    <td><input type="number" class="no-spinner"placeholder="PF" formControlName="pfDeduction"></td>
-                    <td><input type="number" class="no-spinner"placeholder="ESI" formControlName="esi"></td>
-                    <td><input type="number" class="no-spinner"placeholder="PT" formControlName="incentiveDeduction"></td>
-                    <td><input type="number" class="no-spinner"placeholder="TDS" formControlName="tds"></td>
-                    <td><input type="number" class="no-spinner"placeholder="LeaveDays" formControlName="leaveDays"></td>
-                    <td><input type="number" class="no-spinner"placeholder="Advance" formControlName="advanceAmount"></td>
-                    <td>
-                        <input type="number" class="no-spinner"[value]="payroll.get('toPay')?.value" disabled>
-                    </td>
-                </tr>
-            }
-        </table>
-    }<br>
-    @if(!isLocked){
-        <button mat-raised-button type="button" (click)="savePayroll()" class="calculate-btn" color="primary"
-        [disabled]="approval">
-            @if(updateStatus || isRejected || isApproved){
-                Update
-            }@else{
-                Save
-            }
-            Payroll
-        </button>&nbsp;&nbsp;
-        @if(!isPreviousMonth){
-            <button mat-raised-button type="button" (click)="downloadExcel()" class="calculate-btn" color="primary"
-            [disabled]="!isSave || approval">
-               Send For Verifictaion
-            </button>&nbsp;&nbsp;
+    <div class="search-and-counts">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search by Employee Name or ID..."
+          [(ngModel)]="searchQuery"
+          class="search-input"
+        />
+        @if (searchQuery) {
+          <button type="button" class="clear-search-btn" (click)="searchQuery = ''">
+            <mat-icon>close</mat-icon>
+          </button>
         }
-        <button mat-raised-button type="button" (click)="lockData()" class="calculate-btn" color="primary"
-            [disabled]="!(isApproved && payrollControls.pristine) && !(isPreviousMonth && updateStatus)">
-            Lock And Send
-        </button>
+      </div>
+
+      <div class="count-pill">
+        Showing <strong>{{ matchingCount }}</strong> of {{ totalHeadcount }} Staff
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Payroll Grid / Form -->
+  <form [formGroup]="payrollForm">
+    @if (doc().controls && doc().controls.length) {
+      <div class="table-card">
+        <div class="table-scroll-container">
+          <table formArrayName="payrolls" class="salary-grid-table">
+            <!-- Tier 1 Group Header -->
+            <thead>
+              <tr class="header-group-row">
+                <th rowspan="2" class="sticky-col col-employee">Employee Details</th>
+                <th rowspan="2" class="col-rate">Per Day (₹)</th>
+
+                <!-- Earnings Group -->
+                @if (month === 'January') {
+                  <th colspan="12" class="group-header group-earnings">
+                    <div class="group-header-inner">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      <span>Gross Earnings & Annual Encashment</span>
+                    </div>
+                  </th>
+                } @else {
+                  <th colspan="8" class="group-header group-earnings">
+                    <div class="group-header-inner">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      <span>Gross Earnings (Allowances & Additions)</span>
+                    </div>
+                  </th>
+                }
+
+                <!-- Deductions Group -->
+                <th colspan="6" class="group-header group-deductions">
+                  <div class="group-header-inner">
+                    <mat-icon>remove_circle_outline</mat-icon>
+                    <span>Deductions (Statutory, LOP & Advance)</span>
+                  </div>
+                </th>
+
+                <!-- Net Salary Group -->
+                <th rowspan="2" class="group-header group-net">Net Payable (₹)</th>
+              </tr>
+
+              <!-- Tier 2 Columns -->
+              <tr class="header-columns-row">
+                <!-- Earnings Columns -->
+                <th class="th-earnings">Basic</th>
+                <th class="th-earnings">HRA</th>
+                <th class="th-earnings">CA</th>
+                <th class="th-earnings">LTA</th>
+                <th class="th-earnings">SA</th>
+                <th class="th-earnings">OT</th>
+                <th class="th-earnings">Incentive</th>
+                <th class="th-earnings">PayOut</th>
+                @if (month === 'January') {
+                  <th class="th-earnings th-encash" matTooltip="Casual Leave Balance">CL</th>
+                  <th class="th-earnings th-encash" matTooltip="Comp Off Balance">CompOff</th>
+                  <th class="th-earnings th-encash" matTooltip="Leave Encashment Days">Days</th>
+                  <th class="th-earnings th-encash" matTooltip="Leave Encashment Amount">Encash ₹</th>
+                }
+
+                <!-- Deductions Columns -->
+                <th class="th-deductions">PF</th>
+                <th class="th-deductions">ESI</th>
+                <th class="th-deductions">PT</th>
+                <th class="th-deductions">TDS</th>
+                <th class="th-deductions" matTooltip="Loss of Pay (Leave Days & Deduction)">LOP Days</th>
+                <th class="th-deductions" matTooltip="Advance Salary Recovery EMI">Advance</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (payroll of doc().controls; track $index; let i = $index) {
+                @if (isRowMatching(payroll, searchQuery)) {
+                  <tr [formGroupName]="i" class="salary-data-row">
+                    <!-- Sticky Employee Info Column -->
+                    <td class="sticky-col col-employee-cell">
+                      <div class="employee-cell-content">
+                        <div class="employee-avatar">
+                          {{ getInitials(payroll.get('userName')?.value) }}
+                        </div>
+                        <div class="employee-meta">
+                          <input
+                            type="text"
+                            formControlName="userName"
+                            class="grid-input emp-name"
+                            placeholder="Employee Name"
+                            title="{{ payroll.get('userName')?.value }}"
+                          />
+                          <span class="emp-badge">
+                            <mat-icon>badge</mat-icon>
+                            <input
+                              type="text"
+                              formControlName="employeeId"
+                              class="emp-id-input"
+                              placeholder="EMP ID"
+                            />
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Per Day Rate (Calculated / Readonly) -->
+                    <td class="cell-rate">
+                      <input
+                        type="text"
+                        formControlName="perDay"
+                        class="grid-input readonly-input text-right"
+                        readonly
+                        matTooltip="Per day rate based on Gross ÷ Days in Month"
+                      />
+                    </td>
+
+                    <!-- Earnings Cells -->
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="basic" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="hra" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="conveyanceAllowance" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="lta" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="specialAllowance" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="ot" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="incentive" />
+                    </td>
+                    <td class="cell-earning">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="payOut" />
+                    </td>
+
+                    <!-- January Encashment Fields -->
+                    @if (month === 'January') {
+                      <td class="cell-earning cell-encash">
+                        <input type="number" class="grid-input no-spinner text-right compact-input" formControlName="cl" />
+                      </td>
+                      <td class="cell-earning cell-encash">
+                        <input type="number" class="grid-input no-spinner text-right compact-input" formControlName="combOff" />
+                      </td>
+                      <td class="cell-earning cell-encash">
+                        <input type="number" class="grid-input no-spinner text-right compact-input" formControlName="leaveEncashment" />
+                      </td>
+                      <td class="cell-earning cell-encash">
+                        <input type="number" class="grid-input no-spinner text-right" formControlName="leaveEncashmentAmount" />
+                      </td>
+                    }
+
+                    <!-- Deductions Cells -->
+                    <td class="cell-deduction">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="pfDeduction" />
+                    </td>
+                    <td class="cell-deduction">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="esi" />
+                    </td>
+                    <td class="cell-deduction">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="incentiveDeduction" matTooltip="Profession Tax / Other Deduction" />
+                    </td>
+                    <td class="cell-deduction">
+                      <input type="number" class="grid-input no-spinner text-right" formControlName="tds" />
+                    </td>
+                    <td class="cell-deduction cell-lop">
+                      <div class="lop-cell-wrapper">
+                        <input
+                          type="number"
+                          class="grid-input no-spinner text-right lop-input"
+                          formControlName="leaveDays"
+                          matTooltip="Approved LOP Days for the month"
+                        />
+                        @if (payroll.get('leaveDeduction')?.value > 0) {
+                          <span class="lop-deduction-hint" matTooltip="LOP Deduction Amount">
+                            -₹{{ payroll.get('leaveDeduction')?.value | number:'1.0-0' }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="cell-deduction cell-advance">
+                      <input
+                        type="number"
+                        class="grid-input no-spinner text-right"
+                        formControlName="advanceAmount"
+                        matTooltip="Advance Salary Monthly EMI"
+                      />
+                    </td>
+
+                    <!-- Net Salary (ToPay) -->
+                    <td class="cell-net">
+                      <div class="net-pay-pill">
+                        ₹{{ payroll.get('toPay')?.value | number:'1.2-2' }}
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+
+            <!-- Dynamic Grand Totals Footer -->
+            <tfoot>
+              <tr class="totals-row">
+                <td class="sticky-col col-employee-totals">
+                  <div class="totals-label">
+                    <mat-icon>functions</mat-icon>
+                    <span>GRAND TOTALS ({{ matchingCount }})</span>
+                  </div>
+                </td>
+                <td class="cell-rate text-right">--</td>
+
+                <!-- Earnings Totals -->
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('basic') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('hra') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('conveyanceAllowance') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('lta') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('specialAllowance') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('ot') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('incentive') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-earning">₹{{ getColumnTotal('payOut') | number:'1.0-0' }}</td>
+                @if (month === 'January') {
+                  <td class="text-right total-cell-earning">--</td>
+                  <td class="text-right total-cell-earning">--</td>
+                  <td class="text-right total-cell-earning">{{ getColumnTotal('leaveEncashment') }}</td>
+                  <td class="text-right total-cell-earning">₹{{ getColumnTotal('leaveEncashmentAmount') | number:'1.0-0' }}</td>
+                }
+
+                <!-- Deductions Totals -->
+                <td class="text-right total-cell-deduction">₹{{ getColumnTotal('pfDeduction') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-deduction">₹{{ getColumnTotal('esi') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-deduction">₹{{ getColumnTotal('incentiveDeduction') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-deduction">₹{{ getColumnTotal('tds') | number:'1.0-0' }}</td>
+                <td class="text-right total-cell-deduction">{{ getColumnTotal('leaveDays') }}d</td>
+                <td class="text-right total-cell-deduction">₹{{ getColumnTotal('advanceAmount') | number:'1.0-0' }}</td>
+
+                <!-- Net Total -->
+                <td class="total-cell-net text-right">
+                  <div class="grand-net-pill">
+                    ₹{{ totalNetPayout | number:'1.2-2' }}
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <!-- Modern Empty State -->
+      <div class="empty-state-card">
+        <div class="empty-icon-circle">
+          <mat-icon>receipt_long</mat-icon>
+        </div>
+        <h3>No Payroll Records for {{ month }} {{ currentYear }}</h3>
+        <p>
+          Select a different month or year from the toolbar above to view existing records, or contact HR administration if salary structures have not yet been assigned.
+        </p>
+      </div>
     }
 
-</form>
+    <!-- Bottom Action Dock -->
+    @if (doc().controls && doc().controls.length && !isLocked) {
+      <div class="workflow-actions-bar">
+        <div class="actions-meta">
+          <mat-icon class="meta-icon">info</mat-icon>
+          <span>
+            Processing batch for <strong>{{ month }} {{ currentYear }}</strong> &bull;
+            <strong>{{ totalHeadcount }}</strong> Staff members &bull;
+            Net Payable: <strong class="net-highlight">₹{{ totalNetPayout | number:'1.2-2' }}</strong>
+          </span>
+        </div>
 
-@if(isLoading) {
-    <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
-        <mat-spinner color="primary"></mat-spinner>
+        <div class="actions-buttons">
+          <!-- Save Draft / Update Button -->
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="savePayroll()"
+            class="btn-action btn-save"
+            [disabled]="approval"
+          >
+            <mat-icon>save</mat-icon>
+            <span>
+              @if (updateStatus || isRejected || isApproved) {
+                Update Payroll Draft
+              } @else {
+                Save Payroll Draft
+              }
+            </span>
+          </button>
+
+          <!-- Send for Verification Button -->
+          @if (!isPreviousMonth) {
+            <button
+              mat-flat-button
+              type="button"
+              (click)="downloadExcel()"
+              class="btn-action btn-verify"
+              [disabled]="!isSave || approval"
+              matTooltip="Send verification Excel report via email"
+            >
+              <mat-icon>send</mat-icon>
+              <span>Send For Verification</span>
+            </button>
+          }
+
+          <!-- Lock & Disburse Button -->
+          <button
+            mat-flat-button
+            type="button"
+            (click)="lockData()"
+            class="btn-action btn-lock"
+            [disabled]="!(isApproved && payrollControls.pristine) && !(isPreviousMonth && updateStatus)"
+            matTooltip="Finalize payroll, lock against further edits, and disburse payslips"
+          >
+            <mat-icon>lock</mat-icon>
+            <span>Lock And Send Payslips</span>
+          </button>
+        </div>
+      </div>
+    }
+  </form>
+
+  <!-- Loading Backdrop -->
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <div class="spinner-card">
+        <mat-spinner diameter="44" strokeWidth="4" color="primary"></mat-spinner>
+        <span class="spinner-text">Processing salary calculations & report...</span>
+      </div>
     </div>
-}
+  }
+</div>

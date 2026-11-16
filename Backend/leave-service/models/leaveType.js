@@ -8,20 +8,27 @@ const LeaveType = sequelize.define('leaveType', {
   timestamps: true,
 });
 
-// const leaveTypeData = [
-//   { leaveTypeName: 'Casual Leave' },
-//   { leaveTypeName: 'Sick Leave' },
-//   { leaveTypeName: 'LOP' },
-//   { leaveTypeName: 'Comp Off' },
-// ];
+const leaveTypeData = [
+  { leaveTypeName: 'Casual Leave' },
+  { leaveTypeName: 'Sick Leave' },
+  { leaveTypeName: 'LOP' },
+  { leaveTypeName: 'Comp Off' },
+  { leaveTypeName: 'Maternity Leave' },
+];
 
-// const initializeLeaveTypes = async () => {
-//   const leaveTypes = await LeaveType.findAll();
-//   if (!leaveTypes.length) await LeaveType.bulkCreate(leaveTypeData);
-// };
+const initializeLeaveTypes = async () => {
+  try {
+    for (const item of leaveTypeData) {
+      await LeaveType.findOrCreate({
+        where: { leaveTypeName: item.leaveTypeName },
+        defaults: item
+      });
+    }
+  } catch (err) {
+    console.error('Error initializing default leave types:', err);
+  }
+};
 
-// LeaveType.sync({ alter: true })
-//   .then(initializeLeaveTypes)
-//   .catch(console.error);
+initializeLeaveTypes();
 
 module.exports = LeaveType;

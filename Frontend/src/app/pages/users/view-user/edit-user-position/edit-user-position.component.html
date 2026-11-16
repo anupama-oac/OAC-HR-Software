@@ -1,151 +1,166 @@
-<form [formGroup]="form">
-    <mat-card>
-      <mat-card-header><mat-card-title>Employment Details</mat-card-title></mat-card-header>
-  
-      <div fxLayout="column" class="form-field-outer" style="margin-top: 20px;">
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline" >
-              <input matInput placeholder="Select Designation" formControlName="designationName" [matAutocomplete]="auto" (keyup)="search($event)">
-              <mat-autocomplete #auto="matAutocomplete" (optionSelected)="patch($event.option.value)">
-                @for (suggestion of filteredOptions; track $index) {
-                  <mat-option [value]="suggestion">
-                    {{ suggestion.designationName }}
-                  </mat-option>
-                }
-              </mat-autocomplete>
-  
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Official Mail</mat-label>
-              <input matInput formControlName="officialMailId" >
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Project Mail</mat-label>
-              <input matInput formControlName="projectMailId" >
-            </mat-form-field>
-          </div>
+<div class="edit-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge position-badge">
+        <mat-icon>work</mat-icon>
+      </div>
+      <div class="header-title-box">
+        <h2 class="dialog-title">{{ editStatus ? 'Edit Position & Employment' : 'Add Position Details' }}</h2>
+        <p class="dialog-subtitle">Department placement, designation, grade & compensation</p>
+      </div>
+    </div>
+    <button mat-icon-button class="dialog-close-btn" (click)="dialogRef?.close()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Form Body -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dialog-body-scrollable">
+      
+      <!-- Section 1: Role & Organization -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">domain</mat-icon>
+          <span>Organizational Placement</span>
         </div>
-  
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Division</mat-label>
-              <input matInput formControlName="division" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Grade</mat-label>
-              <input matInput formControlName="grade" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Team</mat-label>
-              <mat-select formControlName="teamId">
-                @for(team of teams; track team){
-                  <mat-option [value]="team.id">
-                    {{ team.teamName}}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <!-- <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Designation</mat-label>
-              <input matInput formControlName="designation" >
-            </mat-form-field>
-          </div> -->
-        </div>
-  
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Cost Centre</mat-label>
-              <input matInput formControlName="costCentre" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Location</mat-label>
-              <input matInput formControlName="location" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Department</mat-label>
-              <mat-select formControlName="department">            
-                <mat-option [value]="">No Option</mat-option>
-                @for (department of departments; track $index) {
-                  <mat-option [value]="department.name">
-                    {{ department.name }}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
-  
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Office</mat-label>
-              <input matInput formControlName="office" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Salary</mat-label>
-              <input matInput formControlName="salary"  type="number">
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <div class="row">
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label>Probation Period(in days)</mat-label>
-                  <input matInput formControlName="probationPeriod"  type="number">
-                </mat-form-field>
-              </div>
-              @if (form.controls.probationPeriod.value === 0) {
-                <div class="col">
-                  <mat-form-field class="w-100" appearance="outline">
-                    <mat-label>Confirmed at</mat-label>
-                    <input matInput [matDatepicker]="dp" formControlName="confirmationDate">
-                    <mat-hint>DD/MM/YYYY</mat-hint>
-                    <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
-                    <mat-datepicker #dp></mat-datepicker>
-                  </mat-form-field> 
-                </div>
-              } 
-            </div>
-          </div>
+
+        <div class="form-grid-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Designation</mat-label>
+            <input matInput placeholder="Type to search designation..." formControlName="designationName" [matAutocomplete]="auto" (keyup)="search($event)">
+            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="patch($event.option.value)">
+              @for (suggestion of filteredOptions; track $index) {
+                <mat-option [value]="suggestion">
+                  {{ suggestion.designationName }}
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Department</mat-label>
+            <mat-select formControlName="department">            
+              <mat-option [value]="">No Option</mat-option>
+              @for (department of departments; track $index) {
+                <mat-option [value]="department.name">
+                  {{ department.name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Division</mat-label>
+            <input matInput formControlName="division" placeholder="e.g. Operations">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Team</mat-label>
+            <mat-select formControlName="teamId">
+              <mat-option [value]="">No Option</mat-option>
+              @for(team of teams; track team.id){
+                <mat-option [value]="team.id">
+                  {{ team.teamName }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Grade</mat-label>
+            <input matInput formControlName="grade" placeholder="e.g. L2, Senior">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Cost Centre</mat-label>
+            <input matInput formControlName="costCentre" placeholder="e.g. CC-101">
+          </mat-form-field>
         </div>
       </div>
-  
-      <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-        <div class="col" style="text-align: right; margin-bottom: 15px;">
-          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="form.pristine || form.invalid" 
-          style="margin-left: 10px;">
-            @if (editStatus) {
-                Update
-            } @else {
-                Save
-            }
-          </button>
-          <button mat-raised-button color="primary" (click)="dialogRef?.close()" [disabled]="!form.pristine && !form.invalid" style="margin-left: 10px;">
-            Exit
-          </button>
+
+      <!-- Section 2: Location & Workstation -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">place</mat-icon>
+          <span>Location & Office</span>
+        </div>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Work Location</mat-label>
+            <input matInput formControlName="location" placeholder="e.g. Kochi, Bangalore">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Office Branch</mat-label>
+            <input matInput formControlName="office" placeholder="e.g. Main HQ, Branch 2">
+          </mat-form-field>
         </div>
       </div>
-    </mat-card>
+
+      <!-- Section 3: Communications & Compensation -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">contact_mail</mat-icon>
+          <span>Communication & Compensation</span>
+        </div>
+
+        <div class="form-grid-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Official Email</mat-label>
+            <input matInput type="email" formControlName="officialMailId" placeholder="name@company.com">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Project Email</mat-label>
+            <input matInput type="email" formControlName="projectMailId" placeholder="project.name@company.com">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Salary / CTC</mat-label>
+            <input matInput type="number" formControlName="salary" placeholder="Monthly gross salary">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Section 4: Probation & Confirmation -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">verified_user</mat-icon>
+          <span>Probation & Confirmation</span>
+        </div>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Probation Period (in days)</mat-label>
+            <input matInput type="number" formControlName="probationPeriod" placeholder="e.g. 90 or 0 for confirmed">
+            <mat-hint>Set to 0 if already confirmed</mat-hint>
+          </mat-form-field>
+
+          @if (form.controls.probationPeriod.value === 0) {
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Confirmation Date</mat-label>
+              <input matInput [matDatepicker]="dp" placeholder="DD/MM/YYYY" formControlName="confirmationDate">
+              <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
+              <mat-datepicker #dp></mat-datepicker>
+            </mat-form-field>
+          }
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-footer-actions">
+      <button type="button" mat-button class="btn-cancel" (click)="dialogRef?.close()">
+        Cancel
+      </button>
+      <button type="submit" mat-flat-button class="btn-save" [disabled]="form.pristine || form.invalid">
+        <mat-icon>{{ editStatus ? 'check_circle' : 'save' }}</mat-icon>
+        <span>{{ editStatus ? 'Update Position' : 'Save Position' }}</span>
+      </button>
+    </div>
   </form>
-  
+</div>

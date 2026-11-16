@@ -30,14 +30,26 @@ export class TokenInterceptor implements HttpInterceptor {
             alert('You are not allowed to enter — backend is not reachable.');
             return throwError(() => new Error('AEROHR is not reachable'));
           }
-          if(err.status === 403){
-            alert('Token is expired, Please login again...')
-            this.router.navigate([''])
+          if (err.status === 401) {
+            alert(err.error?.message || 'Token is expired, Please login again...');
+            this.router.navigate(['']);
+            return throwError(() => err);
+          }
+          if (err.status === 403) {
+            alert(err.error?.message || 'You do not have permission to perform this action.');
+            return throwError(() => err);
           }
         }
-        return throwError(()=>{
-          alert(err.error.text)
-        })
+        return throwError(() => {
+          if (err.error && err.error.message) {
+            alert(err.error.message);
+          } else if (err.error && err.error.text) {
+            alert(err.error.text);
+          } else if (err.error && typeof err.error === 'string') {
+            alert(err.error);
+          }
+          return err;
+        });
       })
    );
   }

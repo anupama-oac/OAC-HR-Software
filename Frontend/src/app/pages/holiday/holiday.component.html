@@ -1,102 +1,376 @@
-<div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-  <!-- Toggle Button -->
-    <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-      <mat-button-toggle value="add" (click)="openDialog(null)">
-        <!-- <mat-icon>person_add</mat-icon> -->
-        <mat-icon class="holiday-icon">celebration</mat-icon>
-      </mat-button-toggle>
-    </mat-button-toggle-group>
-    <!-- <div class="search-fields"> -->
+<div class="holiday-page-container">
+  <!-- Top Action Toolbar Card -->
+  <div class="holiday-toolbar-card">
+    <div class="toolbar-left-group">
+      <div class="page-title-box">
+        <div class="title-icon-badge">
+          <mat-icon>celebration</mat-icon>
+        </div>
+        <div class="title-text-group">
+          <h1 class="page-title">Holiday Management</h1>
+          <p class="page-subtitle">Corporate calendar, official public holidays schedule, and compensatory off allocations.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-right-group">
+      <!-- Add Holiday Button -->
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-new-holiday"
+        (click)="openDialog(null, 0)"
+        matTooltip="Add a new holiday to the corporate calendar"
+        matTooltipPosition="below"
+        aria-label="Add Holiday">
+        <mat-icon>add_circle</mat-icon>
+        <span class="btn-text">Add Holiday</span>
+      </button>
+
+      <!-- Customize & Download Excel Template Button -->
+      <button
+        mat-stroked-button
+        class="btn-template-excel"
+        (click)="openTemplateDialog()"
+        matTooltip="Preview current holidays, add/remove rows, and download Excel (.xlsx)"
+        matTooltipPosition="below"
+        aria-label="Customize and Download Excel">
+        <mat-icon>table_view</mat-icon>
+        <span class="btn-text">Customize & Download Excel</span>
+      </button>
+
+      <!-- Clear / Batch Delete Button -->
+      <button
+        mat-stroked-button
+        class="btn-clear-year"
+        [disabled]="filteredHolidays.length === 0"
+        (click)="deleteAll()"
+        matTooltip="Delete all currently filtered holidays"
+        matTooltipPosition="below"
+        aria-label="Clear Filtered Holidays">
+        <mat-icon>delete_sweep</mat-icon>
+        <span class="btn-text">Clear Filtered</span>
+      </button>
+
+      <!-- Refresh Button -->
+      <button
+        mat-stroked-button
+        class="btn-refresh"
+        (click)="loadHolidays()"
+        matTooltip="Refresh holidays list"
+        matTooltipPosition="below"
+        aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+        <span class="refresh-text">Refresh</span>
+      </button>
+
+      <!-- Stats Summary Chips -->
+      <div class="stats-chips-group">
+        <div class="stat-badge-chip total-chip" matTooltip="Total holidays in current selection" matTooltipPosition="below">
+          <mat-icon>event</mat-icon>
+          <span><strong>{{ filteredHolidays.length }}</strong> Holidays</span>
+        </div>
+        <div class="stat-badge-chip upcoming-chip" matTooltip="Upcoming scheduled holidays" matTooltipPosition="below">
+          <mat-icon>event_upcoming</mat-icon>
+          <span><strong>{{ upcomingHolidaysCount }}</strong> Upcoming</span>
+        </div>
+        <div class="stat-badge-chip compoff-chip" matTooltip="Holidays with compensatory off allocated" matTooltipPosition="below">
+          <mat-icon>verified</mat-icon>
+          <span><strong>{{ compOffCount }}</strong> Comp-Off</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls Bar Card -->
+  <div class="holiday-controls-bar">
+    <div class="controls-left-group">
       <!-- Search Input -->
-      <mat-form-field class="user-search-input" appearance="outline" class="col">
-        <mat-label>Search</mat-label>
-        <input 
-          matInput 
-          [(ngModel)]="searchValue" 
-          (input)="search($event)" 
-          placeholder="Type to search" 
-        />
-      </mat-form-field>
-    
-      <!-- Date Selector -->
-      <mat-form-field appearance="outline" class="col">
-        <mat-label>Select Date</mat-label>
-        <input 
-          matInput 
-          [matDatepicker]="datePicker" 
-          [(ngModel)]="selectedDate" 
-          (dateChange)="onDateChange($event.value)" 
-          placeholder="Choose a date" 
-        />
-        <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
-        <mat-datepicker #datePicker></mat-datepicker>
-      </mat-form-field>
-    
-      <!-- Year Selector -->
-      <mat-form-field appearance="outline" class="col">
-        <mat-label>Select Year</mat-label>
-        <mat-select 
-          [(ngModel)]="currentYear" 
-          (selectionChange)="onYearChange($event)">
-          <mat-option *ngFor="let year of yearList" [value]="year">{{ year }}</mat-option>
+      <div class="search-input-wrapper">
+        <mat-icon class="search-leading-icon">search</mat-icon>
+        <input
+          type="text"
+          class="search-text-input"
+          placeholder="Search by holiday name, type, or notes..."
+          [(ngModel)]="searchValue"
+          aria-label="Search holidays" />
+        @if (searchValue) {
+          <button
+            type="button"
+            class="search-clear-btn"
+            (click)="clearSearch()"
+            matTooltip="Clear search text"
+            matTooltipPosition="below">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Year Selector Field -->
+      <mat-form-field appearance="outline" class="filter-field year-select-field" subscriptSizing="dynamic">
+        <mat-label>Year</mat-label>
+        <mat-select
+          [(ngModel)]="currentYear"
+          (selectionChange)="onYearChange($event.value)"
+          matTooltip="Filter holidays by calendar year"
+          matTooltipPosition="below">
+          <mat-option [value]="null">All Years</mat-option>
+          @for (yr of yearList; track yr) {
+            <mat-option [value]="yr">{{ yr }}</mat-option>
+          }
         </mat-select>
       </mat-form-field>
-    <!-- </div> -->
-    
-    
 
-    <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true"
-    style="margin-left: 40px;">
-      <mat-button-toggle value="add" (click)="deleteAll()">
-        <mat-icon>delete</mat-icon>
-      </mat-button-toggle>
-    </mat-button-toggle-group>
-</div>
-
-
-<main class="table" id="customers_table">
-  <section class="table__body">
-    <table>
-      <thead>
-        <tr>
-          <th> Date </th>
-          <th> Holiday </th>
-          <th> Type</th>
-          <th> Comment </th>
-          <th> Manage </th>
-          <th> Comp Off </th>
-        </tr>
-      </thead>
-      <tbody>
-        @for(holiday of holidays; track $index){
-          <tr>
-            <td>{{ holiday.date | date:'dd/MM/yyyy' }}</td>
-            <td>{{ holiday.name }}</td>
-            <td>{{ holiday.type }}</td>
-            <td>{{ holiday.comments }}</td>
- 
-            <td>
-              <button
-                mat-icon-button
-                (click)="openDialog(holiday)">
-                <mat-icon>mode_edit</mat-icon>
-              </button>
-
-              <button
-                mat-icon-button
-                (click)="delete(holiday.id)">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>                
-            <!-- @if(roleName === 'HR Administrator' || roleName === 'Super Administrator'){ -->
-              <td>
-                  <mat-icon (click)="openCompoOff(holiday.id)">add_task</mat-icon>
-              </td>
-          <!-- } -->
-          </tr>
+      <!-- Date Picker Filter -->
+      <mat-form-field appearance="outline" class="filter-field date-filter-field" subscriptSizing="dynamic">
+        <mat-label>Filter Date</mat-label>
+        <input
+          matInput
+          [matDatepicker]="datePicker"
+          [(ngModel)]="selectedDate"
+          (dateChange)="onDateChange($event.value)"
+          placeholder="Choose date"
+          matTooltip="Filter holidays for an exact date"
+          matTooltipPosition="below" />
+        @if (selectedDate) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="clearDateFilter()"
+            matTooltip="Clear date filter"
+            matTooltipPosition="below"
+            class="date-clear-suffix">
+            <mat-icon>cancel</mat-icon>
+          </button>
         }
+        <mat-datepicker-toggle matSuffix [for]="datePicker" matTooltip="Open date picker calendar" matTooltipPosition="below"></mat-datepicker-toggle>
+        <mat-datepicker #datePicker></mat-datepicker>
+      </mat-form-field>
 
-      </tbody>
-    </table>
-  </section>
-</main>
+      <!-- Type Filter Pills -->
+      <div class="type-filter-chips">
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedTypeFilter === 'all'"
+          (click)="setTypeFilter('all')"
+          matTooltip="Show all holiday types"
+          matTooltipPosition="below">
+          All ({{ totalHolidays }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill pill-public"
+          [class.active]="selectedTypeFilter === 'Public'"
+          (click)="setTypeFilter('Public')"
+          matTooltip="Show only public holidays"
+          matTooltipPosition="below">
+          Public ({{ publicHolidaysCount }})
+        </button>
+        <button
+          type="button"
+          class="filter-pill pill-optional"
+          [class.active]="selectedTypeFilter === 'Optional'"
+          (click)="setTypeFilter('Optional')"
+          matTooltip="Show optional / restricted holidays"
+          matTooltipPosition="below">
+          Optional / Restricted ({{ optionalHolidaysCount }})
+        </button>
+      </div>
+    </div>
+
+    <div class="controls-right-group">
+      <!-- Sort Order Toggle -->
+      <button
+        mat-stroked-button
+        class="btn-sort"
+        (click)="toggleSort()"
+        [matTooltip]="sortOrder === 'asc' ? 'Sorting chronologically (Earliest first). Click to invert.' : 'Sorting latest first. Click to invert.'"
+        matTooltipPosition="below">
+        <mat-icon>{{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+        <span>{{ sortOrder === 'asc' ? 'Earliest First' : 'Latest First' }}</span>
+      </button>
+
+      <!-- Results Counter Pill -->
+      <div class="results-meta-pill">
+        Showing <strong>{{ filteredHolidays.length }}</strong> of {{ totalHolidays }} holidays
+      </div>
+    </div>
+  </div>
+
+  <!-- Holidays Main Content Card -->
+  <div class="holiday-content-card">
+    @if (isLoading) {
+      <div class="table-loading-overlay">
+        <mat-spinner diameter="40" color="primary"></mat-spinner>
+        <span>Loading corporate holiday calendar...</span>
+      </div>
+    }
+
+    @if (!isLoading && filteredHolidays.length === 0) {
+      <!-- Empty State Card -->
+      <div class="empty-holidays-card">
+        <div class="empty-icon-wrap">
+          <mat-icon>celebration</mat-icon>
+        </div>
+        <h3 class="empty-title">
+          {{ searchValue || selectedDate || selectedTypeFilter !== 'all' ? 'No matching holidays found' : 'No holidays scheduled yet' }}
+        </h3>
+        <p class="empty-desc">
+          {{ searchValue || selectedDate || selectedTypeFilter !== 'all'
+            ? 'Try adjusting your search criteria, clearing the date filter, or selecting a different year.'
+            : 'Get started by creating official public holidays, festive breaks, or company days off.' }}
+        </p>
+        @if (searchValue || selectedDate || selectedTypeFilter !== 'all') {
+          <button mat-stroked-button class="btn-reset-filters" (click)="resetAllFilters()" matTooltip="Reset search, date, and type filters" matTooltipPosition="below">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset All Filters</span>
+          </button>
+        } @else {
+          <button mat-flat-button color="primary" class="btn-create-first" (click)="openDialog(null)" matTooltip="Create your first holiday entry" matTooltipPosition="below">
+            <mat-icon>add_circle</mat-icon>
+            <span>Add First Holiday</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (!isLoading && filteredHolidays.length > 0) {
+      <!-- Executive Modern Holidays Table -->
+      <div class="table-responsive-wrapper">
+        <table class="modern-holiday-table">
+          <thead>
+            <tr>
+              <th class="th-index">#</th>
+              <th class="th-date">Date & Day</th>
+              <th class="th-name">Holiday Name</th>
+              <th class="th-type">Type</th>
+              <th class="th-notes">Comments / Notes</th>
+              <th class="th-compoff">Compensatory Off</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (holiday of filteredHolidays; track holiday.id; let i = $index) {
+              <tr class="holiday-row" [class.row-today]="isToday(holiday.date)" [class.row-past]="isPast(holiday.date)">
+                <!-- Index -->
+                <td class="td-index">
+                  <span class="index-pill">{{ i + 1 }}</span>
+                </td>
+
+                <!-- Visual Calendar Date Block -->
+                <td class="td-date">
+                  <div class="date-calendar-badge" [class.badge-today]="isToday(holiday.date)" [class.badge-upcoming]="isUpcoming(holiday.date)">
+                    <div class="calendar-top">
+                      <span class="cal-month">{{ getMonthName(holiday.date) }}</span>
+                      <span class="cal-year">{{ getYear(holiday.date) }}</span>
+                    </div>
+                    <div class="calendar-day">{{ getDayNumber(holiday.date) }}</div>
+                    <div class="calendar-weekday">{{ getDayName(holiday.date) }}</div>
+                  </div>
+                </td>
+
+                <!-- Holiday Name & Status Tags -->
+                <td class="td-name">
+                  <div class="holiday-name-cell">
+                    <div class="holiday-icon-bubble">
+                      <mat-icon>celebration</mat-icon>
+                    </div>
+                    <div class="holiday-titles">
+                      <span class="holiday-name-text">{{ holiday.name }}</span>
+                      <div class="holiday-status-tags">
+                        @if (isToday(holiday.date)) {
+                          <span class="mini-tag tag-today" matTooltip="This holiday is occurring today" matTooltipPosition="above">
+                            <mat-icon>fiber_manual_record</mat-icon> Today
+                          </span>
+                        } @else if (isUpcoming(holiday.date)) {
+                          <span class="mini-tag tag-upcoming" matTooltip="Scheduled future holiday" matTooltipPosition="above">
+                            Upcoming
+                          </span>
+                        } @else {
+                          <span class="mini-tag tag-past" matTooltip="Past holiday" matTooltipPosition="above">
+                            Past
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Type Badge -->
+                <td class="td-type">
+                  <span class="type-pill" [ngClass]="getTypeBadgeClass(holiday.type)" [matTooltip]="'Holiday classification: ' + (holiday.type || 'Standard')" matTooltipPosition="above">
+                    <mat-icon class="pill-dot">radio_button_checked</mat-icon>
+                    <span>{{ holiday.type || 'Standard' }}</span>
+                  </span>
+                </td>
+
+                <!-- Comments / Description -->
+                <td class="td-notes">
+                  <span class="notes-text" [class.notes-empty]="!holiday.comments">
+                    {{ holiday.comments || 'No extra notes provided' }}
+                  </span>
+                </td>
+
+                <!-- Compensatory Off Management -->
+                <td class="td-compoff">
+                  <div class="compoff-cell">
+                    @if (holiday.comboAdded) {
+                      <button
+                        mat-stroked-button
+                        class="btn-compoff-active"
+                        (click)="openCompoOff(holiday)"
+                        matTooltip="Compensatory off is allocated. Click to review or update allocations"
+                        matTooltipPosition="above"
+                        aria-label="Manage Comp-Off">
+                        <mat-icon>verified</mat-icon>
+                        <span>Comp-Off Active</span>
+                      </button>
+                    } @else {
+                      <button
+                        mat-stroked-button
+                        class="btn-compoff-add"
+                        (click)="openCompoOff(holiday)"
+                        matTooltip="Assign compensatory off for employees working on this holiday"
+                        matTooltipPosition="above"
+                        aria-label="Add Comp-Off">
+                        <mat-icon>add_task</mat-icon>
+                        <span>Add Comp-Off</span>
+                      </button>
+                    }
+                  </div>
+                </td>
+
+                <!-- Action Buttons -->
+                <td class="td-actions">
+                  <div class="actions-button-row">
+                    <button
+                      mat-icon-button
+                      class="btn-action btn-edit"
+                      (click)="openDialog(holiday)"
+                      matTooltip="Edit holiday details"
+                      matTooltipPosition="above"
+                      aria-label="Edit Holiday">
+                      <mat-icon>edit_outline</mat-icon>
+                    </button>
+
+                    <button
+                      mat-icon-button
+                      class="btn-action btn-delete"
+                      (click)="delete(holiday.id)"
+                      matTooltip="Delete holiday from schedule"
+                      matTooltipPosition="above"
+                      aria-label="Delete Holiday">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

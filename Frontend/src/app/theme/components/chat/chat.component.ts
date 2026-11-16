@@ -19,6 +19,7 @@ import { UsersService } from '@services/users.service';
 import { User } from '../../../common/interfaces/users/user';
 import { Chat } from '../../../common/interfaces/chat/chat';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-chat',
@@ -48,7 +49,13 @@ import { Subscription } from 'rxjs';
 export class ChatComponent implements OnInit {
   @ViewChild('sidenav') sidenav: any;
   public userImage = 'img/users/default-user.jpg';
-  apiUrl = 'https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/';
+  apiUrl = environment.s3Url || `https://${environment.AWS_BUCKET_NAME || 'aerohr-uploads'}.s3.amazonaws.com/`;
+
+  getChatImageUrl(url?: string): string {
+    if (!url) return this.userImage;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${this.apiUrl}${url}`;
+  }
   public chats: Chat[];
   public sidenavOpen: boolean = true;
   public currentChat: Chat;

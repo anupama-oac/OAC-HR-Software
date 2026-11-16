@@ -14,4 +14,5 @@ export interface Promotion {
   Designation: Designation;
   oldDesignation: Designation
   user:User
+  createdAt: Date
 }

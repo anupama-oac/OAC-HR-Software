@@ -1,88 +1,230 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="add" (click)="openRoleDialog(null)"><mat-icon>person_add</mat-icon>
-            </mat-button-toggle>
-            <!-- <mat-button-toggle value="search">
-                <mat-icon>search</mat-icon>
-            </mat-button-toggle> -->
-        </mat-button-toggle-group>
+<div class="team-page-container">
+  <!-- Top Action Toolbar Card -->
+  <div class="team-toolbar-card">
+    <div class="toolbar-left-group">
+      <div class="page-title-box">
+        <div class="title-icon-badge">
+          <mat-icon>groups</mat-icon>
+        </div>
+        <div class="title-text-group">
+          <h1 class="page-title">Team Management</h1>
+          <p class="page-subtitle">Organize corporate departments, designate team leads, and manage member assignments.</p>
+        </div>
+      </div>
     </div>
-    <div fxLayout="row" class="col">
-      <form class="user-search" [class.show]="controls.value == 'search'">
-        <!-- <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search role by role name..." name="search" (keyup)="search($event)">
-        </mat-form-field> -->
-      </form>
+
+    <div class="toolbar-right-group">
+      <!-- Create Team Button -->
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-new-team"
+        (click)="openTeamDialog(null)"
+        matTooltip="Create and configure a new team"
+        matTooltipPosition="below"
+        aria-label="New Team">
+        <mat-icon>group_add</mat-icon>
+        <span class="btn-text">New Team</span>
+      </button>
+
+      <!-- Refresh Button -->
+      <button
+        mat-stroked-button
+        class="btn-refresh"
+        (click)="getTeams()"
+        matTooltip="Refresh teams list"
+        matTooltipPosition="below"
+        aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+        <span class="refresh-text">Refresh</span>
+      </button>
+
+      <!-- Stats Summary Chips -->
+      <div class="stats-chips-group">
+        <div class="stat-badge-chip teams-chip" matTooltip="Total configured teams" matTooltipPosition="below">
+          <mat-icon>corporate_fare</mat-icon>
+          <span><strong>{{ totalTeams }}</strong> Teams</span>
+        </div>
+        <div class="stat-badge-chip leads-chip" matTooltip="Assigned team leads" matTooltipPosition="below">
+          <mat-icon>workspace_premium</mat-icon>
+          <span><strong>{{ totalLeaders }}</strong> Leads</span>
+        </div>
+        <div class="stat-badge-chip members-chip" matTooltip="Total team members" matTooltipPosition="below">
+          <mat-icon>badge</mat-icon>
+          <span><strong>{{ totalMembers }}</strong> Members</span>
+        </div>
+      </div>
     </div>
   </div>
 
-    <main class="table" id="customers_table">
-        <!-- <section class="table__header">
-            <h1>ROLES</h1>
-        </section> -->
-        <section class="table__body">
-          <table>
-            <thead>
-              <tr>
-                <th> Team Name </th>
-                <th> Leader </th>
-                <th> Members </th>
-                <th> Manage </th>
+  <!-- Search & Filter Controls Bar -->
+  <div class="filters-search-bar">
+    <div class="search-input-shell">
+      <mat-icon class="search-lead-icon">search</mat-icon>
+      <input
+        type="text"
+        class="custom-search-input"
+        placeholder="Search by team name, leader, or member..."
+        [(ngModel)]="searchText"
+      />
+      @if (searchText) {
+        <button
+          type="button"
+          class="search-clear-btn"
+          (click)="clearSearch()"
+          matTooltip="Clear search"
+          matTooltipPosition="below">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="results-meta-pill">
+      Showing <strong>{{ filteredTeams.length }}</strong> of {{ totalTeams }} teams
+    </div>
+  </div>
+
+  <!-- Teams Main Content -->
+  <div class="team-content-card">
+    @if (isLoading) {
+      <div class="table-loading-overlay">
+        <mat-spinner diameter="40" color="primary"></mat-spinner>
+        <span>Loading teams data...</span>
+      </div>
+    }
+
+    @if (!isLoading && filteredTeams.length === 0) {
+      <!-- Empty State Card -->
+      <div class="empty-teams-card">
+        <div class="empty-icon-wrap">
+          <mat-icon>diversity_3</mat-icon>
+        </div>
+        <h3 class="empty-title">
+          {{ searchText ? 'No matching teams found' : 'No teams configured yet' }}
+        </h3>
+        <p class="empty-desc">
+          {{ searchText ? 'Try adjusting your search query or clear the filter to see all teams.' : 'Create your first organizational team, assign department leads, and add team members.' }}
+        </p>
+        @if (searchText) {
+          <button mat-stroked-button class="btn-reset-search" (click)="clearSearch()">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Clear Search</span>
+          </button>
+        } @else {
+          <button mat-flat-button color="primary" class="btn-create-first" (click)="openTeamDialog(null)">
+            <mat-icon>group_add</mat-icon>
+            <span>Create First Team</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (!isLoading && filteredTeams.length > 0) {
+      <!-- Executive Modern Teams Table -->
+      <div class="table-responsive-wrapper">
+        <table class="modern-team-table">
+          <thead>
+            <tr>
+              <th class="th-index">#</th>
+              <th class="th-team">Team Name</th>
+              <th class="th-leaders">Team Leaders</th>
+              <th class="th-members">Team Members</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (team of filteredTeams; track team.id; let i = $index) {
+              <tr class="team-row">
+                <!-- Index -->
+                <td class="td-index">
+                  <span class="index-pill">{{ i + 1 }}</span>
+                </td>
+
+                <!-- Team Info -->
+                <td class="td-team">
+                  <div class="team-meta-cell">
+                    <div class="team-icon-bubble">
+                      <mat-icon>groups</mat-icon>
+                    </div>
+                    <div class="team-titles">
+                      <span class="team-name-text">{{ team.teamName }}</span>
+                      <span class="team-count-sub">
+                        {{ (team.team_members?.length || 0) + (team.team_leaders?.length || 0) }} total assigned
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Leaders -->
+                <td class="td-leaders">
+                  <div class="leaders-cell-group">
+                    @if (team.team_leaders && team.team_leaders.length > 0) {
+                      <div class="chips-stack">
+                        @for (lead of team.team_leaders; track lead.id) {
+                          <div class="person-chip leader-chip" [matTooltip]="lead.user?.email || 'Team Lead'" matTooltipPosition="above">
+                            <span class="avatar-circle" [style.background-color]="getAvatarColor(lead.user?.name)">
+                              {{ getInitials(lead.user?.name) }}
+                            </span>
+                            <span class="person-name">{{ lead.user?.name || 'Unnamed' }}</span>
+                            <mat-icon class="crown-icon">workspace_premium</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <span class="empty-badge-pill">No Lead Assigned</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Members -->
+                <td class="td-members">
+                  <div class="members-cell-group">
+                    @if (team.team_members && team.team_members.length > 0) {
+                      <div class="chips-stack">
+                        @for (mem of team.team_members; track mem.id) {
+                          <div class="person-chip member-chip" [matTooltip]="mem.user?.email || 'Member'" matTooltipPosition="above">
+                            <span class="avatar-circle" [style.background-color]="getAvatarColor(mem.user?.name)">
+                              {{ getInitials(mem.user?.name) }}
+                            </span>
+                            <span class="person-name">{{ mem.user?.name || 'Unnamed' }}</span>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <span class="empty-badge-pill">No Members</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Actions -->
+                <td class="td-actions">
+                  <div class="actions-button-row">
+                    <button
+                      mat-icon-button
+                      class="btn-edit"
+                      (click)="openTeamDialog(team)"
+                      matTooltip="Edit team configuration"
+                      matTooltipPosition="above"
+                      aria-label="Edit Team">
+                      <mat-icon>edit_outline</mat-icon>
+                    </button>
+
+                    <button
+                      mat-icon-button
+                      class="btn-delete"
+                      (click)="deleteTeam(team)"
+                      matTooltip="Delete team"
+                      matTooltipPosition="above"
+                      aria-label="Delete Team">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (team of teams; track $index) {
-                <tr>
-                  <td> {{ team.teamName }} </td>
-                  <td> 
-                    @for (member of team.team_leaders; track $index) {
-                      <div class="team-member">
-                        {{ member.user.name }}
-                        <mat-divider></mat-divider>
-                      </div>
-                    }
-                   </td>
-                  <td>
-                    @for (member of team.team_members; track $index) {
-                      <div class="team-member">
-                        {{ member.user.name }}
-                        <mat-divider></mat-divider>
-                      </div>
-                    }
-                  </td>
-  
-                  <!-- Manage Column -->
-                  <td>
-                    <button
-                      mat-icon-button
-                      (click)="openRoleDialog(team)">
-                      <mat-icon>mode_edit</mat-icon>
-                    </button>
-      
-                    <button
-                      mat-icon-button
-                      (click)="deleteTeam(team.id)">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  </td>
-                </tr>
-              }
-
-            </tbody>
-          </table>
-
-        </section>
-    </main>
-
-    <!-- <div class="tabs">
-     <a routerLink="role">ROLE</a>
-     <a>USER</a>
- </div> -->
-</body>
-
-</html>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

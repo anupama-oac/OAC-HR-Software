@@ -1,237 +1,329 @@
-<form [formGroup]="form">
-  <div fxLayout="column" class="form-field-outer" style="margin-top: 20px;">
-    <mat-card>
-      <mat-card-header><mat-card-title>Personal Details</mat-card-title></mat-card-header>
-      <div class="row box" style="margin-top: 20px;">
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Joining Date</mat-label>
-            <input matInput [matDatepicker]="picker1" placeholder="Joining Date" formControlName="dateOfJoining">
-            <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
-            <mat-datepicker #picker1></mat-datepicker>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="personal-form-wrapper">
+  
+  <div class="personal-details-container">
+
+    <!-- Section 1: Personal Demographics -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-blue">
+          <mat-icon>badge</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Personal Demographics</h3>
+          <p class="section-desc">Employee vital details, dates, and demographic information.</p>
+        </div>
+      </div>
+
+      <!-- Row 1: 4 Columns (Joining Date, DOB, Blood Group, Marital Status) -->
+      <div class="form-grid grid-cols-4">
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Date of Joining</mat-label>
+            <input matInput [matDatepicker]="pickerJoining" placeholder="DD/MM/YYYY" formControlName="dateOfJoining">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerJoining"></mat-datepicker-toggle>
+            <mat-datepicker #pickerJoining></mat-datepicker>
           </mat-form-field>
         </div>
 
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Birthday</mat-label>
-            <input matInput [matDatepicker]="dp" formControlName="dateOfBirth">
-            <mat-hint>DD/MM/YYYY</mat-hint>
-            <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
-            <mat-datepicker #dp></mat-datepicker>
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Date of Birth</mat-label>
+            <input matInput [matDatepicker]="pickerDob" placeholder="DD/MM/YYYY" formControlName="dateOfBirth">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerDob"></mat-datepicker-toggle>
+            <mat-datepicker #pickerDob></mat-datepicker>
           </mat-form-field>
         </div>
-      <!-- </div>
 
-      <div class="row box"> -->
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
             <mat-label>Blood Group</mat-label>
-            <mat-select  formControlName="bloodGroup">
-              <mat-option value="A+">A+</mat-option>
-              <mat-option value="A-">A-</mat-option>
-              <mat-option value="B+">B+</mat-option>
-              <mat-option value="B-">B-</mat-option>
-              <mat-option value="AB+">AB+</mat-option>
-              <mat-option value="AB-">AB-</mat-option>
-              <mat-option value="O+">O+</mat-option>
-              <mat-option value="O-">O-</mat-option>
+            <mat-select formControlName="bloodGroup" placeholder="Select Group">
+              <mat-option value="A+">A+ (A Positive)</mat-option>
+              <mat-option value="A-">A- (A Negative)</mat-option>
+              <mat-option value="B+">B+ (B Positive)</mat-option>
+              <mat-option value="B-">B- (B Negative)</mat-option>
+              <mat-option value="AB+">AB+ (AB Positive)</mat-option>
+              <mat-option value="AB-">AB- (AB Negative)</mat-option>
+              <mat-option value="O+">O+ (O Positive)</mat-option>
+              <mat-option value="O-">O- (O Negative)</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
 
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
             <mat-label>Marital Status</mat-label>
-            <mat-select  formControlName="maritalStatus">
+            <mat-select formControlName="maritalStatus" placeholder="Select Status">
+              <mat-option value="unmarried">Single / Unmarried</mat-option>
               <mat-option value="married">Married</mat-option>
-              <mat-option value="unmarried">Unmarried</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-radio-group formControlName="gender">
-            <mat-radio-button value="male" labelPosition="after">Male</mat-radio-button>
-            <mat-radio-button value="female" labelPosition="after">Female</mat-radio-button>
-          </mat-radio-group>
-        </div>
-      </div>
-
-      <div class="row box">
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label> Father Name</mat-label>
-            <input matInput formControlName="parentName" >
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label> Father Contact Number</mat-label>
-            <input matInput formControlName="parentContactNo" >
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Mother Name</mat-label>
-            <input matInput formControlName="motherName">
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Mother Contact Number</mat-label>
-            <input matInput formControlName="motherContactNo">
-          </mat-form-field>
-        </div>
-      </div>
-
-
-      <div class="row box">
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Spouse Name</mat-label>
-            <input matInput formControlName="spouseName">
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Spouse Contact Number</mat-label>
-            <input matInput formControlName="spouseContactNo">
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Emergency Contact No</mat-label>
-            <input matInput formControlName="emergencyContactNo" >
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Emergency Contact Name</mat-label>
-            <input matInput formControlName="emergencyContactName">
-          </mat-form-field>
-        </div>
-
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Emergency Contact Relation</mat-label>
-            <mat-select formControlName="emergencyContactRelation">
-              <mat-option [value]="">No Option</mat-option>
-              @for (relation of relations; track $index) {
-                <mat-option [value]="relation">
-                  {{ relation }}
-                </mat-option>
-              }
+              <mat-option value="divorced">Divorced</mat-option>
+              <mat-option value="widowed">Widowed</mat-option>
+              <mat-option value="other">Other</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
       </div>
 
-      <div class="row box">
-        <div class="col">
-          <!-- <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Reporting Manger</mat-label>
-            <mat-select formControlName="reportingMangerId" >
-              <mat-option [value]="">No Option</mat-option>
-              @for (item of rm; track $index) {
-                <mat-option [value]="item.id">
-                  {{ item.name }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field> -->
+      <!-- Row 2: Gender Segmented Group -->
+      <div class="gender-strip">
+        <span class="gender-label">Gender:</span>
+        <mat-radio-group formControlName="gender" class="gender-radio-options">
+          <mat-radio-button value="male" color="primary" class="gender-pill">
+            <span class="radio-label-box">
+              <mat-icon class="pill-icon">male</mat-icon>
+              <span>Male</span>
+            </span>
+          </mat-radio-button>
+          <mat-radio-button value="female" color="primary" class="gender-pill">
+            <span class="radio-label-box">
+              <mat-icon class="pill-icon">female</mat-icon>
+              <span>Female</span>
+            </span>
+          </mat-radio-button>
+          <mat-radio-button value="other" color="primary" class="gender-pill">
+            <span class="radio-label-box">
+              <mat-icon class="pill-icon">transgender</mat-icon>
+              <span>Other</span>
+            </span>
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+    </div>
 
-          <mat-form-field class="w-100" appearance="outline" >
-            <mat-label>Reporting Manger</mat-label>
-            <input matInput placeholder="Select" formControlName="reportingMangerName" [matAutocomplete]="auto" (keyup)="search($event)">
+    <!-- Section 2: Family & Dependents -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-indigo">
+          <mat-icon>family_restroom</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Family & Dependents</h3>
+          <p class="section-desc">Parental details and spouse contact information.</p>
+        </div>
+      </div>
+
+      <div class="form-grid grid-cols-2">
+        <!-- Father Name -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Father's Name</mat-label>
+            <input matInput formControlName="parentName" placeholder="Enter father's full name">
+          </mat-form-field>
+        </div>
+
+        <!-- Father Contact -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Father's Contact Number</mat-label>
+            <input matInput type="tel" formControlName="parentContactNo" placeholder="+91 9876543210">
+          </mat-form-field>
+        </div>
+
+        <!-- Mother Name -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Mother's Name</mat-label>
+            <input matInput formControlName="motherName" placeholder="Enter mother's full name">
+          </mat-form-field>
+        </div>
+
+        <!-- Mother Contact -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Mother's Contact Number</mat-label>
+            <input matInput type="tel" formControlName="motherContactNo" placeholder="+91 9876543210">
+          </mat-form-field>
+        </div>
+
+        <!-- Spouse Name -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Spouse's Name (If Married)</mat-label>
+            <input matInput formControlName="spouseName" placeholder="Enter spouse's full name">
+          </mat-form-field>
+        </div>
+
+        <!-- Spouse Contact -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Spouse's Contact Number</mat-label>
+            <input matInput type="tel" formControlName="spouseContactNo" placeholder="+91 9876543210">
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Emergency Contact Details -->
+    <div class="section-card emergency-card">
+      <div class="section-header">
+        <div class="section-badge badge-amber">
+          <mat-icon>phone_in_talk</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Emergency Contact Details</h3>
+          <p class="section-desc">Designated contact person and phone number in case of an urgent situation.</p>
+        </div>
+      </div>
+
+      <div class="form-grid grid-cols-3">
+        <!-- Emergency Name -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Emergency Contact Person</mat-label>
+            <input matInput formControlName="emergencyContactName" placeholder="Contact person name">
+          </mat-form-field>
+        </div>
+
+        <!-- Emergency Relation -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Relationship</mat-label>
+            <mat-select formControlName="emergencyContactRelation" placeholder="Select Relationship">
+              <mat-option value="Father">Father</mat-option>
+              <mat-option value="Mother">Mother</mat-option>
+              <mat-option value="Spouse">Spouse</mat-option>
+              <mat-option value="Brother">Brother</mat-option>
+              <mat-option value="Sister">Sister</mat-option>
+              <mat-option value="Guardian">Guardian</mat-option>
+              <mat-option value="Friend">Friend</mat-option>
+              <mat-option value="Other">Other</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Emergency Phone -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Emergency Phone Number</mat-label>
+            <input matInput type="tel" formControlName="emergencyContactNo" placeholder="+91 9876543210">
+            @if (form.get('emergencyContactNo')?.hasError('pattern')) {
+              <mat-error>Please enter a valid phone number</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Professional & Career Structure -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-teal">
+          <mat-icon>domain</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Career & Reporting Structure</h3>
+          <p class="section-desc">Reporting hierarchy, qualifications, and past professional experience.</p>
+        </div>
+      </div>
+
+      <div class="form-grid grid-cols-2">
+        <!-- Reporting Manager (Autocomplete) -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Reporting Manager</mat-label>
+            <input matInput placeholder="Search employee name or ID..." formControlName="reportingMangerName" [matAutocomplete]="auto" (keyup)="search($event)">
+            <mat-icon matSuffix class="search-suffix-icon">search</mat-icon>
             <mat-autocomplete #auto="matAutocomplete" (optionSelected)="patch($event.option.value)">
               @for (item of filteredRm; track $index) {
                 <mat-option [value]="item">
-                  {{ item.name }}
+                  <div class="rm-option">
+                    <span class="rm-name">{{ item.name }}</span>
+                    <span class="rm-emp">ID: {{ item.empNo }}</span>
+                  </div>
                 </mat-option>
               }
             </mat-autocomplete>
-            
           </mat-form-field>
         </div>
 
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
+        <!-- Referred By -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
             <mat-label>Referred By</mat-label>
-            <input matInput formControlName="referredBy">
+            <input matInput formControlName="referredBy" placeholder="Internal referral or hiring source">
           </mat-form-field>
         </div>
 
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Qualification</mat-label>
-            <input matInput formControlName="qualification">
+        <!-- Qualification -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Highest Qualification</mat-label>
+            <input matInput formControlName="qualification" placeholder="e.g. B.Tech Computer Science, MBA, etc.">
           </mat-form-field>
         </div>
 
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Experience</mat-label>
-            <input matInput formControlName="experience">
+        <!-- Experience -->
+        <div class="grid-col">
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Relevant Experience</mat-label>
+            <input matInput formControlName="experience" placeholder="e.g. 4 Years in Aviation Maintenance">
           </mat-form-field>
         </div>
       </div>
+    </div>
 
-      <div class="row box">
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
+    <!-- Section 5: Residential Addresses -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-slate">
+          <mat-icon>location_on</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Residential Addresses</h3>
+          <p class="section-desc">Permanent official address and current communication residence.</p>
+        </div>
+      </div>
+
+      <div class="addresses-grid">
+        <!-- Permanent Address -->
+        <div class="address-box">
+          <div class="address-box-header">
+            <span class="address-title">Permanent Address</span>
+          </div>
+          <mat-form-field appearance="outline" class="w-100 clean-field">
             <mat-label>Permanent Address</mat-label>
-            <textarea matInput formControlName="permanentAddress"></textarea>
+            <textarea matInput formControlName="permanentAddress" rows="3" placeholder="House/Flat No, Street, City, State, PIN Code"></textarea>
           </mat-form-field>
         </div>
-        <div class="row">
-          <!-- <button mat-raised-button color="primary" (click)="copyAddress()"> -->
-            <mat-icon (click)="copyAddress()">repeat_one_on</mat-icon>
-          <!-- </button> -->
-        </div>&nbsp;&nbsp;
-        <div class="col">
-          <mat-form-field class="w-100" appearance="outline">
-            <mat-label>Present Address</mat-label>
-            <textarea matInput formControlName="temporaryAddress"></textarea>
+
+        <!-- Present Address with Direct Copy Button -->
+        <div class="address-box">
+          <div class="address-box-header">
+            <span class="address-title">Present / Current Address</span>
+            <button type="button" mat-button class="btn-copy-address" (click)="copyAddress()" matTooltip="Copy permanent address to present address">
+              <mat-icon>content_copy</mat-icon>
+              <span>Same as Permanent</span>
+            </button>
+          </div>
+          <mat-form-field appearance="outline" class="w-100 clean-field">
+            <mat-label>Present / Communication Address</mat-label>
+            <textarea matInput formControlName="temporaryAddress" rows="3" placeholder="Current residential address, City, State, PIN Code"></textarea>
           </mat-form-field>
         </div>
+      </div>
+    </div>
+
+    <!-- Form Footer Actions -->
+    <div class="step-footer-actions">
+      <div class="footer-left">
+        <button type="button" mat-stroked-button class="btn-step-prev" (click)="triggerPreviousTab()">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Previous Step</span>
+        </button>
       </div>
 
-      <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center" class="row">
-        <!-- <div class="col">
-          <mat-slide-toggle formControlName="isTemporary">Is Temporary</mat-slide-toggle>
-        </div> -->
-        <div class="col" style="text-align: right;">
-          <button mat-raised-button (click)="triggerPreviousTab()" [disabled]="!form.pristine && !form.invalid && !isNext">
-            <div class="text-with-icon">
-              <mat-icon>arrow_back_ios</mat-icon>
-              <!-- <span>Prev</span> -->
-            </div>
-          </button>
-          <button mat-raised-button class="button" (click)="onSubmit()" [disabled]="form.pristine || form.invalid" style="margin-left: 10px;">
-            @if (editStatus) {
-                Update
-            } @else {
-                Save
-            }
-          </button>
-          <button mat-raised-button class="button" onclick="history.back()" [disabled]="!form.pristine && !form.invalid && !isNext" style="margin-left: 10px;">
-            Exit
-          </button>
-          <button mat-raised-button (click)="triggerNextTab()" style="margin-left: 10px;" [disabled]="!form.pristine && !form.invalid && !isNext">
-            <div class="text-with-icon">
-              <!-- <span>Next</span> -->
-              <mat-icon>arrow_forward_ios</mat-icon>
-            </div>
-          </button>
-        </div>
+      <div class="footer-right">
+        <button type="submit" mat-raised-button class="btn-step-save" [disabled]="form.invalid">
+          <mat-icon>{{ editStatus ? 'check' : 'save' }}</mat-icon>
+          <span>{{ editStatus ? 'Save Personal Updates' : 'Save & Proceed' }}</span>
+        </button>
+
+        <button type="button" mat-raised-button class="btn-step-next" (click)="triggerNextTab()">
+          <span>Next Step</span>
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
       </div>
-    </mat-card>
+    </div>
+
   </div>
 </form>

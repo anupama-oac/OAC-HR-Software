@@ -1,38 +1,299 @@
-.user-form {
-  .form-field-outer {
-      width: 280px;
-  }
-  .mat-mdc-radio-button{
-      margin-right: 12px;
-  }
+/* ====================================================
+   Team Dialogue Modal Styles
+   Executive HR System Design
+   ==================================================== */
+
+:host {
+  display: block;
 }
 
-.row {
+.team-dialog-modal {
   display: flex;
-  flex-wrap: wrap; /* This will help with responsiveness */
-  margin-bottom: 20px; /* Add some space between rows */
+  flex-direction: column;
+  padding: 24px 28px 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-sizing: border-box;
+  max-width: 640px;
+  width: 100%;
 }
 
-.col {
-  flex: 1;
-  margin-right: 20px;
-  min-width: 200px; /* Ensure columns don't shrink too much */
+/* ----------------------------------------------------
+   Modal Header
+   ---------------------------------------------------- */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+
+  .header-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .header-titles {
+    flex: 1;
+    padding-right: 32px;
+
+    .dialog-title {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.015em;
+      line-height: 1.25;
+    }
+
+    .dialog-subtitle {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+  }
+
+  .close-button {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: #f1f5f9;
+      color: #334155;
+    }
+  }
 }
 
-.box {
-  width: 100%; /* Ensure the box takes full width */
-  padding: 15px; /* Add padding to the box */
-}
+/* ----------------------------------------------------
+   Modal Form & Fields
+   ---------------------------------------------------- */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 20px;
 
-@media (max-width: 576px) {
-  .box {
-    padding: 0;
-    margin: 0;
+  .form-section {
+    display: flex;
     flex-direction: column;
-  }
-  .col {
-    margin-right: 0; /* Remove margin for smaller screens */
-    margin-bottom: 20px; /* Add some space between columns */
+    gap: 6px;
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .required-star {
+        color: #ef4444;
+        font-weight: 700;
+      }
+    }
+
+    .section-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+
+      .role-scope-tag {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: #2563eb;
+        background: #eff6ff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        border: 1px solid #dbeafe;
+        margin-left: 6px;
+      }
+
+      .toggle-filter-link {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 0;
+        transition: color 0.15s ease;
+
+        &:hover {
+          color: #2563eb;
+        }
+      }
+    }
+
+    .full-width {
+      width: 100%;
+
+      .field-prefix-icon {
+        color: #64748b;
+        margin-right: 8px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
   }
 }
 
+/* User Selection Option Styling in Dropdown */
+::ng-deep .user-select-panel {
+  .mat-mdc-option {
+    .mdc-list-item__primary-text {
+      width: 100%;
+    }
+  }
+}
+
+.user-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+
+  .user-name-text {
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 13px;
+  }
+
+  .user-desig-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+
+    &.leader-desig {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    &.member-desig {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   Modal Footer Actions
+   ---------------------------------------------------- */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 18px;
+  border-top: 1px solid #f1f5f9;
+
+  .btn-cancel {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    border-color: #cbd5e1;
+    height: 38px;
+    padding: 0 16px;
+
+    &:hover:not([disabled]) {
+      background: #f8fafc;
+      color: #1e293b;
+      border-color: #94a3b8;
+    }
+  }
+
+  .btn-clear {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    border-color: #e2e8f0;
+    height: 38px;
+    padding: 0 14px;
+
+    &:hover:not([disabled]) {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  }
+
+  .btn-save {
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    height: 38px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .save-spinner {
+      margin-right: 4px;
+    }
+
+    &:hover:not([disabled]) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+
+    &[disabled] {
+      opacity: 0.6;
+      box-shadow: none;
+    }
+  }
+}

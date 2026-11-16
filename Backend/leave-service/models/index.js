@@ -8,24 +8,36 @@ const UserEmail = require('./userEmail');
 const UserLeave = require('./userLeave');
 
 // Define All Associations
-LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', as: 'leaves', onUpdate: 'CASCADE' });
-Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+if (!LeaveType.associations || !LeaveType.associations.leaves) {
+  LeaveType.hasMany(Leave, { foreignKey: 'leaveTypeId', as: 'leaves', onUpdate: 'CASCADE' });
+}
+if (!Leave.associations || !Leave.associations.leaveType) {
+  Leave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+}
 
-LeaveType.hasMany(UserLeave, { foreignKey: 'leaveTypeId', onUpdate: 'CASCADE' });
-UserLeave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+if (!LeaveType.associations || !LeaveType.associations.userLeaves) {
+  LeaveType.hasMany(UserLeave, { foreignKey: 'leaveTypeId', as: 'userLeaves', onUpdate: 'CASCADE' });
+}
+if (!UserLeave.associations || !UserLeave.associations.leaveType) {
+  UserLeave.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+}
 
 // Default Seed Logic
 const seedLeaveTypes = async () => {
-  const count = await LeaveType.count();
-  if (count === 0) {
-    await LeaveType.bulkCreate([
-      { leaveTypeName: 'Casual Leave' },
-      { leaveTypeName: 'Sick Leave' },
-      { leaveTypeName: 'LOP' },
-      { leaveTypeName: 'Comp Off' },
-    ]);
-    console.log('Default leave types seeded.');
+  const defaultTypes = [
+    { leaveTypeName: 'Casual Leave' },
+    { leaveTypeName: 'Sick Leave' },
+    { leaveTypeName: 'LOP' },
+    { leaveTypeName: 'Comp Off' },
+    { leaveTypeName: 'Maternity Leave' },
+  ];
+  for (const item of defaultTypes) {
+    await LeaveType.findOrCreate({
+      where: { leaveTypeName: item.leaveTypeName },
+      defaults: item
+    });
   }
+  console.log('Default leave types ensured.');
 };
 
 // Sequential Sync

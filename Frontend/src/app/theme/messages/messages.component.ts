@@ -72,6 +72,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
   messageNotfiSub:Subscription
   getNotificationsForUser() {
+   this.messageNotfiSub?.unsubscribe();
    this.messageNotfiSub =  this.messagesService.getUserNotifications(this.userId).subscribe(
       (data: any) => {
         this.notifications = data.notifications || [];
@@ -92,7 +93,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
       const roleId = user.role;
       this.userId = user.id;
       await this.getRoleById(roleId);
-      if (this.userRole === 'Admin' || this.userRole === 'Super Administrator') {
+      if (this.userRole === 'Admin' || this.userRole === 'Super Administrator' || (this.userRole || '').toLowerCase().trim() === 'hr & administration manager') {
         this.getAllNot();
       } else {
         this.getNotificationsForUser();
@@ -176,6 +177,11 @@ export class MessagesComponent implements OnInit, OnDestroy {
   openMessagesMenu() {
     this.trigger.openMenu();
     this.selectedTab = 0;
+    if (this.userRole === 'Admin' || this.userRole === 'Super Administrator' || (this.userRole || '').toLowerCase().trim() === 'hr & administration manager') {
+      this.getAllNot();
+    } else {
+      this.getNotificationsForUser();
+    }
   }
 
   onMouseLeave() {
@@ -194,7 +200,8 @@ export class MessagesComponent implements OnInit, OnDestroy {
   }
 
   isAdmin(): boolean {
-    return this.userRole === 'admin' || this.userRole === 'Super Administrator';
+    const r = (this.userRole || '').toLowerCase().trim();
+    return r === 'admin' || r === 'super administrator' || r === 'hr & administration manager' || r === 'hr & admin manager';
   }
 
 
@@ -254,4 +261,3 @@ onMessageClick(route: string): void {
   // }
 
 }
-

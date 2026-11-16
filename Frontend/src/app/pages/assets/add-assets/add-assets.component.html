@@ -1,72 +1,99 @@
-<h1 mat-dialog-title>
-    @if (editStatus) {
-        <span>Edit</span>
-    } @else {
-        <span>ADD</span>
-    }
-     ASSETS
-  </h1>
-  <div mat-dialog-content>
-    <form [formGroup]="form" class="user-form" fxLayout="column" fxLayoutGap="16px">
-        <div fxLayout="column" class="form-field-outer">
-          <mat-card>
-            <div class="row box" style="margin-top: 20px;">
-              <div class="col">
-                <mat-form-field appearance="outline" class="input-field full-width">
-                    <mat-label>Asset Name</mat-label>
-                    <input matInput formControlName="assetName" placeholder="Asset Name" required />
-                </mat-form-field>
-              </div>
-
-              <div class="col">
-                <mat-form-field appearance="outline" class="input-field full-width">
-                    <mat-label>Asset Number</mat-label>
-                    <input matInput formControlName="assetNumber" placeholder="Asset Number" />
-                </mat-form-field>
-              </div>
-              <div class="col">
-                <mat-form-field appearance="outline" class="input-field full-width">
-                    <mat-label>Asset Handover Number</mat-label>
-                    <input matInput formControlName="assetHandoverNumber" placeholder="Asset Handover Number" />
-                </mat-form-field>
-              </div>
-            </div>
-
-            <div class="row box" style="margin-top: 20px;">
-                <div class="col">
-                    <mat-form-field appearance="outline" class="input-field full-width">
-                        <mat-label>Serial Number</mat-label>
-                        <input matInput formControlName="serialNumber" placeholder="Serial Number" />
-                    </mat-form-field>
-                </div>
-                <div class="col">
-                    <mat-form-field appearance="outline" class="input-field full-width">
-                        <mat-label>No Of Items</mat-label>
-                        <input matInput formControlName="noOfItems" placeholder="No Of Items" />
-                    </mat-form-field>
-                </div>
-
-              </div>
-              <div class="row box" style="margin-top: 20px;">
-                <div class="col">
-                    <mat-form-field appearance="outline" class="input-field full-width">
-                        <mat-label>Description</mat-label>
-                        <input matInput formControlName="description" placeholder="Description"/>
-                    </mat-form-field>
-                </div>
-            </div>
-          </mat-card>
-        </div>
-      </form>
-  </div>
-  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-    <button mat-raised-button color="primary" [mat-dialog-close]="form.value" [disabled]="!form.valid" (click)="onSubmit()">
-        @if (editStatus) {
-            Update
-        } @else {
-            Save
-        }
+<div class="modal-wrapper">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-icon-box">
+      <mat-icon>chair_alt</mat-icon>
+    </div>
+    <div class="header-titles">
+      <h2 class="dialog-title">
+        {{ editStatus ? 'Edit Company Asset' : 'Add Company Asset' }}
+      </h2>
+      <p class="dialog-subtitle">
+        {{ editStatus ? 'Update organization asset specifications and inventory count' : 'Register a new physical asset or office equipment for the organization' }}
+      </p>
+    </div>
+    <button mat-icon-button class="close-btn" [mat-dialog-close]="false" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
     </button>
-    <button mat-raised-button color="warn"  [mat-dialog-close]="true" type="button">Cancel</button>
   </div>
-  
+
+  <!-- Dialog Form Content -->
+  <div mat-dialog-content class="dialog-body">
+    <form [formGroup]="form" class="asset-form">
+      <div class="form-grid">
+
+        <!-- Asset Name (Full Width) -->
+        <div class="form-col col-span-2">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Asset Name</mat-label>
+            <mat-icon matPrefix class="field-icon">inventory_2</mat-icon>
+            <input matInput formControlName="assetName" placeholder="e.g. Conference Table, Office Chair, Projector" required />
+            @if (form.get('assetName')?.hasError('required') && form.get('assetName')?.touched) {
+              <mat-error>Asset name is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Asset Number -->
+        <div class="form-col">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Asset Number / Tag</mat-label>
+            <mat-icon matPrefix class="field-icon">tag</mat-icon>
+            <input matInput formControlName="assetNumber" placeholder="e.g. AST-FUR-001" />
+          </mat-form-field>
+        </div>
+
+        <!-- Handover Number -->
+        <div class="form-col">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Asset Handover Form No.</mat-label>
+            <mat-icon matPrefix class="field-icon">description</mat-icon>
+            <input matInput formControlName="assetHandoverNumber" placeholder="e.g. HO-2024-089" />
+          </mat-form-field>
+        </div>
+
+        <!-- Serial Number -->
+        <div class="form-col">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Serial Number</mat-label>
+            <mat-icon matPrefix class="field-icon">qr_code</mat-icon>
+            <input matInput formControlName="serialNumber" placeholder="e.g. SN-883920-X" />
+          </mat-form-field>
+        </div>
+
+        <!-- Quantity / Number of Items -->
+        <div class="form-col">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Quantity / No. of Items</mat-label>
+            <mat-icon matPrefix class="field-icon">format_list_numbered</mat-icon>
+            <input matInput type="number" min="1" formControlName="noOfItems" placeholder="1" />
+          </mat-form-field>
+        </div>
+
+        <!-- Description (Full Width Textarea) -->
+        <div class="form-col col-span-2">
+          <mat-form-field appearance="outline" class="modern-field">
+            <mat-label>Description & Notes</mat-label>
+            <textarea matInput formControlName="description" rows="3" placeholder="Add location, room number, condition, specifications, or vendor notes..."></textarea>
+          </mat-form-field>
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div mat-dialog-actions class="dialog-actions">
+    <button mat-stroked-button type="button" [mat-dialog-close]="false" class="btn-cancel">
+      Cancel
+    </button>
+    <button
+      mat-flat-button
+      class="btn-submit"
+      [disabled]="!form.valid || isSubmitting"
+      (click)="onSubmit()">
+      <mat-icon>{{ editStatus ? 'save' : 'add_circle' }}</mat-icon>
+      <span>{{ editStatus ? 'Update Asset' : 'Save Asset' }}</span>
+    </button>
+  </div>
+</div>

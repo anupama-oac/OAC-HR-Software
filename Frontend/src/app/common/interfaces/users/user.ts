@@ -12,17 +12,18 @@ export interface User {
   phoneNumber: string,
   password: string,
   roleId: number
-  role:Role
+  role: Role
   status: boolean
   url: string
   userImage: string
   createdAt: Date
   updatedAt: Date
 
-  teamId:number
+  teamId: number
   team: Team
 
   empNo: string
+  director?: boolean
   dateOfJoining: Date
   probationPeriod: string
   confirmationDate: Date

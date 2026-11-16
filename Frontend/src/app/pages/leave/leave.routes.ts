@@ -18,6 +18,9 @@ export const routes: Routes = [
       { path: 'edit/:id',  loadComponent: () => import('./apply-leave/apply-leave.component').then(c => c.ApplyLeaveComponent),
         data: { breadcrumb: 'EDIT' } , canActivate: [AuthGuard]
       },
+      { path: 'leave-types/grant', loadComponent: () => import('./leave-types/grant-leave-dialog/grant-leave-dialog.component').then(c => c.GrantLeaveDialogComponent),
+        data: { breadcrumb: 'Grant Leave' }, canActivate: [AuthGuard]
+      },
       { path: 'leave-types',  loadComponent: () => import('./leave-types/leave-types.component').then(c => c.LeaveTypesComponent),
         data: { breadcrumb: 'ADD' } , canActivate: [AuthGuard]
       },

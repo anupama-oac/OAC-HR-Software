@@ -1,0 +1,318 @@
+<form [formGroup]="payrollForm" (ngSubmit)="onSubmit()" class="salary-form-wrapper">
+  <div class="salary-details-container">
+
+    <!-- Key Metrics Summary Strip -->
+    <div class="metrics-summary-strip">
+      <div class="metric-card gross-card">
+        <div class="metric-top">
+          <span class="metric-label">Gross Salary (Monthly)</span>
+          <mat-icon class="metric-icon">trending_up</mat-icon>
+        </div>
+        <div class="metric-amount">₹{{ (payrollForm.get('grossPay')?.value || 0) | number:'1.0-0' }}</div>
+        <div class="metric-sub">Annual CTC Gross: ₹{{ (payrollForm.get('yeargrossPay')?.value || 0) | number:'1.0-0' }}</div>
+      </div>
+
+      <div class="metric-card deduction-card">
+        <div class="metric-top">
+          <span class="metric-label">Total Deductions (Monthly)</span>
+          <mat-icon class="metric-icon">remove_circle_outline</mat-icon>
+        </div>
+        <div class="metric-amount">₹{{ getTotalDeductions() | number:'1.0-0' }}</div>
+        <div class="metric-sub">Annual Deductions: ₹{{ getYearlyTotalDeductions() | number:'1.0-0' }}</div>
+      </div>
+
+      <div class="metric-card net-card">
+        <div class="metric-top">
+          <span class="metric-label">Estimated Net Take-Home</span>
+          <mat-icon class="metric-icon">savings</mat-icon>
+        </div>
+        <div class="metric-amount">₹{{ getNetPay() | number:'1.0-0' }}</div>
+        <div class="metric-sub">Annual Net Pay: ₹{{ getYearlyNetPay() | number:'1.0-0' }}</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Earnings & Allowances -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-blue">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Earnings & Allowances Breakdown</h3>
+          <p class="section-desc">Configure monthly base compensation and allowances. Annual equivalents are calculated automatically.</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="modern-payroll-table">
+          <thead>
+            <tr>
+              <th class="col-name">Salary Component</th>
+              <th class="col-monthly">Monthly Amount (₹)</th>
+              <th class="col-yearly">Annual Equivalent (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Basic Pay -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Basic Pay <span class="req-star">*</span></span>
+                  <span class="comp-hint">Mandatory core base wage</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper" [class.invalid-field]="payrollForm.get('basic')?.invalid && payrollForm.get('basic')?.touched">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="basic" class="modern-input" placeholder="0" min="0" required />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearbasicPay')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- House Rent Allowance (HRA) -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">House Rent Allowance (HRA) <span class="req-star">*</span></span>
+                  <span class="comp-hint">Housing assistance component</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper" [class.invalid-field]="payrollForm.get('hra')?.invalid && payrollForm.get('hra')?.touched">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="hra" class="modern-input" placeholder="0" min="0" required />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearhra')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Conveyance Allowance -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Conveyance Allowance <span class="req-star">*</span></span>
+                  <span class="comp-hint">Commute & travel support</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper" [class.invalid-field]="payrollForm.get('conveyanceAllowance')?.invalid && payrollForm.get('conveyanceAllowance')?.touched">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="conveyanceAllowance" class="modern-input" placeholder="0" min="0" required />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearconveyanceAllowance')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Leave Travel Allowance (LTA) -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Leave Travel Allowance (LTA)</span>
+                  <span class="comp-hint">Holiday travel allowance</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="lta" class="modern-input" placeholder="0" min="0" />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearlta')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Special Allowance -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Special Allowance <span class="req-star">*</span></span>
+                  <span class="comp-hint">Performance & flexible allowance</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper" [class.invalid-field]="payrollForm.get('specialAllowance')?.invalid && payrollForm.get('specialAllowance')?.touched">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="specialAllowance" class="modern-input" placeholder="0" min="0" required />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearspecialAllowance')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Gross Pay Total Row -->
+            <tr class="summary-row gross-row">
+              <td>
+                <div class="summary-label-cell">
+                  <mat-icon>verified</mat-icon>
+                  <strong>Gross Pay (Total Earnings)</strong>
+                </div>
+              </td>
+              <td>
+                <div class="summary-amount-cell">
+                  ₹{{ (payrollForm.get('grossPay')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+              <td>
+                <div class="summary-amount-cell">
+                  ₹{{ (payrollForm.get('yeargrossPay')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: Statutory Deductions & Contributions -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-badge badge-orange">
+          <mat-icon>remove_circle_outline</mat-icon>
+        </div>
+        <div class="section-title-wrap">
+          <h3 class="section-title">Deductions & Statutory Contributions</h3>
+          <p class="section-desc">Employee-side monthly statutory deductions for PF, ESI, and Professional Tax.</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="modern-payroll-table">
+          <thead>
+            <tr>
+              <th class="col-name">Deduction Component</th>
+              <th class="col-monthly">Monthly Deduction (₹)</th>
+              <th class="col-yearly">Annual Equivalent (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- PF Deduction -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Provident Fund (PF)</span>
+                  <span class="comp-hint">Retirement savings deduction</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="pfDeduction" class="modern-input" placeholder="0" min="0" />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearPfDeduction')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- ESI -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Employee State Insurance (ESI)</span>
+                  <span class="comp-hint">Medical health insurance scheme</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="esi" class="modern-input" placeholder="0" min="0" />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearEsi')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Professional Tax (PT) -->
+            <tr>
+              <td>
+                <div class="component-desc">
+                  <span class="comp-title">Professional Tax (PT)</span>
+                  <span class="comp-hint">State statutory professional tax</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-currency-wrapper">
+                  <span class="curr-symbol">₹</span>
+                  <input type="number" formControlName="incentiveDeduction" class="modern-input" placeholder="0" min="0" />
+                </div>
+              </td>
+              <td>
+                <div class="computed-cell">
+                  ₹{{ (payrollForm.get('yearIncentiveDeduction')?.value || 0) | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Total Deductions Row -->
+            <tr class="summary-row deductions-row">
+              <td>
+                <div class="summary-label-cell">
+                  <mat-icon>remove</mat-icon>
+                  <strong>Total Deductions</strong>
+                </div>
+              </td>
+              <td>
+                <div class="summary-amount-cell deduction-text">
+                  -₹{{ getTotalDeductions() | number:'1.0-0' }}
+                </div>
+              </td>
+              <td>
+                <div class="summary-amount-cell deduction-text">
+                  -₹{{ getYearlyTotalDeductions() | number:'1.0-0' }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step Footer Actions -->
+    <div class="step-footer-actions">
+      <div class="footer-left">
+        <button type="button" mat-stroked-button class="btn-step-prev" (click)="triggerPreviousTab()">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Previous Step</span>
+        </button>
+      </div>
+
+      <div class="footer-right">
+        <button type="submit" mat-raised-button class="btn-step-save" [disabled]="payrollForm.invalid">
+          <mat-icon>{{ editStatus ? 'check' : 'save' }}</mat-icon>
+          <span>{{ editStatus ? 'Save Salary Updates' : 'Save & Proceed' }}</span>
+        </button>
+
+        <button type="button" mat-raised-button class="btn-step-next" (click)="triggerNextTab()">
+          <span>Next Step</span>
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</form>
+

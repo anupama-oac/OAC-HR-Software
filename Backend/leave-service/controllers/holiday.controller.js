@@ -12,6 +12,7 @@ const ComboOff = require('../models/compOff');
 const xlsx = require('xlsx');
 const multer = require('multer');
 const moment = require('moment');
+const { notifyEmployeesAboutLeave } = require('../utils/notificationService');
 
 // Multer setup for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
@@ -369,44 +370,47 @@ exports.deleteHolidayByYear = async(req,res)=>{
 // comboofffffffffffffffffffffffffffffff----------------------------------------------------------------------------------------
 exports.addComboOff = async (req, res) => {
   const id = req.params.id;
-  const selectedEmployees = req.body;
-  
-  const employeeLength = selectedEmployees.length; 
-  
+  const selectedEmployees = Array.isArray(req.body) ? req.body : (req.body.selectedEmployeeIds || []);
+  const employeeLength = selectedEmployees.length;
+
   try {
     const holiday = await Holiday.findByPk(id);
+    if (!holiday) {
+      return res.status(404).json({ message: 'Holiday not found' });
+    }
+
     holiday.comboAdded = true;
     holiday.comboAddedFor = employeeLength;
-    
     await holiday.save();
 
-    let leaveTypeId;
-    try {
-      const leaveType = await LeaveType.findOne({ where: { leaveTypeName: 'Comp Off' } });
-      
-      leaveTypeId = leaveType.id;
-    } catch (error) {
-      return res.send(error.message); // Send error if leaveType not found
-    }
-    let comboOff;
-    try {
+    // Ensure Comp Off leave type exists
+    const [leaveType] = await LeaveType.findOrCreate({
+      where: { leaveTypeName: 'Comp Off' },
+      defaults: { leaveTypeName: 'Comp Off' }
+    });
+    const leaveTypeId = leaveType.id;
+
+    let comboOff = await ComboOff.findOne({ where: { holidayId: id } });
+    if (comboOff) {
+      comboOff.userId = [...new Set([...(comboOff.userId || []), ...selectedEmployees])];
+      await comboOff.save();
+    } else {
       comboOff = await ComboOff.create({
         userId: selectedEmployees,
-        holidayId: req.params.id
+        holidayId: id
       });
-    } catch (error) {
-      res.send(error.message)
     }
 
     const year = new Date(holiday.date).getFullYear();
+    const grantedEmployeeIds = [];
     for (let i = 0; i < selectedEmployees.length; i++) {
       try {
         let ul = await UserLeave.findOne({
           where: { userId: selectedEmployees[i], leaveTypeId: leaveTypeId, year }
         });
-        
+
         if (ul) {
-          ul.noOfDays += 1; 
+          ul.noOfDays += 1;
           ul.leaveBalance += 1;
           await ul.save();
         } else {
@@ -418,19 +422,34 @@ exports.addComboOff = async (req, res) => {
             leaveBalance: 1,
             year: year
           });
-          
-          await userLeave.save(); 
+          await userLeave.save();
         }
-      } catch (error) {
-        return res.send(error.message); // Catch inner loop error
+        grantedEmployeeIds.push(Number(selectedEmployees[i]));
+      } catch (innerError) {
+        console.error('Error updating employee leave balance:', innerError);
       }
     }
-    
-    res.json({comboOff, holiday, message:`Compository off added for employee number ${employeeLength} on the day ${holiday.name}` });
+
+    const notificationFailures = await notifyEmployeesAboutLeave({
+      employeeIds: grantedEmployeeIds,
+      message: `1 Comp Off day was granted to you for ${holiday.name} (${year}).`,
+      route: '/login/leave/leave-balance',
+      authorization: req.headers.authorization
+    });
+
+    return res.json({
+      comboOff,
+      holiday,
+      message: notificationFailures.length
+        ? `Comp-Off allocated, but notifications could not be delivered to ${notificationFailures.length} employee(s).`
+        : `Comp-Off allocated successfully for ${grantedEmployeeIds.length} employee(s) for ${holiday.name}`,
+      notificationFailures: notificationFailures.length
+    });
   } catch (error) {
-    res.send(error.message); // Handle outer error
+    console.error('Error in addComboOff:', error);
+    return res.status(500).json({ error: error.message, message: 'Failed to allocate comp-off' });
   }
-}
+};
 
 exports.updateComboOff = async (req, res) => {
   const id = req.params.id;
@@ -439,65 +458,104 @@ exports.updateComboOff = async (req, res) => {
   const employeeLength = selectedEmployees.length;
 
   try {
-      const holiday = await Holiday.findByPk(id);
-      holiday.comboAdded = true;
-      holiday.comboAddedFor += employeeLength;
-      await holiday.save();
+    const holiday = await Holiday.findByPk(id);
+    if (!holiday) {
+      return res.status(404).json({ message: 'Holiday not found' });
+    }
 
-      const leaveType = await LeaveType.findOne({ where: { leaveTypeName: 'Comp Off' } });
-      const leaveTypeId = leaveType.id;
+    holiday.comboAdded = true;
+    holiday.comboAddedFor = (holiday.comboAddedFor || 0) + employeeLength - deselectedEmployees.length;
+    if (holiday.comboAddedFor < 0) holiday.comboAddedFor = 0;
+    await holiday.save();
 
-      let comboOff = await ComboOff.findOne({ where: { holidayId: id } });
+    // Ensure Comp Off leave type exists
+    const [leaveType] = await LeaveType.findOrCreate({
+      where: { leaveTypeName: 'Comp Off' },
+      defaults: { leaveTypeName: 'Comp Off' }
+    });
+    const leaveTypeId = leaveType.id;
 
-      comboOff.userId = comboOff.userId.filter(userId => !deselectedEmployees.includes(userId));
-      const newUserIds = selectedEmployees.filter(userId => !comboOff.userId.includes(userId));
-      
-      comboOff.userId = [...new Set([...comboOff.userId, ...newUserIds])];
+    let comboOff = await ComboOff.findOne({ where: { holidayId: id } });
+    if (!comboOff) {
+      comboOff = await ComboOff.create({
+        holidayId: id,
+        userId: []
+      });
+    }
 
-      // Save updated comboOff
-      await comboOff.save();
-      await comboOff.reload();
+    const currentUsers = Array.isArray(comboOff.userId) ? comboOff.userId : [];
+    const remainingUsers = currentUsers.filter(userId => !deselectedEmployees.includes(userId));
+    const newUserIds = selectedEmployees.filter(userId => !remainingUsers.includes(userId));
 
-      const year = new Date(holiday.date).getFullYear();
-      // Update leave balances for deselected employees
-      await Promise.all(deselectedEmployees.map(async (userId) => {
-          const ul = await UserLeave.findOne({ where: { userId, leaveTypeId, year } });
-          if (ul) {
-              ul.noOfDays -= 1;
-              ul.leaveBalance -= 1;
-              await ul.save();
-          }
-      }));
+    comboOff.userId = [...new Set([...remainingUsers, ...newUserIds])];
+    await comboOff.save();
+    await comboOff.reload();
 
-      // Update leave balances for selected employees
-      await Promise.all(selectedEmployees.map(async (userId) => {
-          const ul = await UserLeave.findOne({ where: { userId, leaveTypeId, year } });
-          if (ul) {
-              ul.noOfDays += 1;
-              ul.leaveBalance += 1;
-              await ul.save();
-          } else {
-              const userLeave = new UserLeave({
-                  userId,
-                  leaveTypeId,
-                  noOfDays: 1,
-                  takenLeaves: 0,
-                  leaveBalance: 1,
-                  year: year
-              });
-              await userLeave.save();
-          }
-      }));
+    const year = new Date(holiday.date).getFullYear();
+    const grantedEmployeeIds = [];
 
-      // Fetch the updated ComboOff again
-      const updatedComboOff = await ComboOff.findOne({ where: { holidayId: id } });
+    // Update leave balances for deselected employees (decrement 1)
+    await Promise.all(deselectedEmployees.map(async (userId) => {
+      try {
+        const ul = await UserLeave.findOne({ where: { userId, leaveTypeId, year } });
+        if (ul) {
+          ul.noOfDays = Math.max(0, ul.noOfDays - 1);
+          ul.leaveBalance = ul.leaveBalance - 1;
+          await ul.save();
+        }
+      } catch (err) {
+        console.error('Error deducting leave balance for user', userId, err);
+      }
+    }));
 
-      res.json({ updatedComboOff, holiday, message: `Compository off updated for employee number ${employeeLength} on the day ${holiday.name}` });
+    // Update leave balances for selected employees (increment 1)
+    await Promise.all(selectedEmployees.map(async (userId) => {
+      try {
+        const ul = await UserLeave.findOne({ where: { userId, leaveTypeId, year } });
+        if (ul) {
+          ul.noOfDays += 1;
+          ul.leaveBalance += 1;
+          await ul.save();
+        } else {
+          const userLeave = new UserLeave({
+            userId,
+            leaveTypeId,
+            noOfDays: 1,
+            takenLeaves: 0,
+            leaveBalance: 1,
+            year: year
+          });
+          await userLeave.save();
+        }
+        grantedEmployeeIds.push(Number(userId));
+      } catch (err) {
+        console.error('Error adding leave balance for user', userId, err);
+      }
+    }));
 
+    const notificationFailures = await notifyEmployeesAboutLeave({
+      employeeIds: grantedEmployeeIds,
+      message: `1 Comp Off day was granted to you for ${holiday.name} (${year}).`,
+      route: '/login/leave/leave-balance',
+      authorization: req.headers.authorization
+    });
+
+    const updatedComboOff = await ComboOff.findOne({ where: { holidayId: id } });
+
+    return res.json({
+      updatedComboOff,
+      holiday,
+      message: notificationFailures.length
+        ? `Comp-Off updated, but notifications could not be delivered to ${notificationFailures.length} employee(s).`
+        : `Comp-Off updated successfully for ${holiday.name}`,
+      notificationFailures: notificationFailures.length
+    });
   } catch (error) {
-      res.json({ error: error.message });
+    console.error('Error in updateComboOff:', error);
+    return res.status(500).json({ error: error.message, message: 'Failed to update comp-off' });
   }
-}
+};
+
 
 exports.findComboOff = async (req, res) => {
   let holidayId = req.params.id
@@ -509,4 +567,16 @@ exports.findComboOff = async (req, res) => {
   }
 }
 
+exports.findHolidayById = async (req, res) => {
+  let holidayId = req.params.id;
+  try {
+    const holiday = await Holiday.findByPk(holidayId);
+    if (!holiday) {
+      return res.status(404).json({ message: 'Holiday not found' });
+    }
+    res.json(holiday);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 

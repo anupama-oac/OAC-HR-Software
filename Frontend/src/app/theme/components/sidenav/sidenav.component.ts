@@ -90,22 +90,23 @@ users:User;
       if (!this.user.userPosition || !this.user.userPosition.designation) {
         this.invoiceService.getRoleById(this.roleId).subscribe((roleRes) => {
           this.role = roleRes.roleName;
-          console.log(this.role);
-          
           this.filterMenuItemsByRole(this.role);
         });
       } else {
-        if(this.user.userPosition.designation.roleId){
-          this.role = this.user.userPosition.designation.role.roleName;
-        }else this.role = this.user.userPosition.designation.designationName;
-        this.filterMenuItemsByRole(this.role);
+          const desig = this.user.userPosition.designation.designationName;
+          const desigLower = (desig || '').toLowerCase().trim();
+          if (desigLower === 'hr & administration manager' || desigLower === 'hr & admin manager') {
+            this.role = 'Super Administrator';
+          } else {
+            this.role = desig;
+          }
+          this.filterMenuItemsByRole(this.role);
       }
     });
   }
 
   private menuService = inject(MenuService);
   filterMenuItemsByRole(role: string) {
-    
     const allMenuItems = this.menuService.getVerticalMenuItems();
     if (role === 'Administrator'){
       this.filteredMenuItems = allMenuItems.filter(item =>
@@ -154,7 +155,7 @@ users:User;
 
 
       );
-    } else if (role === 'Super Administrator') {
+    } else if (role === 'Super Administrator' || role === 'HR & ADMINISTRATION MANAGER' || (role || '').toLowerCase().trim() === 'hr & administration manager' || (role || '').toLowerCase().trim() === 'hr & admin manager') {
       this.filteredMenuItems = allMenuItems.filter(item =>
         item.title === 'Dashboard' ||
         (item.title === 'Employee' && !item.parentId) ||
@@ -183,6 +184,13 @@ users:User;
         (item.title === 'View' && item.parentId === 22) ||
         (item.title === 'Excel' && item.parentId === 22) ||
 
+        (item.title === 'Expense' && !item.parentId) ||
+        (item.title === 'Add' && item.parentId === 26) ||
+        (item.title === 'View' && item.parentId === 26) ||
+        (item.title === 'Petty Cash' && item.parentId === 26) ||
+        
+        (item.title === 'Petty Cash' && item.parentId === 26) ||
+
         (item.title === 'Expense' && item.parentId === 21)||
         (item.title === 'View' && item.parentId === 24) ||
         (item.title === 'Excel' && item.parentId === 24)||
@@ -195,6 +203,59 @@ users:User;
         // item.title === 'KPI'
       );
 
+    } else if (
+      (role || '').toLowerCase().trim() === 'finance manager' ||
+      (role || '').toLowerCase().trim().includes('finance manager')
+    ) {
+      this.filteredMenuItems = allMenuItems.filter(item =>
+        item.title === 'Dashboard' ||
+        (item.title === 'Expense' && !item.parentId) ||
+        (item.title === 'Add' && item.parentId === 26) ||
+        (item.title === 'View' && item.parentId === 26) ||
+        (item.title === 'Petty Cash' && item.parentId === 26) ||
+
+        (item.title === 'Proforma' && !item.parentId) ||
+        (item.title === 'View' && item.parentId === 5) ||
+        (item.title === 'Excel' && item.parentId === 5) ||
+
+        (item.title === 'Reports' && !item.parentId) ||
+        (item.title === 'Proforma' && item.parentId === 21) ||
+        (item.title === 'View' && item.parentId === 22) ||
+        (item.title === 'Excel' && item.parentId === 22) ||
+
+        (item.title === 'Expense' && item.parentId === 21) ||
+        (item.title === 'View' && item.parentId === 24) ||
+        (item.title === 'Excel' && item.parentId === 24) ||
+
+        (item.title === 'Payroll' && !item.parentId) ||
+        (item.title === 'Advance Salary' && item.parentId === 13) ||
+        (item.title === 'Month End' && item.parentId === 13) ||
+        (item.title === 'Payslip' && item.parentId === 13) ||
+
+        (item.title === 'Leave' && !item.parentId) ||
+        (item.title === 'View' && item.parentId === 8) ||
+        (item.title === 'Balance' && item.parentId === 8)
+      );
+    } else if (
+      (role || '').toLowerCase().trim() === 'operations manager' ||
+      (role || '').toLowerCase().trim() === 'operation manager' ||
+      (role || '').toLowerCase().trim().includes('operations manager') ||
+      (role || '').toLowerCase().trim().includes('operation manager')
+    ) {
+      this.filteredMenuItems = allMenuItems.filter(item =>
+        item.title === 'Dashboard' ||
+        (item.title === 'Expense' && !item.parentId) ||
+        (item.title === 'Add' && item.parentId === 26) ||
+        (item.title === 'View' && item.parentId === 26) ||
+
+        (item.title === 'Leave' && !item.parentId) ||
+        (item.title === 'View' && item.parentId === 8) ||
+        (item.title === 'Balance' && item.parentId === 8) ||
+
+        (item.title === 'Payroll' && !item.parentId) ||
+        (item.title === 'Advance Salary' && item.parentId === 13) ||
+        (item.title === 'Payslip' && item.parentId === 13)
+      );
     } else if ( role === 'Accountant' ) {
       this.filteredMenuItems = allMenuItems.filter(item =>
         item.title === 'Dashboard' ||
@@ -272,7 +333,6 @@ users:User;
       this.filteredMenuItems = allMenuItems.filter(item =>
         item.title === 'Dashboard'
       );
-
     }
 
     else {

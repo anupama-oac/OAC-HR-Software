@@ -1,106 +1,1280 @@
-.combo-off-container {
-    // max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  .combo-off-container h3 {
-    text-align: center;
-    color: #333;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  .form-group {
-    margin-bottom: 15px;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .form-group input[type="date"],
-  .form-group input[type="checkbox"] {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-  
-  .form-group input[type="checkbox"] {
-    width: auto;
-    margin-right: 8px;
-  }
-  
-  .form-group div {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  
-  button[type="submit"] {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  button[type="submit"]:hover {
-    background-color: #0056b3;
-  }
-  
-  @media (min-width: 768px) {
-    .combo-off-container {
-      max-width: 700px;
-    }
-  
-    .form-group input[type="date"],
-    .form-group input[type="checkbox"] {
-      width: auto;
-    }
-  
-    .form-group label {
-      font-size: 1rem;
-    }
-  
-    .form-group div {
-      justify-content: flex-start;
-    }
-  }
-  
-  .form-group-employees {
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #fff;
-  }
-  
+/* ====================================================
+   Compensatory Off Allocation (Add / Update) Styles
+   Executive HR System Design
+   ==================================================== */
 
-  .combo-off-container .header {
+:host {
+  display: block;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.compoff-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 16px 90px;
+  max-width: 1360px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ----------------------------------------------------
+   1. Header Toolbar Card
+   ---------------------------------------------------- */
+.compoff-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.05);
+
+  .header-left {
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .btn-back {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border-color: #cbd5e1;
+      color: #334155;
+      font-weight: 600;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+        color: #0f172a;
+      }
+    }
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+
+      .header-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .header-text-group {
+        .page-title {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: -0.015em;
+          line-height: 1.25;
+        }
+
+        .page-subtitle {
+          margin: 4px 0 0;
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 400;
+        }
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .btn-reset-header {
+      height: 40px;
+      border-radius: 10px;
+      border-color: #e2e8f0;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+
+      &:hover:not([disabled]) {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+    }
+
+    .btn-submit-header {
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s ease;
+
+      &:hover:not([disabled]) {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   2. Holiday Context Showcase Banner
+   ---------------------------------------------------- */
+.holiday-banner-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbf5 100%);
+  border-radius: 16px;
+  border: 1px solid #fed7aa;
+  padding: 22px 26px;
+  box-shadow: 0 2px 10px -2px rgba(234, 88, 12, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  }
+
+  .banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+
+    .holiday-badge-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+      color: #ea580c;
+      border: 1px solid #fdba74;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .holiday-info {
+      flex: 1;
+
+      .holiday-meta-tags {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+
+        .tag-status {
+          font-size: 11.5px;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          letter-spacing: 0.02em;
+
+          mat-icon {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+          }
+
+          &.status-active {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+          }
+
+          &.status-pending {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+          }
+        }
+
+        .tag-holiday-type {
+          font-size: 11.5px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 20px;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+
+        .tag-holiday-date {
+          font-size: 11.5px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 20px;
+          background: #f1f5f9;
+          color: #334155;
+          border: 1px solid #e2e8f0;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+
+          mat-icon {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+            color: #64748b;
+          }
+        }
+      }
+
+      .holiday-title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.25;
+      }
+
+      .holiday-description {
+        margin: 6px 0 0;
+        font-size: 13.5px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .quote-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+
+  .banner-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(254, 243, 199, 0.5);
+    border: 1px dashed #fcd34d;
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: #92400e;
+
+    .notice-icon {
+      color: #d97706;
+      display: flex;
+      align-items: center;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   3. Live Metrics KPI Cards Grid
+   ---------------------------------------------------- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+
+  .metric-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+      transform: translateY(-1px);
+    }
+
+    &.card-highlight-active {
+      border-color: #bfdbfe;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+    }
+
+    &.card-highlight-emerald {
+      border-color: #bbf7d0;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    }
+
+    &.card-highlight-rose {
+      border-color: #fecdd3;
+      background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+    }
+
+    .metric-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      mat-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+      }
+
+      &.bg-slate {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      &.bg-blue {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
+      &.bg-emerald {
+        background: #ecfdf5;
+        color: #059669;
+      }
+
+      &.bg-rose {
+        background: #fff1f2;
+        color: #e11d48;
+      }
+
+      &.bg-amber {
+        background: #fffbeb;
+        color: #d97706;
+      }
+    }
+
+    .metric-details {
+      display: flex;
+      flex-direction: column;
+
+      .metric-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .metric-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+        margin: 2px 0 1px;
+
+        &.text-blue {
+          color: #2563eb;
+        }
+
+        &.text-emerald {
+          color: #059669;
+        }
+
+        &.text-rose {
+          color: #e11d48;
+        }
+
+        &.text-amber {
+          color: #d97706;
+        }
+      }
+
+      .metric-subtext {
+        font-size: 11.5px;
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   4. Deduction Warning Notice Card
+   ---------------------------------------------------- */
+.deduction-warning-card {
+  background: #fff1f2;
+  border-radius: 14px;
+  border: 1px solid #fecdd3;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.06);
+
+  .warning-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    .warning-icon-pill {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #ffe4e6;
+      color: #e11d48;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .warning-text {
+      flex: 1;
+
+      h4 {
+        margin: 0;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #9f1239;
+      }
+
+      p {
+        margin: 4px 0 10px;
+        font-size: 13px;
+        color: #be123c;
+      }
+
+      .deselected-chips-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .deselected-chip {
+          background: #ffffff;
+          border: 1px solid #fca5a5;
+          padding: 4px 10px 4px 12px;
+          border-radius: 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+
+          .chip-name {
+            font-weight: 600;
+            color: #9f1239;
+          }
+
+          .chip-empno {
+            font-size: 11.5px;
+            color: #f43f5e;
+          }
+
+          .btn-undo-chip {
+            background: #ffe4e6;
+            border: none;
+            color: #9f1239;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            transition: all 0.15s ease;
+
+            mat-icon {
+              font-size: 13px;
+              width: 13px;
+              height: 13px;
+            }
+
+            &:hover {
+              background: #fecdd3;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   5. Search & Filter Toolbar Card
+   ---------------------------------------------------- */
+.toolbar-filter-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  .toolbar-top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .search-box {
+      flex: 1;
+      min-width: 280px;
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        color: #94a3b8;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+      }
+
+      input {
+        width: 100%;
+        height: 42px;
+        padding: 0 38px 0 40px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 13.5px;
+        color: #0f172a;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+
+        &::placeholder {
+          color: #94a3b8;
+        }
+
+        &:focus {
+          outline: none;
+          background: #ffffff;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+      }
+
+      .btn-clear-search {
+        position: absolute;
+        right: 4px;
+        width: 32px;
+        height: 32px;
+        color: #94a3b8;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &:hover {
+          color: #334155;
+        }
+      }
+    }
+
+    .dept-select-box {
+      min-width: 220px;
+
+      ::ng-deep .mat-mdc-form-field {
+        width: 100%;
+
+        .mat-mdc-text-field-wrapper {
+          height: 42px;
+          padding: 0 12px;
+          border-radius: 10px;
+        }
+
+        .mat-mdc-form-field-infix {
+          padding-top: 10px;
+          padding-bottom: 10px;
+          min-height: unset;
+        }
+      }
+    }
+
+    .selection-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .btn-tool {
+        height: 40px;
+        border-radius: 10px;
+        border-color: #cbd5e1;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 14px;
+        background: #ffffff;
+        transition: all 0.2s ease;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &:hover:not([disabled]) {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #0f172a;
+        }
+      }
+    }
+  }
+
+  .toolbar-tabs-row {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+
+    .filter-tabs {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .tab-pill {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.15s ease;
+
+        .tab-count {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 10px;
+          background: #e2e8f0;
+          color: #334155;
+
+          &.count-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+          }
+
+          &.count-emerald {
+            background: #dcfce7;
+            color: #15803d;
+          }
+
+          &.count-rose {
+            background: #ffe4e6;
+            color: #be123c;
+          }
+        }
+
+        &:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+
+        &.active {
+          background: #0f172a;
+          border-color: #0f172a;
+          color: #ffffff;
+
+          .tab-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+          }
+        }
+      }
+    }
+
+    .list-summary-stats {
+      font-size: 12.5px;
+      color: #64748b;
+    }
   }
-  
-  .back-button {
+}
+
+/* ----------------------------------------------------
+   6. Employee Cards Grid
+   ---------------------------------------------------- */
+.employee-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+
+  .employee-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1.5px solid #e2e8f0;
+    padding: 14px 16px;
     display: flex;
     align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+
+    &:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      transform: translateY(-2px);
+    }
+
+    &.card-selected {
+      border-color: #3b82f6;
+      background: #f8faff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+    }
+
+    &.card-status-added {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    &.card-status-removed {
+      border-color: #f43f5e;
+      background: #fff1f2;
+      border-style: dashed;
+    }
+
+    .card-checkbox-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      ::ng-deep .mat-mdc-checkbox {
+        --mdc-checkbox-state-layer-size: 32px;
+      }
+    }
+
+    .card-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+
+      .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .card-details {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      .card-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .emp-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .emp-code-pill {
+          font-family: monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          border-radius: 4px;
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
+          flex-shrink: 0;
+        }
+      }
+
+      .card-role-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        .emp-role {
+          font-weight: 500;
+        }
+
+        .role-separator {
+          color: #cbd5e1;
+        }
+
+        .emp-dept {
+          color: #94a3b8;
+        }
+      }
+
+      .card-contact-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        .contact-icon {
+          font-size: 13px;
+          width: 13px;
+          height: 13px;
+          color: #cbd5e1;
+        }
+
+        .contact-email {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
+    .card-status-badge {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+
+      .badge-active {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        mat-icon {
+          font-size: 13px;
+          width: 13px;
+          height: 13px;
+        }
+      }
+
+      .badge-added {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        mat-icon {
+          font-size: 13px;
+          width: 13px;
+          height: 13px;
+        }
+      }
+
+      .badge-removed {
+        background: #ffe4e6;
+        color: #be123c;
+        border: 1px solid #fecdd3;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        mat-icon {
+          font-size: 13px;
+          width: 13px;
+          height: 13px;
+        }
+      }
+
+      .badge-unassigned {
+        background: #f8fafc;
+        color: #94a3b8;
+        border: 1px solid #e2e8f0;
+        font-size: 10.5px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 12px;
+      }
+    }
   }
- 
-  .back-button:hover{
-    color: red;
+}
+
+/* ----------------------------------------------------
+   7. Loading & Empty State Cards
+   ---------------------------------------------------- */
+.loading-state-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+
+  h3 {
+    margin: 8px 0 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
   }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+}
+
+.empty-filter-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 50px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+
+  .empty-icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 30px;
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  h3 {
+    margin: 4px 0 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13.5px;
+    color: #64748b;
+    max-width: 400px;
+  }
+
+  .btn-clear-filters {
+    margin-top: 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+}
+
+/* ----------------------------------------------------
+   8. Sticky Bottom Footer Action Bar
+   ---------------------------------------------------- */
+.sticky-footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid #cbd5e1;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .selection-pill {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 6px 14px;
+      border-radius: 20px;
+      color: #1d4ed8;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .changes-summary-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .pill-added {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+      }
+
+      .pill-removed {
+        background: #ffe4e6;
+        color: #be123c;
+        border: 1px solid #fecdd3;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+      }
+    }
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .btn-footer-cancel {
+      height: 42px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13.5px;
+      color: #475569;
+    }
+
+    .btn-footer-reset {
+      height: 42px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13.5px;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-footer-submit {
+      height: 42px;
+      padding: 0 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s ease;
+
+      &:hover:not([disabled]) {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .btn-spinner {
+        margin-right: 6px;
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------
+   9. Responsive Breakpoints
+   ---------------------------------------------------- */
+@media (max-width: 768px) {
+  .compoff-page-container {
+    padding: 8px 12px 110px;
+  }
+
+  .compoff-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .header-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .toolbar-filter-card .toolbar-top-row {
+    flex-direction: column;
+    align-items: stretch;
+
+    .search-box, .dept-select-box {
+      width: 100%;
+    }
+
+    .selection-tools {
+      width: 100%;
+      justify-content: space-between;
+
+      .btn-tool {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  }
+
+  .employee-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sticky-footer-bar {
+    flex-direction: column;
+    align-items: stretch;
+
+    .footer-left {
+      justify-content: space-between;
+    }
+
+    .footer-right {
+      width: 100%;
+
+      .btn-footer-cancel, .btn-footer-reset {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .btn-footer-submit {
+        flex: 2;
+        justify-content: center;
+      }
+    }
+  }
+}

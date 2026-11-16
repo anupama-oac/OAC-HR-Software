@@ -1,10 +1,11 @@
 
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const helmet = require('helmet');
 const { connectDB } = require('./config/database');
+require('./models');
 
 
 const leaveRoutes = require('./routes/leave.routes');
@@ -37,7 +38,10 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // ROUTES
-app.use('/holiday', holidayRoutes);
+app.use(['/holiday', '/holidays'], holidayRoutes);
+app.use(['/leaveType', '/leaveTypes'], leaveTypeRoutes);
+app.use(['/userLeave', '/userLeaves'], userLeaveRoutes);
+app.use(['/leave', '/leaves'], leaveRoutes);
 app.use('/', leaveRoutes);
 app.use('/', leaveTypeRoutes);
 app.use('/', userLeaveRoutes);
@@ -75,6 +79,14 @@ const PORT = process.env.PORT || 4002;
 
 app.listen(PORT, () => {
   console.log(`🚀 Leave Service running on ${PORT}`);
+});
+
+process.on('uncaughtException', err => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 

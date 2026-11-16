@@ -76,4 +76,9 @@ router.get(
   holidayController.findComboOff
 );
 
+router.get(
+  '/findbyid/:id',
+  holidayController.findHolidayById
+);
+
 module.exports = router;

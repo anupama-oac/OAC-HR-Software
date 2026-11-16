@@ -69,7 +69,7 @@
             <tbody>
                 @for (invoice of invoices; let i = $index; track $index) {
                     <tr [routerLink]="['/login/viewApproval/openexpenses', invoice.id]">
-                        <td [attr.data-label]="'InvoiceNo'">{{invoice.exNo || '-'}}</td>
+                        <td [attr.data-label]="'InvoiceNo'">{{invoice.expenseNumber || '-'}}</td>
                         <td [attr.data-label]="'SP'">{{invoice.user?.name || '-'}}</td>
                         <td [attr.data-label]="'AM'">{{invoice.manager?.name || '-'}}</td>
                         <td [attr.data-label]="'MA'">{{invoice.ma?.name || '-'}}</td>

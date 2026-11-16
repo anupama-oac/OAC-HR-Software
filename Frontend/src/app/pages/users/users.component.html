@@ -1,125 +1,210 @@
-<div fxLayout="row" fxLayoutAlign="space-between center" class="px-2 py-1">
-    <div fxLayout="row">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="add" (click)="openUserDialog(null)">
-                <mat-icon>person_add</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="search">
-                <mat-icon>search</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+<div class="users-toolbar-card">
+  <!-- Left Side: Add Employee & Search -->
+  <div class="toolbar-left-actions">
+    <!-- Add New Employee Button -->
+    <button
+      mat-flat-button
+      type="button"
+      class="toolbar-action-btn btn-add-user"
+      (click)="openUserDialog(null)"
+      matTooltip="Add New Employee"
+      matTooltipPosition="below"
+      aria-label="Add New Employee">
+      <mat-icon>person_add</mat-icon>
+      <span class="btn-text">Add Employee</span>
+    </button>
+
+    <!-- Export All to Excel Button -->
+    <button
+      mat-flat-button
+      type="button"
+      class="toolbar-action-btn btn-export-excel"
+      (click)="exportAllEmployeesExcel()"
+      [disabled]="isExportingAll"
+      matTooltip="Download complete employee directory to Excel (.xlsx)"
+      matTooltipPosition="below"
+      aria-label="Export All Employees to Excel">
+      @if (isExportingAll) {
+        <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+        <span class="btn-text">Exporting...</span>
+      } @else {
+        <mat-icon class="excel-icon">file_download</mat-icon>
+        <span class="btn-text">Export Excel</span>
+      }
+    </button>
+
+    <!-- Search Toggle Button -->
+    <button
+      mat-stroked-button
+      type="button"
+      class="toolbar-action-btn btn-search-toggle"
+      [class.active]="searchOpen"
+      (click)="toggleSearch()"
+      [matTooltip]="searchOpen ? 'Close Search' : 'Search employees by name'"
+      matTooltipPosition="below"
+      aria-label="Search employees by name">
+      <mat-icon>{{ searchOpen ? 'close' : 'search' }}</mat-icon>
+      <span class="btn-text">{{ searchOpen ? 'Close' : 'Search' }}</span>
+    </button>
+
+    <!-- Expandable Search Input Shell -->
+    <div class="toolbar-search-box" [class.open]="searchOpen">
+      <div class="search-input-wrapper">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="search-input-field"
+          placeholder="Search employee by name..."
+          [value]="searchText || ''"
+          (input)="search($event)"
+          (keydown.escape)="clearSearch()"
+        />
+        @if (searchText) {
+          <button
+            type="button"
+            class="search-clear-btn"
+            (click)="clearSearch()"
+            matTooltip="Clear search"
+            matTooltipPosition="below"
+            aria-label="Clear search">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+      </div>
     </div>
+  </div>
 
-    <form class="user-search" [class.show]="controls.value == 'search'">
-        <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search user by name..." (keyup)="search($event)" >
-        </mat-form-field>
-    </form>
-
-
-    <div fxLayout="row" fxLayoutAlign="space-between center">
-        <mat-button-toggle-group #viewType="matButtonToggleGroup" appearance="legacy" value="grid" hideSingleSelectionIndicator="true">
-            <mat-button-toggle value="grid" (click)="viewSeparated()">
-                <mat-icon>no_accounts</mat-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+  <!-- Center Info: Active Directory Count -->
+  <div class="toolbar-center-info">
+    <div
+      class="toolbar-count-chip"
+      matTooltip="Total active employees in directory"
+      matTooltipPosition="below">
+      <mat-icon>groups</mat-icon>
+      <span><strong>{{ totalItems }}</strong> Employees</span>
     </div>
+  </div>
+
+  <!-- Right Side: Separated Employees Registry -->
+  <div class="toolbar-right-actions">
+    <button
+      mat-stroked-button
+      type="button"
+      class="toolbar-action-btn btn-separated-link"
+      (click)="viewSeparated()"
+      matTooltip="View Separated Employees Registry"
+      matTooltipPosition="below"
+      aria-label="View Separated Employees Registry">
+      <mat-icon>no_accounts</mat-icon>
+      <span class="btn-text">Separated Employees</span>
+      <mat-icon class="trailing-arrow">arrow_forward</mat-icon>
+    </button>
+  </div>
 </div>
-@if (viewType.value == 'grid') {
+
+@if (viewType === 'grid') {
     <div fxLayout="row wrap">
         @for (user of users; track user.id) {
             <div fxFlex="100" fxFlex.gt-md="33.3" fxFlex.md="50" class="p-2">
                 <mat-card class="p-0">
                     <div class="user-head" fxLayout="row" fxLayoutAlign="space-between center">
-                        <h3 class="user-name" [class.confirmed]="user.isTemporary === false">
-                            @if (!user.status && !user.separated) {
-                                User blocked
-                            }@else if (!user.status && user.separated) {
-                                User separated
-                            } @else {
-                                {{user.name}}
-                            }
-                        </h3>
-                        <button mat-icon-button [matMenuTriggerFor]="menu" #menuTrigger="matMenuTrigger" class="default-contrast">
+                        <div class="user-title-wrap" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="6px">
+                            <h3 class="user-name" [class.confirmed]="user.isTemporary === false">
+                                @if (!user.status && !user.separated) {
+                                    User blocked
+                                } @else if (!user.status && user.separated) {
+                                    User separated
+                                } @else {
+                                    {{user.name}}
+                                }
+                            </h3>
+                            <span class="user-status-tag" [class.tag-probation]="user.isTemporary" [class.tag-confirmed]="user.isTemporary === false">
+                                {{ user.isTemporary ? 'Probation' : 'Confirmed' }}
+                            </span>
+                        </div>
+                        <button mat-icon-button [matMenuTriggerFor]="menu" #menuTrigger="matMenuTrigger" class="default-contrast" matTooltip="Employee Options" matTooltipPosition="above">
                             <mat-icon>more_vert</mat-icon>
                         </button>
                     </div>
+
                     <mat-menu #menu="matMenu" xPosition="before" overlapTrigger="true">
                         <span (mouseleave)="menuTrigger.closeMenu()">
                           <button mat-menu-item (click)="viewEmployee(user.id);">
                               <mat-icon>open_in_new</mat-icon>
                               <span>View</span>
                           </button>
+                          <button mat-menu-item (click)="downloadSingleEmployeeExcel(user);">
+                              <mat-icon class="excel-menu-icon">file_download</mat-icon>
+                              <span>Export to Excel</span>
+                          </button>
                           <button mat-menu-item (click)="openUserDialog(user)">
                               <mat-icon>mode_edit</mat-icon>
                               <span>Edit</span>
                           </button>
-                          <button mat-menu-item (click)="resetPassword(user.id, user.empNo);">
+                          <button mat-menu-item (click)="resetPassword(user.id, user.empNo, user.name);">
                               <mat-icon>password</mat-icon>
                               <span>Password</span>
                           </button>
-                          @if(user.role.roleName != 'HR Administrator' && user.role.roleName !== 'Administrator' && user.role.roleName !== 'Super Administrator'){
+                          @if (user.role?.roleName != 'HR Administrator' && user.role?.roleName !== 'Administrator') {
                             <button mat-menu-item (click)="updateDesignation(user.id, user.name, user.empNo)">
                                 <mat-icon>verified_user</mat-icon>
                                 <span>Designation</span>
+                            </button>
+                            <button mat-menu-item (click)="openPromotion(user.id)">
+                                <mat-icon>trending_up</mat-icon>
+                                <span>Promotion</span>
+                            </button>
+                            @if (role != 'HR & Admin Assistant') {
+                              <button mat-menu-item (click)="openPayRoll(user.id)">
+                                  <mat-icon>payment</mat-icon>
+                                  <span>Salary</span>
                               </button>
-                              <button mat-menu-item (click)="openPromotion(user.id)">
-                                  <mat-icon>trending_up</mat-icon>
-                                  <span>Promotion</span>
-                              </button>
-                              @if(role != 'HR & Admin Assistant'){
-                                <button mat-menu-item (click)="openPayRoll(user.id)">
-                                    <mat-icon>payment</mat-icon>
-                                    <span>Salary</span>
-                                </button>
-                              }
-                              <button mat-menu-item (click)="openAssets(user.id);">
-                                  <mat-icon>devices</mat-icon>
-                                  <span>Assets</span>
-                              </button>
-                              <button mat-menu-item (click)="confirmEmployee(user.id, user.empNo, user.name, user.isTemporary);">
-                                  <mat-icon>check_circle_outline</mat-icon>
-                                  <span>Confirmation</span>
-                              </button>
-                              <button mat-menu-item (click)="resignEmployee(user.id, user.empNo, user.name);">
-                                  <mat-icon>low_priority</mat-icon>
-                                  <span>Separation</span>
-                              </button>
-                              <button mat-menu-item (click)="deleteFunction(user.id);">
-                                  <mat-icon>delete</mat-icon>
-                                  <span>Delete</span>
-                              </button>
+                            }
+                            <button mat-menu-item (click)="openAssets(user.id);">
+                                <mat-icon>devices</mat-icon>
+                                <span>Assets</span>
+                            </button>
+                            <button mat-menu-item (click)="confirmEmployee(user.id, user.empNo, user.name, user.isTemporary);">
+                                <mat-icon>{{ user.isTemporary ? 'verified' : 'hourglass_top' }}</mat-icon>
+                                <span>{{ user.isTemporary ? 'Confirm Employee' : 'Change to Probation' }}</span>
+                            </button>
+                            <button mat-menu-item (click)="resignEmployee(user.id, user.empNo, user.name);">
+                                <mat-icon>low_priority</mat-icon>
+                                <span>Separation</span>
+                            </button>
                           }
 
-                            @if(user.url){
-                                <button mat-menu-item (click)="deleteImage(user.id);">
-                                    <mat-icon>image_not_supported</mat-icon>
-                                    <span>Delete Image</span>
-                                </button>
-                            }
+                          @if (user.url) {
+                              <button mat-menu-item (click)="deleteImage(user.id, user.name);">
+                                  <mat-icon>image_not_supported</mat-icon>
+                                  <span>Delete Image</span>
+                              </button>
+                          }
                         </span>
                     </mat-menu>
+
                     <div class="user-content" fxLayout="row" fxLayoutAlign="space-around center">
                         <div fxFlex="30" fxLayout="column" fxLayoutAlign="center center">
-                          <div class="user-img">
-                            @if(user.url){
-                              <img [src]="apiUrl + user.url" class="transition-2" [class.blocked]="!user.status">
-                            }@else {
-                              <img [src]="userImage" class="transition-2" [class.blocked]="!user.status">
-                            }
-                            @if(!user.status){
-                              <mat-icon class="warn-color">block</mat-icon>
-                            }
-                        </div>
+                            <div class="user-img">
+                                @if (user.url) {
+                                  <img [src]="getUserImageUrl(user.url)" class="transition-2" [class.blocked]="!user.status" (error)="$any($event.target).src = userImage">
+                                } @else {
+                                  <img [src]="userImage" class="transition-2" [class.blocked]="!user.status">
+                                }
+                                @if (!user.status) {
+                                  <mat-icon class="warn-color">block</mat-icon>
+                                }
+                            </div>
 
                             <div class="user-social">
-                                <mat-slide-toggle [checked]="user.status"  (change)="updateStatus($event, user.id, user.name)"></mat-slide-toggle>
+                                <mat-slide-toggle [checked]="user.status" (change)="updateStatus($event, user.id, user.name)" [matTooltip]="user.status ? 'Deactivate employee' : 'Activate employee'" matTooltipPosition="above"></mat-slide-toggle>
                             </div>
                         </div>
+
                         <div fxFlex="70" fxLayout="column" class="user-details transition-2" [class.blocked]="!user.status">
                             <p fxLayout="row" fxLayoutAlign="start center">
                                 <mat-icon class="muted-text">card_membership</mat-icon>
-                                <span>{{ user.userPosition?.designation ? user.userPosition.designation?.designationName : user.role.roleName }}</span>
+                                <span>{{ user.userPosition?.designation ? user.userPosition.designation?.designationName : (user.role?.roleName || 'Employee') }}</span>
                             </p>
                             <p fxLayout="row" fxLayoutAlign="start center">
                                 <mat-icon class="muted-text">mail_outline</mat-icon>
@@ -127,39 +212,25 @@
                             </p>
                             <p fxLayout="row" fxLayoutAlign="start center">
                                 <mat-icon class="muted-text">call</mat-icon>
-                                <span>{{user.phoneNumber}}</span>
+                                <span>{{user.phoneNumber || '—'}}</span>
                             </p>
-                            <!-- <p fxLayout="row" fxLayoutAlign="start center">
-                                <mat-icon class="muted-text">location_on</mat-icon>
-                                <span>{{user.contacts.address}}</span>
-                            </p>
-                            <p fxLayout="row" fxLayoutAlign="start center">
-                                <mat-icon class="muted-text">date_range</mat-icon>
-                                <span>Joined {{user.settings.created_at | date:"dd MMMM, yyyy 'at' HH:mm"}}</span>
-                            </p> -->
                         </div>
                     </div>
                 </mat-card>
             </div>
         }
+
         <mat-paginator
           [length]="totalItems"
           [pageSize]="pageSize"
           [pageIndex]="currentPage - 1"
           (page)="onPageChanged($event)"
-          [pageSizeOptions]="[10, 20, 30, 40, 50, 100]">
+          [pageSizeOptions]="[6, 12, 24, 48, 100]">
         </mat-paginator>
     </div>
 }
-@if (users) {
-    <div fxLayout="row wrap">
-        <div fxFlex="100" class="p-2">
-            <mat-card class="p-0 text-center">
-                <pagination-controls class="gradus-pagination" [autoHide]="true" [maxSize]="3" (pageChange)="onPageChanged($event)"></pagination-controls>
-            </mat-card>
-        </div>
-    </div>
-} @else {
+
+@if (!users) {
     <div fxLayout="column" fxLayoutAlign="center center" class="user-spinner">
         <mat-spinner color="primary"></mat-spinner>
     </div>

@@ -1,76 +1,127 @@
-
-<mat-card>
-  <div class="custom-dialog">
-    <h1 class="dialog-title">Change Status</h1>
-
-    <mat-card-content>
-      <div class="dialog-content">
-        Are you sure you are changing the invoice {{invoiceNo}} to {{status}} status?
-      </div>
-
-      <div >
-        <form [formGroup]="form">
-          <mat-form-field appearance="outline">
-            <mat-label>Notes</mat-label>
-            <input matInput placeholder="" formControlName="remarks">
-          </mat-form-field>
-
-          @if(status === 'KAM VERIFIED'){
-            <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Authorizer Manager</mat-label>
-              <mat-select placeholder="" formControlName="amId" (selectionChange)="onSelectionChange()">
-                @for(item of am; track $index){
-                  <mat-option [value]="item.id">
-                    {{item.name}}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
-
-          @if(status === 'AM VERIFIED' || status === 'AM Verified'){
-            <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Accountant</mat-label>
-              <mat-select placeholder="" formControlName="accountantId" (selectionChange)="onSelectionChange()">
-                @for(item of am; track $index){
-                  <mat-option [value]="item.id">
-                    {{item.name}}
-                  </mat-option>
-                }              
-              </mat-select>
-            </mat-form-field>
-          }
-
-          @if(status === 'AM APPROVED'){
-            <mat-form-field class="full-width" appearance="outline">
-              <mat-label>Key Account Manager</mat-label>
-              <mat-select placeholder="" formControlName="kamId" (selectionChange)="onSelectionChange()">
-                @for(item of kam; track $index){
-                  <mat-option [value]="item.id">
-                    {{item.name}}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
-         
-          @if(status === 'AM REJECTED' || status === 'KAM REJECTED' || status === 'AM DECLINED' || status === 'AM Rejected'){
-            <mat-form-field appearance="outline">
-              <mat-label>Maker</mat-label>
-              <input matInput placeholder="" formControlName="spId" readonly>
-            </mat-form-field>
-          }
-        </form>
-      </div>
-    </mat-card-content>
-
-    <mat-card-actions>
-      <div class="dialog-actions">
-        <button class="cancel-button" (click)="onCancelClick()">No</button>
-        <button class="confirm-button" [disabled]="!isSelectionMade" (click)="onConfirmClick()">Yes</button>
-      </div>
-    </mat-card-actions>
+<div class="verification-dialog-container" [class.theme-approve]="isApproveAction" [class.theme-reject]="isRejectAction">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-icon-box">
+      <mat-icon>{{ isApproveAction ? 'payments' : (isRejectAction ? 'reply' : 'published_with_changes') }}</mat-icon>
+    </div>
+    <div class="header-text-group">
+      <h2 class="dialog-headline">{{ actionTitle }}</h2>
+      <p class="dialog-subheadline">
+        Update invoice <strong>{{ invoiceNo }}</strong> to <strong>{{ formattedTargetStatus }}</strong>
+      </p>
+    </div>
+    <button type="button" class="dialog-close-btn" (click)="onCancelClick()" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
   </div>
-</mat-card>
 
+  <!-- Dialog Body -->
+  <div class="dialog-body">
+    <!-- Highlight Confirmation Box -->
+    <div class="confirmation-highlight-box">
+      <div class="highlight-info-row">
+        <span class="info-label">Invoice / Expense</span>
+        <span class="invoice-pill">{{ invoiceNo }}</span>
+      </div>
+      <div class="highlight-arrow-divider">
+        <mat-icon>arrow_downward</mat-icon>
+      </div>
+      <div class="highlight-info-row">
+        <span class="info-label">Target Status</span>
+        <span class="status-pill" [class.status-pill-approve]="isApproveAction" [class.status-pill-reject]="isRejectAction">
+          <mat-icon class="pill-icon">{{ isApproveAction ? 'check_circle' : (isRejectAction ? 'cancel' : 'info') }}</mat-icon>
+          <span>{{ formattedTargetStatus }}</span>
+        </span>
+      </div>
+    </div>
 
+    <p class="dialog-instructions">
+      @if (isApproveAction) {
+        Are you sure the expense amount has been transferred to the employee? This will confirm disbursement and notify the employee.
+      } @else if (isRejectAction) {
+        Are you sure you want to revert this expense claim back to the employee? The employee will be notified with your feedback remarks.
+      } @else {
+        Are you sure you want to change the status of <strong>{{ invoiceNo }}</strong> to <strong>{{ formattedTargetStatus }}</strong>?
+      }
+    </p>
+
+    <!-- Notes & Optional Assignee Form -->
+    <form [formGroup]="form" class="dialog-form">
+      <!-- Notes / Remarks Field -->
+      <mat-form-field appearance="outline" class="w-100 notes-field">
+        <mat-label>Notes & Feedback Remarks</mat-label>
+        <textarea
+          matInput
+          rows="3"
+          placeholder="Enter review notes, approval remarks, or disbursement comments (optional)..."
+          formControlName="remarks"></textarea>
+        <mat-icon matPrefix class="field-icon">notes</mat-icon>
+      </mat-form-field>
+
+      <!-- Conditional Assignee Selectors for specific verification workflows -->
+      @if (status === 'KAM VERIFIED') {
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Authorizer Manager*</mat-label>
+          <mat-select placeholder="Select Manager" formControlName="amId" (selectionChange)="onSelectionChange()">
+            @for (item of am; track item.id) {
+              <mat-option [value]="item.id">{{ item.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix class="field-icon">manage_accounts</mat-icon>
+        </mat-form-field>
+      }
+
+      @if (status === 'AM VERIFIED' || status === 'AM Verified') {
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Accountant*</mat-label>
+          <mat-select placeholder="Select Accountant" formControlName="accountantId" (selectionChange)="onSelectionChange()">
+            @for (item of am; track item.id) {
+              <mat-option [value]="item.id">{{ item.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix class="field-icon">account_balance</mat-icon>
+        </mat-form-field>
+      }
+
+      @if (status === 'AM APPROVED') {
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Key Account Manager*</mat-label>
+          <mat-select placeholder="Select KAM" formControlName="kamId" (selectionChange)="onSelectionChange()">
+            @for (item of kam; track item.id) {
+              <mat-option [value]="item.id">{{ item.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix class="field-icon">badge</mat-icon>
+        </mat-form-field>
+      }
+
+      @if (status === 'AM REJECTED' || status === 'KAM REJECTED' || status === 'AM DECLINED' || status === 'AM Rejected') {
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Maker</mat-label>
+          <input matInput formControlName="spId" readonly />
+          <mat-icon matPrefix class="field-icon">person</mat-icon>
+        </mat-form-field>
+      }
+    </form>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div class="dialog-actions-row">
+    <button type="button" mat-stroked-button class="btn-dialog-cancel" (click)="onCancelClick()">
+      <mat-icon>close</mat-icon>
+      <span>Cancel</span>
+    </button>
+
+    <button
+      type="button"
+      mat-flat-button
+      class="btn-dialog-confirm"
+      [class.btn-approve]="isApproveAction"
+      [class.btn-reject]="isRejectAction"
+      [disabled]="!isSelectionMade"
+      (click)="onConfirmClick()">
+      <mat-icon>{{ isApproveAction ? 'payments' : (isRejectAction ? 'reply' : 'done') }}</mat-icon>
+      <span>{{ isApproveAction ? 'Confirm Amount Transferred' : (isRejectAction ? 'Revert to Employee' : 'Yes, Confirm') }}</span>
+    </button>
+  </div>
+</div>

@@ -1,19 +1,108 @@
-<div class="custom-dialog">
-  <h2 mat-dialog-title class="dialog-title">Confirm Deletion</h2>
+<div class="confirm-delete-modal">
+  <!-- Dialog Header -->
+  <div class="modal-header">
+    <div class="header-icon-box">
+      <mat-icon>delete_sweep</mat-icon>
+    </div>
+    <div class="header-titles">
+      <div class="title-row">
+        <h2 class="dialog-title">Confirm Deletion</h2>
+        <span class="count-badge danger-badge">
+          {{ holidays.length }} {{ holidays.length === 1 ? 'Holiday' : 'Holidays' }}
+        </span>
+      </div>
+      <p class="dialog-subtitle">
+        Review the list below before confirming bulk removal from the calendar.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="close-button"
+      (click)="onCancel()"
+      matTooltip="Close"
+      aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-  <mat-dialog-content class="dialog-content">
-    <p>The following holidays will be deleted:</p>
-    <ul>
-      @for (holiday of data.holidays; track $index) {
-          <li>
-              {{ holiday.name }} ({{ holiday.date }})
-          </li>
-      }
-    </ul>
-  </mat-dialog-content>
+  <!-- Dialog Body -->
+  <div class="modal-body">
+    <!-- Danger Warning Callout -->
+    <div class="warning-callout-card">
+      <div class="warning-icon-box">
+        <mat-icon>warning_amber</mat-icon>
+      </div>
+      <div class="warning-text-group">
+        <span class="warning-title">Permanent Action</span>
+        <span class="warning-desc">
+          Proceeding will permanently delete these <strong>{{ holidays.length }}</strong> holidays from the database. This action cannot be undone.
+        </span>
+      </div>
+    </div>
 
-  <mat-dialog-actions class="dialog-actions">
-    <button mat-button (click)="onCancel()">Cancel</button>
-    <button mat-button color="warn" (click)="onConfirm()">Delete</button>
-  </mat-dialog-actions>
+    <!-- Holidays List Section -->
+    <div class="holidays-list-section">
+      <div class="section-lead-row">
+        <span class="section-label">
+          <mat-icon>event_busy</mat-icon>
+          Holidays to be Removed
+        </span>
+        <span class="section-count-tag">{{ holidays.length }} records</span>
+      </div>
+
+      <div class="holidays-scroll-card">
+        <div class="holidays-list-container">
+          @for (holiday of holidays; track holiday.id || $index) {
+            <div class="holiday-item-row">
+              <span class="item-index">{{ $index + 1 }}</span>
+              <div class="holiday-info">
+                <span class="holiday-name">{{ holiday.name }}</span>
+                @if (holiday.comments) {
+                  <span class="holiday-notes">{{ holiday.comments }}</span>
+                }
+              </div>
+              <div class="holiday-meta-pills">
+                @if (holiday.type) {
+                  <span class="type-pill" [class]="'type-' + (holiday.type | lowercase)">
+                    {{ holiday.type }}
+                  </span>
+                }
+                <span class="date-pill">
+                  <mat-icon>calendar_today</mat-icon>
+                  <span>{{ formatDate(holiday.date) }}</span>
+                </span>
+              </div>
+            </div>
+          }
+
+          @if (holidays.length === 0) {
+            <div class="empty-list-state">
+              <mat-icon>info_outline</mat-icon>
+              <span>No holidays selected for deletion</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Actions -->
+  <div class="modal-footer">
+    <button
+      type="button"
+      mat-stroked-button
+      class="btn-cancel"
+      (click)="onCancel()">
+      Cancel
+    </button>
+
+    <button
+      type="button"
+      mat-flat-button
+      class="btn-confirm-delete"
+      (click)="onConfirm()">
+      <mat-icon>delete_forever</mat-icon>
+      <span>Delete {{ holidays.length }} {{ holidays.length === 1 ? 'Holiday' : 'Holidays' }}</span>
+    </button>
+  </div>
 </div>

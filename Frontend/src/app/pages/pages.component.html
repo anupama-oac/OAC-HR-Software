@@ -8,40 +8,57 @@
     }
 
     <mat-sidenav-content #mainSidenavContent id="main" (scroll)="onPageScroll($event)">
-            <mat-toolbar class="px-2 theme-primary">
-                <div fxLayout="row" fxLayoutAlign="space-between center" class="w-100">
-                    <div fxLayout="row" fxLayoutAlign="center center">
+            <mat-toolbar class="px-2 theme-primary main-header-toolbar">
+                <div class="header-toolbar-wrapper">
+                    <div class="header-left-tools">
                         @if (settings.menu == 'vertical') {
-                            <button mat-icon-button (click)="toggleSidenav()">
+                            <button mat-icon-button (click)="toggleSidenav()" matTooltip="Toggle Navigation Menu">
                                 <mat-icon>menu</mat-icon>
                             </button>
-                            <button fxShow="false" fxShow.gt-xs mat-icon-button (click)="settings.sidenavUserBlock = !settings.sidenavUserBlock">
+                            <button fxShow="false" fxShow.gt-xs mat-icon-button (click)="settings.sidenavUserBlock = !settings.sidenavUserBlock" matTooltip="Toggle User Profile Card">
                                 <mat-icon>person</mat-icon>
                             </button>
                         }
                     </div>
 
-                    <div fxLayout="row" fxLayoutAlign="end center">
-                        <button mat-icon-button class="full-screen" (click)="openAnnouncement()">
-                            <mat-icon>campaign</mat-icon>
-                        </button>
-                        @if(announcement){
-                            <div [ngClass]="type">
-                                <p>{{ message }}</p>
+                    <!-- Center Announcement Capsule -->
+                    @if (announcement && message) {
+                        <div class="header-center-announcement">
+                            <div
+                                class="header-announcement-chip"
+                                [ngClass]="type"
+                                (click)="openAnnouncement()"
+                                [matTooltip]="'Click to view announcement: ' + message"
+                                matTooltipPosition="below">
+                                <div class="chip-icon-box">
+                                    <mat-icon>{{ getHeaderIcon(type) }}</mat-icon>
+                                </div>
+                                <span class="chip-badge">{{ getHeaderTypeLabel(type) }}</span>
+                                <span class="chip-text">{{ message }}</span>
+                                @if (latestAnnouncement?.dismissible) {
+                                    <button
+                                        type="button"
+                                        class="chip-dismiss-btn"
+                                        (click)="dismissHeaderAnnouncement($event)"
+                                        matTooltip="Dismiss notice"
+                                        matTooltipPosition="below"
+                                        aria-label="Dismiss notice">
+                                        <mat-icon>close</mat-icon>
+                                    </button>
+                                }
                             </div>
+                        </div>
+                    }
+
+                    <div class="header-right-tools">
+                        @if (!announcement || !message) {
+                            <button mat-icon-button class="full-screen" (click)="openAnnouncement()" matTooltip="Company Announcements">
+                                <mat-icon>campaign</mat-icon>
+                            </button>
                         }
-                        <button mat-icon-button class="full-screen" (click)="openTree()">
+                        <button mat-icon-button class="full-screen" (click)="openTree()" matTooltip="Organization Chart">
                             <mat-icon class="invert-icon">account_tree</mat-icon>
                         </button>
-
-                        <!-- <div fxLayout="row" fxLayoutAlign="start center" fxShow="false" fxShow.gt-xs class="search-bar">
-                            <form method="get" fxLayout="row" fxLayoutAlign="start center">
-                                <input type="text" placeholder="Type to search..." class="mat-elevation-z3"  [class.show]="toggleSearchBar">
-                                <button mat-icon-button (click)="toggleSearchBar = !toggleSearchBar" type="button">
-                                    <mat-icon>search</mat-icon>
-                                </button>
-                            </form>
-                        </div> -->
                         <app-fullscreen></app-fullscreen>
                         @if(admin){
                             <app-applications fxShow="true" fxShow.gt-sm="true"></app-applications>

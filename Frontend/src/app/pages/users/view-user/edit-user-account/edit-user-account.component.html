@@ -1,71 +1,91 @@
-<form [formGroup]="form">
-    <mat-card style="margin-left: 15px;">
-      <mat-card-header><mat-card-title>Bank Account Details</mat-card-title></mat-card-header>
-      <div fxLayout="column" class="form-field-outer" style="margin-top: 20px;">
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Account No</mat-label>
-              <input matInput formControlName="accountNo" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>IFSC Code</mat-label>
-              <input matInput formControlName="ifseCode" >
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Branch Name</mat-label>
-              <input matInput formControlName="branchName" >
-            </mat-form-field>
-          </div>
-  
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Bank Name</mat-label>
-              <input matInput formControlName="bankName" >
-            </mat-form-field>
-          </div>
+<div class="edit-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge bank-badge">
+        <mat-icon>savings</mat-icon>
+      </div>
+      <div class="header-title-box">
+        <h2 class="dialog-title">{{ editStatus ? 'Edit Bank Account Details' : 'Add Bank Account Details' }}</h2>
+        <p class="dialog-subtitle">Payroll disbursement and remittance account configuration</p>
+      </div>
+    </div>
+    <button mat-icon-button class="dialog-close-btn" (click)="dialogRef?.close()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Form Body -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dialog-body-scrollable">
+      
+      <!-- Section 1: Banking Information -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">account_balance</mat-icon>
+          <span>Bank & Branch Details</span>
         </div>
-  
-        <div class="row box">
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Payment Frequency</mat-label>
-              <mat-select  formControlName="paymentFrequency">
-                <mat-option value="Monthly">Monthly</mat-option>
-                <mat-option value="Weekly">Weekly</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col">
-            <mat-form-field class="w-100" appearance="outline">
-              <mat-label>Mode of Payment</mat-label>
-              <mat-select  formControlName="modeOfPayment">
-                <mat-option value="BankTransfer">BankTransfer</mat-option>
-                <mat-option value="Cheque">Cheque</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Bank Name</mat-label>
+            <input matInput formControlName="bankName" placeholder="e.g. State Bank of India, Axis Bank">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Account Number</mat-label>
+            <input matInput formControlName="accountNo" placeholder="Enter bank account number">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>IFSC Code</mat-label>
+            <input matInput formControlName="ifseCode" placeholder="e.g. SBIN0001234">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Branch Name</mat-label>
+            <input matInput formControlName="branchName" placeholder="e.g. MG Road, Kochi">
+          </mat-form-field>
         </div>
       </div>
-  
-      <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-        <div class="col" style="text-align: right; margin-bottom: 15px;">
-          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="form.pristine || form.invalid" style="margin-left: 10px;">
-            @if (editStatus) {
-                Update
-            } @else {
-                Save
-            }
-          </button>
-          <button mat-raised-button color="primary" (click)="dialogRef?.close()" [disabled]="!form.pristine && !form.invalid" style="margin-left: 10px;">
-            Exit
-          </button>
+
+      <!-- Section 2: Disbursement Terms -->
+      <div class="form-section">
+        <div class="section-title-strip">
+          <mat-icon class="section-icon">payments</mat-icon>
+          <span>Disbursement Terms</span>
+        </div>
+
+        <div class="form-grid-2">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Payment Frequency</mat-label>
+            <mat-select formControlName="paymentFrequency">
+              <mat-option value="Monthly">Monthly</mat-option>
+              <mat-option value="Weekly">Weekly</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Mode of Payment</mat-label>
+            <mat-select formControlName="modeOfPayment">
+              <mat-option value="BankTransfer">Bank Transfer</mat-option>
+              <mat-option value="Cheque">Cheque</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
       </div>
-    </mat-card>
+
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-footer-actions">
+      <button type="button" mat-button class="btn-cancel" (click)="dialogRef?.close()">
+        Cancel
+      </button>
+      <button type="submit" mat-flat-button class="btn-save" [disabled]="form.pristine || form.invalid">
+        <mat-icon>{{ editStatus ? 'check_circle' : 'save' }}</mat-icon>
+        <span>{{ editStatus ? 'Update Account Details' : 'Save Account Details' }}</span>
+      </button>
+    </div>
   </form>
-  
+</div>

@@ -1,87 +1,326 @@
 @import '../../../../theme/styles/colors';
 
-body {
-    font-family: Arial, sans-serif;
+:host {
+  display: block;
+}
+
+.return-dialog-container {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// -------------------------------------------------------------
+// Dialog Header
+// -------------------------------------------------------------
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+
+  .header-left {
     display: flex;
+    align-items: center;
+    gap: 0.85rem;
+
+    .header-icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #fef3c7;
+      color: #d97706;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 1.45rem;
+        width: 1.45rem;
+        height: 1.45rem;
+      }
+    }
+
+    .dialog-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.2px;
+    }
+
+    .dialog-subtitle {
+      margin: 0.15rem 0 0 0;
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+  }
+
+  .btn-close {
+    color: #94a3b8;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Dialog Body
+// -------------------------------------------------------------
+.dialog-body {
+  padding: 1.5rem;
+}
+
+// -------------------------------------------------------------
+// Selected Asset Summary Banner
+// -------------------------------------------------------------
+.asset-summary-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+
+  .banner-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #e0f2fe;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f4f4f9;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 1.35rem;
+      width: 1.35rem;
+      height: 1.35rem;
+    }
   }
-  .reset-password-container {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    // width: 300px;
+
+  .banner-content {
+    flex: 1;
+
+    .banner-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.35rem;
+    }
+
+    .banner-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+
+      .meta-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+
+        mat-icon {
+          font-size: 0.9rem;
+          width: 0.9rem;
+          height: 0.9rem;
+        }
+
+        &.serial-tag {
+          background: #f1f5f9;
+          color: #334155;
+          font-family: monospace;
+        }
+
+        &.user-tag {
+          background: #eff6ff;
+          color: #2563eb;
+        }
+
+        &.date-tag {
+          background: #fdf4ff;
+          color: #a855f7;
+        }
+      }
+    }
   }
-  h2 {
-    text-align: center;
-    margin-bottom: 20px;
+}
+
+// -------------------------------------------------------------
+// Form Layout
+// -------------------------------------------------------------
+.return-form {
+  .form-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
   }
-  input[type="password"], input[type="text"]  {
+
+  .modern-field {
     width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+
+    &.full-width {
+      width: 100%;
+      margin-top: 0.25rem;
+    }
+
+    .field-icon {
+      color: #94a3b8;
+      margin-right: 0.4rem;
+      font-size: 1.2rem;
+      width: 1.2rem;
+      height: 1.2rem;
+
+      &.note-icon {
+        margin-top: -1.2rem;
+      }
+    }
   }
-  button {
-    width: 100%;
-    padding: 10px;
-    background-color: $secondary-color;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+}
+
+// -------------------------------------------------------------
+// Condition Option in Mat-Select
+// -------------------------------------------------------------
+.condition-option-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  .condition-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
   }
-  button:hover {
-    background-color: $primary-color;
-  }
-  .error {
-    color: red;
-    font-size: 12px;
-    text-align: center;
-  }
-  
-  .email-input {
-    display: flex;
+}
+
+// -------------------------------------------------------------
+// Presets Section
+// -------------------------------------------------------------
+.presets-section {
+  margin: 0.25rem 0 1.25rem 0;
+
+  .presets-label {
+    display: inline-flex;
     align-items: center;
-    gap: 8px; /* Adds space between the email input and the button */
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.5rem;
+
+    mat-icon {
+      font-size: 1rem;
+      width: 1rem;
+      height: 1rem;
+      color: #94a3b8;
+    }
   }
-  
-  .email-input input[type="email"] {
-    // width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    flex: 1; /* Makes the email input take up the remaining space */
-  }
-  
-  .small-btn {
-    width: 40px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    // padding: 5px 10px;
-    font-size: 12px;
-    cursor: pointer;
+
+  .preset-chips {
     display: flex;
-    // align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+
+    .preset-chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #cbd5e1;
+      }
+
+      &.chip-active {
+        background: #fef3c7;
+        color: #b45309;
+        border-color: #f59e0b;
+        box-shadow: 0 1px 4px rgba(245, 158, 11, 0.2);
+      }
+    }
   }
-  
-  .small-btn .material-icons {
-    font-size: 18px;
+}
+
+// -------------------------------------------------------------
+// Dialog Actions Footer
+// -------------------------------------------------------------
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f1f5f9;
+
+  .btn-cancel {
+    color: #64748b;
+    font-weight: 600;
+    padding: 0 1.25rem;
+    height: 44px;
+    border-radius: 10px;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
   }
-  
-  .small-btn:hover {
-    background-color: #0056b3;
+
+  .btn-confirm-return {
+    height: 44px;
+    padding: 0 1.5rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.92rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.25);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 1.2rem;
+      width: 1.2rem;
+      height: 1.2rem;
+    }
+
+    &:hover:not([disabled]) {
+      background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    }
+
+    &[disabled] {
+      background: #e2e8f0;
+      color: #94a3b8;
+      box-shadow: none;
+    }
   }
-  
-  button:disabled {
-    background-color: #cccccc; /* Light grey when disabled */
-    color: #666666; /* Dark grey text when disabled */
-    cursor: not-allowed; /* Show not-allowed cursor */
-  }
-  
-  
+}

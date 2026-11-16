@@ -1,16 +1,18 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
-console.log("1111111111111111111111");
 
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const helmet = require('helmet');
 const { connectDB } = require('./config/database');
 
-// 1. Import your advanceSalary routes file
+// 1. Import routes
 const advanceSalaryRoutes = require('./routes/advanceSalary.routes');
+const payrollRoutes = require('./routes/payroll.routes');
+const monthlyPayrollRoutes = require('./routes/monthlyPayroll.routes');
+const payrollLogController = require('./controllers/payrollLog.controller');
 
 // Connect to Database
 connectDB().then(async () => {
@@ -28,7 +30,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 2. Mount routes with the matching API base path
-app.use('/api/advanceSalary', advanceSalaryRoutes);
+app.use(['/advanceSalary', '/api/advanceSalary'], advanceSalaryRoutes);
+app.use(['/payroll', '/api/payroll'], payrollRoutes);
+app.use(['/payrolllog', '/payrollLog', '/api/payrolllog', '/api/payrollLog'], payrollLogController);
+app.use(['/monthlypayroll', '/monthlyPayroll', '/api/monthlypayroll', '/api/monthlyPayroll'], monthlyPayrollRoutes);
 
 // HEALTH
 app.get('/health', (req, res) => {
@@ -54,8 +59,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 4000; // Updated to port 4000 to match Angular environment.apiUrl
+const PORT = process.env.PORT || 4004; // Updated to port 4004 to avoid conflict with API Gateway and Expense Service
 
 app.listen(PORT, () => {
   console.log(`🚀 Payroll Service running on ${PORT}`);
+});
+
+process.on('uncaughtException', err => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

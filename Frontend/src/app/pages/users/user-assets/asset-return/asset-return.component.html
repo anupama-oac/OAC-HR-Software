@@ -1,39 +1,144 @@
+<div class="return-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-badge">
+        <mat-icon>assignment_return</mat-icon>
+      </div>
+      <div>
+        <h2 class="dialog-title">Process Equipment Return</h2>
+        <p class="dialog-subtitle">Release company hardware allocation and record inventory handover</p>
+      </div>
+    </div>
+    <button mat-icon-button type="button" class="btn-close" (click)="onCancel()" matTooltip="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
+  <mat-divider></mat-divider>
 
-<div class="reset-password-container">
-    <mat-toolbar class="bg-blue-900">       
-      Return Asset
-      <mat-icon (click)="onCancel()" style="margin-left: auto;">close</mat-icon>
-    </mat-toolbar>
-    <form [formGroup]="assetReturnForm" style="padding: 20px;">
-      <div mat-dialog-content>
-        <p style="font-size: 16px; margin-bottom: 15px;">
-            Are you sure you want to return?
-        </p>
-  
-        <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Note</mat-label>
-          <textarea matInput formControlName="note" rows="3" placeholder="Enter the reason for return" ></textarea>
-          @if(assetReturnForm.controls['note'].invalid){
-            <mat-error>
-              Separation note is required.
-            </mat-error>
+  <!-- Content Section -->
+  <div class="dialog-body">
+    <!-- Selected Asset Summary Banner -->
+    <div class="asset-summary-banner">
+      <div class="banner-icon-box">
+        <mat-icon>laptop_mac</mat-icon>
+      </div>
+      <div class="banner-content">
+        <div class="banner-title">{{ dialogData?.assetName || 'Selected Hardware Asset' }}</div>
+        <div class="banner-meta">
+          @if (dialogData?.serialNumber) {
+            <span class="meta-tag serial-tag">
+              <mat-icon>tag</mat-icon>
+              <span>SN: {{ dialogData?.serialNumber }}</span>
+            </span>
+          }
+          @if (dialogData?.userName) {
+            <span class="meta-tag user-tag">
+              <mat-icon>person</mat-icon>
+              <span>{{ dialogData?.userName }}</span>
+            </span>
+          }
+          @if (dialogData?.assignedDate) {
+            <span class="meta-tag date-tag">
+              <mat-icon>event</mat-icon>
+              <span>Allocated: {{ dialogData?.assignedDate | date: 'dd MMM yyyy' }}</span>
+            </span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Return Form -->
+    <form [formGroup]="assetReturnForm" (ngSubmit)="onConfirm()" class="return-form">
+      <div class="form-row-grid">
+        <!-- Return Date -->
+        <mat-form-field appearance="outline" class="modern-field">
+          <mat-label>Effective Return Date*</mat-label>
+          <mat-icon matPrefix class="field-icon">calendar_today</mat-icon>
+          <input matInput [matDatepicker]="returnPicker" formControlName="returnDate" required placeholder="DD/MM/YYYY" />
+          <mat-datepicker-toggle matIconSuffix [for]="returnPicker"></mat-datepicker-toggle>
+          <mat-datepicker #returnPicker></mat-datepicker>
+          <mat-hint>Date equipment is received back</mat-hint>
+          @if (assetReturnForm.get('returnDate')?.hasError('required') && assetReturnForm.get('returnDate')?.touched) {
+            <mat-error>Return date is required</mat-error>
           }
         </mat-form-field>
-  
-        <mat-form-field appearance="outline"  style="width: 100%;">
-          <mat-label>Return Date</mat-label>
-          <input matInput [matDatepicker]="startDatePicker" formControlName="returnDate" placeholder="Return Date" required >
-          <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
-          <mat-datepicker #startDatePicker></mat-datepicker>
+
+        <!-- Condition on Return -->
+        <mat-form-field appearance="outline" class="modern-field">
+          <mat-label>Physical Condition on Return*</mat-label>
+          <mat-icon matPrefix class="field-icon">verified</mat-icon>
+          <mat-select formControlName="condition" required>
+            @for (opt of conditionOptions; track opt.label) {
+              <mat-option [value]="opt.label">
+                <div class="condition-option-row">
+                  <span class="condition-dot" [style.background-color]="opt.color"></span>
+                  <span>{{ opt.label }}</span>
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>Assess current state of the equipment</mat-hint>
         </mat-form-field>
       </div>
-  
-      <div mat-dialog-actions style="justify-content: space-between;">
-        <button mat-button (click)="onConfirm()" [disabled]="assetReturnForm.invalid">
-          Confirm
+
+      <!-- Quick Preset Reasons -->
+      <div class="presets-section">
+        <label class="presets-label">
+          <mat-icon>tune</mat-icon>
+          <span>Quick Select Return Reason:</span>
+        </label>
+        <div class="preset-chips">
+          @for (preset of reasonPresets; track preset) {
+            <button
+              type="button"
+              class="preset-chip"
+              [class.chip-active]="assetReturnForm.get('reasonPreset')?.value === preset"
+              (click)="selectPreset(preset)"
+            >
+              {{ preset }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Remarks & Handover Notes -->
+      <mat-form-field appearance="outline" class="modern-field full-width">
+        <mat-label>Handover Remarks & Notes*</mat-label>
+        <mat-icon matPrefix class="field-icon note-icon">edit_note</mat-icon>
+        <textarea
+          matInput
+          formControlName="note"
+          rows="3"
+          required
+          placeholder="State reason for return, accessories handed over (charger, bag, cables), or repair notes..."
+        ></textarea>
+        <mat-hint align="end">{{ assetReturnForm.get('note')?.value?.length || 0 }}/500</mat-hint>
+        @if (assetReturnForm.get('note')?.hasError('required') && assetReturnForm.get('note')?.touched) {
+          <mat-error>Please provide return notes or reason</mat-error>
+        }
+        @if (assetReturnForm.get('note')?.hasError('maxlength')) {
+          <mat-error>Notes cannot exceed 500 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Dialog Action Buttons -->
+      <div class="dialog-actions">
+        <button mat-button type="button" class="btn-cancel" (click)="onCancel()">
+          <span>Keep Allocated</span>
+        </button>
+
+        <button
+          mat-raised-button
+          type="submit"
+          class="btn-confirm-return"
+          [disabled]="assetReturnForm.invalid"
+        >
+          <mat-icon>assignment_turned_in</mat-icon>
+          <span>Confirm Return</span>
         </button>
       </div>
     </form>
   </div>
-  
+</div>

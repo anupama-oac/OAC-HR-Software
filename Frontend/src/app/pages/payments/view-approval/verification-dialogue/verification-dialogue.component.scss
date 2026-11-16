@@ -1,67 +1,289 @@
-.custom-dialog {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  margin: 20px;
-  padding: 20px;
+.verification-dialog-container {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
-  position: relative;
-}
-
-.dialog-title {
-  font-size: 1.5em;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.dialog-content {
-  font-size: 1em;
-  color: #666;
-  margin-bottom: 20px;
-}
-
-.dialog-actions {
+  font-family: inherit;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+}
+
+/* Header */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+  gap: 16px;
+
+  .header-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f1f5f9;
+    color: #475569;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .header-text-group {
+    flex: 1;
+
+    .dialog-headline {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .dialog-subheadline {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+  }
+
+  .dialog-close-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #f1f5f9;
+      color: #334155;
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+/* Theme header variations */
+.theme-approve .header-icon-box {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.theme-reject .header-icon-box {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Body */
+.dialog-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Highlight Box */
+.confirmation-highlight-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+
+  .highlight-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .info-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .invoice-pill {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1e293b;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+
+  .highlight-arrow-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: #e2e8f0;
+    color: #334155;
+
+    .pill-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.status-pill-approve {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    &.status-pill-reject {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+  }
 }
 
-.cancel-button,
-.confirm-button {
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 1em;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+.dialog-instructions {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #475569;
+  line-height: 1.5;
 }
 
-.cancel-button {
-  background-color: #f44336;
-  color: white;
+/* Form */
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+
+  .w-100 {
+    width: 100%;
+  }
+
+  .field-icon {
+    color: #64748b;
+    margin-right: 8px;
+  }
+
+  .notes-field textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
 }
 
-.cancel-button:hover {
-  background-color: #d32f2f;
-}
+/* Actions */
+.dialog-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px 24px;
+  border-top: 1px solid #f1f5f9;
+  background-color: #fafafa;
 
-.confirm-button {
-  background-color: #4caf50;
-  color: white;
-}
+  button {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    height: 42px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-.confirm-button:hover {
-  background-color: #388e3c;
-}
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
 
-/* Target button when disabled */
-button:disabled,
-button.mat-button-disabled {
-  background-color: #cccccc !important; /* Light gray background */
-  color: #888888 !important; /* Gray text */
-  cursor: not-allowed; /* Cursor to indicate it's not clickable */
-  opacity: 0.7; /* Slightly faded look */
-  border: 1px solid #cccccc !important; /* Light border to match background */
+  .btn-dialog-cancel {
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    background: #ffffff;
+
+    &:hover {
+      background-color: #f1f5f9;
+      color: #1e293b;
+    }
+  }
+
+  .btn-dialog-confirm {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+
+    &:hover:not(:disabled) {
+      background-color: #1d4ed8;
+      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    &.btn-approve {
+      background-color: #10b981;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
+
+      &:hover:not(:disabled) {
+        background-color: #059669;
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.35);
+      }
+    }
+
+    &.btn-reject {
+      background-color: #ef4444;
+      box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+
+      &:hover:not(:disabled) {
+        background-color: #dc2626;
+        box-shadow: 0 4px 6px rgba(239, 68, 68, 0.35);
+      }
+    }
+
+    &:disabled {
+      background-color: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
+      border: 1px solid #cbd5e1 !important;
+    }
+  }
 }

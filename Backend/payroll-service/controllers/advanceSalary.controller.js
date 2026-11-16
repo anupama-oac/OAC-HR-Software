@@ -22,29 +22,22 @@ const sequelize = require('../config/database');
 }
 
 exports.getNotCompleted = async (req, res) => {
-// router.get("/notcompleted", authenticateToken, async (req, res) => {
   try {
     let whereClause = { status: true };
     let limit;
     let offset;
 
     if (req.query.search && req.query.search !== 'undefined') {
-      const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
+      const searchTerm = req.query.search.trim().toLowerCase();
       whereClause = {
         [Op.and]: [
+          { status: true },
           {
             [Op.or]: [
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.name'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              ),
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.empNo'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              )
+              { scheme: { [Op.iLike]: `%${searchTerm}%` } },
+              { reason: { [Op.iLike]: `%${searchTerm}%` } }
             ]
-          },
-          { status: true },
+          }
         ]
       };
     } else if (req.query.pageSize && req.query.page && req.query.pageSize !== 'undefined' && req.query.page !== 'undefined') {
@@ -54,25 +47,13 @@ exports.getNotCompleted = async (req, res) => {
 
     const advanceSalary = await AdvanceSalary.findAll({
       where: whereClause,
-      include: [
-        {
-          model: User,
-          attributes: ['name', 'empNo'],
-        }
-      ],
       order: [['createdAt', 'DESC']],
       limit,
       offset
     });
 
     const totalCount = await AdvanceSalary.count({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          attributes: [],
-        }
-      ],
+      where: whereClause
     });
 
     const response = req.query.page !== 'undefined' && req.query.pageSize !== 'undefined'
@@ -87,40 +68,26 @@ exports.getNotCompleted = async (req, res) => {
 
 
 exports.findAll = async (req, res) => {
-// router.get("/findall", authenticateToken, async (req, res) => {
   try {
-    let whereClause = { };
+    let whereClause = {};
 
     if (req.query.search && req.query.search !== 'undefined') {
-      const searchTerm = req.query.search.replace(/\s+/g, '').trim().toLowerCase();
+      const searchTerm = req.query.search.trim().toLowerCase();
       whereClause = {
-        [Op.and]: [
-          {
-            [Op.or]: [
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.name'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              ),
-              sequelize.where(
-                sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('user.empNo'), ' ', '')),
-                { [Op.like]: `%${searchTerm}%` }
-              )
-            ]
-          }
+        [Op.or]: [
+          { scheme: { [Op.iLike]: `%${searchTerm}%` } },
+          { reason: { [Op.iLike]: `%${searchTerm}%` } }
         ]
       };
     } 
 
     const advanceSalary = await AdvanceSalary.findAll({
       where: whereClause, 
-        include:[
-            { model: User, as: 'user', attributes: ['name','empNo']}
-        ],
       order: [['createdAt', 'DESC']],
     });
     res.send(advanceSalary);
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
 }
 
@@ -181,13 +148,10 @@ exports.findByUserIdAll = async (req, res) => {
     }
 
     const advanceSalary = await AdvanceSalary.findAll({ 
-      where: whereClause, limit: limit, offset: offset,
-      include: [
-        {
-          model: User,
-          attributes: ['name', 'empNo'],
-        }
-      ],
+      where: whereClause,
+      order: [['createdAt', 'DESC']],
+      limit: limit,
+      offset: offset
     });
     
     const totalCount = await AdvanceSalary.count({ where: whereClause });
@@ -199,10 +163,10 @@ exports.findByUserIdAll = async (req, res) => {
 
       res.json(response);
     } else {
-      res.send(advanceSalary)
+      res.send(advanceSalary);
     }
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
 }
 

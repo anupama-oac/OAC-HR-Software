@@ -1,146 +1,1173 @@
-@if(roleName === 'Super Administrator'){
-    <!-- <div>
-      <app-info-cards></app-info-cards>
-    </div> -->
-
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="70" fxFlex.lt-sm="100" class="p-2">
-      <app-matrix-table></app-matrix-table>
+<div class="dashboard-wrapper">
+  <!-- Top Welcome Hero Banner -->
+  <div class="dashboard-hero-banner">
+    <div class="hero-left-content">
+      <div class="hero-greeting-row">
+        <h1 class="hero-greeting">{{ greeting }}, {{ userName }}!</h1>
+        <div class="hero-badge-chips">
+          @if (roleName) {
+            <span class="hero-role-chip" [matTooltip]="'Your current role: ' + roleName">
+              <mat-icon>shield</mat-icon>
+              <span>{{ roleName }}</span>
+            </span>
+          }
+          <span class="hero-date-chip">
+            <mat-icon>today</mat-icon>
+            <span>{{ currentDate | date: 'EEEE, MMMM d, y' }}</span>
+          </span>
+        </div>
+      </div>
+      <p class="hero-subtitle">
+        @if (roleName === "HR & ADMINISTRATION MANAGER") {
+          Welcome to your HR workspace. Here is a real-time summary of your workforce, pending requests, and upcoming company events.
+        } @else {
+          Welcome to your personal workspace. Track your leave balances, upcoming holidays, and company notices.
+        }
+      </p>
     </div>
-    <div fxFlex="30" fxFlex.lt-sm="100" class="p-2">
-        <!-- <app-holiday-calendar></app-holiday-calendar> -->
+
+    <div class="hero-right-actions">
+      <!-- Super Admin View Tabs Switcher -->
+      @if (isSuperAdmin) {
+        <div class="hero-tab-segmented">
+          <button
+            type="button"
+            class="segmented-btn"
+            [class.active]="currentTab === 'overview'"
+            (click)="setDashboardTab('overview')">
+            <mat-icon>dashboard</mat-icon>
+            <span>HR Overview</span>
+          </button>
+        </div>
+      }
+
+      <div class="hero-action-buttons">
+        <button
+          mat-flat-button
+          class="btn-hero-action primary"
+          (click)="navigateTo('/login/leave')"
+          matTooltip="Apply or manage leave requests">
+          <mat-icon>event_available</mat-icon>
+          <span>Apply Leave</span>
+        </button>
+
+        <button
+          mat-stroked-button
+          class="btn-hero-action secondary"
+          (click)="refreshDashboard()"
+          matTooltip="Refresh dashboard data">
+          <mat-icon>refresh</mat-icon>
+          <span>Refresh</span>
+        </button>
+      </div>
     </div>
   </div>
+  <!-- VIEW: Primary HR Overview Dashboard -->
+  @if (currentTab === 'overview') {
+    <!-- Row 1: Executive KPI Metric Cards -->
+    @if (isHrOrSuperAdmin) {
+      <div class="kpi-cards-grid">
+        <!-- KPI 1: Active Workforce -->
+        <div class="kpi-card card-workforce" (click)="navigateTo('/login/users')" matTooltip="Click to open Employee Directory">
+          <div class="kpi-icon-bubble">
+            <mat-icon>groups</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Active Employees</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalEmployeesCount || (confirmedEmployeesCount + probationEmployeesCount) || '--' }}</span>
+            </div>
+            <span class="kpi-subtext">
+              <strong>{{ confirmedEmployeesCount }}</strong> Confirmed · <strong>{{ probationEmployeesCount }}</strong> Probation
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-birthday></app-birthday> -->
-    </div>
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-probation-due></app-probation-due> -->
-    </div>
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+        <!-- KPI 2: Pending Leave Requests -->
+        <div class="kpi-card card-leaves" (click)="navigateTo('/login/leave')" matTooltip="Click to review leave applications">
+          <div class="kpi-icon-bubble">
+            <mat-icon>pending_actions</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Pending Leaves</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalPendingLeavesCount }}</span>
+              @if (totalPendingLeavesCount > 0) {
+                <span class="kpi-status-badge badge-alert">Action Needed</span>
+              } @else {
+                <span class="kpi-status-badge badge-ok">Clear</span>
+              }
+            </div>
+            <span class="kpi-subtext">
+              Awaiting HR approval
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-@else if(roleName === 'HR Administrator'){
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="60" fxFlex.lt-sm="100" class="p-2">
-      <!-- <app-leave-requests-notification></app-leave-requests-notification> -->
-    </div>
-    <div fxFlex="40" fxFlex.lt-sm="100" class="p-2">
-        <!-- <app-holiday-calendar></app-holiday-calendar> -->
-    </div>
-  </div>
+        <!-- KPI 3: Upcoming Holidays -->
+        <div class="kpi-card card-holidays" (click)="navigateTo('/login/leave/leave-calendar')" matTooltip="Click to view company holiday calendar">
+          <div class="kpi-icon-bubble">
+            <mat-icon>beach_access</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Upcoming Holidays</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalUpcomingHolidays || upcomingHolidays.length }}</span>
+            </div>
+            <span class="kpi-subtext">
+              @if (upcomingHolidays.length > 0) {
+                Next: <strong>{{ upcomingHolidays[0]?.name }}</strong> ({{ upcomingHolidays[0]?.date | date: 'MMM d' }})
+              } @else {
+                No upcoming holidays
+              }
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-birthday></app-birthday> -->
-    </div>
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-probation-due></app-probation-due> -->
-    </div>
-    <div fxFlex="33" fxFlex.gt-sm="33" class="p-2">
-        <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+        <!-- KPI 4: Confirmations Due -->
+        <div class="kpi-card card-confirmation" (click)="navigateTo('/login/users/confirmation')" matTooltip="Click to open Confirmation list">
+          <div class="kpi-icon-bubble">
+            <mat-icon>assignment_turned_in</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Confirmations Due</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ probationDues.length }}</span>
+              @if (probationDues.length > 0) {
+                <span class="kpi-status-badge badge-warning">Review</span>
+              }
+            </div>
+            <span class="kpi-subtext">
+              Employees under probation review
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-@else if(roleName === 'Administrator'){
-  <div>
-    <!-- <app-info-cards></app-info-cards> -->
-  </div>
+        <!-- KPI 5: Announcements -->
+        <div class="kpi-card card-announcements" (click)="navigateTo('/login/announcements')" matTooltip="Click to open Company Announcements">
+          <div class="kpi-icon-bubble">
+            <mat-icon>campaign</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Broadcast Notices</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ announcements.length }}</span>
+            </div>
+            <span class="kpi-subtext">
+              Active organizational notices
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
+      </div>
+    } @else if (isFinanceRole) {
+      <!-- Finance Manager KPI Metric Grid -->
+      <div class="kpi-cards-grid finance-kpi-grid">
+        <!-- KPI 1: Pending Expense Approvals -->
+        <div class="kpi-card card-finance-pending" (click)="navigateTo('/login/viewApproval/viewexpenses')" matTooltip="Click to open Pending Expenses">
+          <div class="kpi-icon-bubble">
+            <mat-icon>receipt_long</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Pending Approvals</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ pendingFinanceExpensesCount }}</span>
+              @if (pendingFinanceExpensesCount > 0) {
+                <span class="kpi-status-badge badge-alert">Action Needed</span>
+              } @else {
+                <span class="kpi-status-badge badge-ok">All Clear</span>
+              }
+            </div>
+            <span class="kpi-subtext">Expenses awaiting your sign-off</span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="70" fxFlex.lt-sm="100" class="p-2">
-      <!-- <app-matrix-table></app-matrix-table> -->
-    </div>
-    <div fxFlex="30" fxFlex.lt-sm="100" class="p-2">
-        <!-- <app-holiday-calendar></app-holiday-calendar> -->
-    </div>
-  </div>
+        <!-- KPI 2: Total Recorded Expenses -->
+        <div class="kpi-card card-finance-total" (click)="navigateTo('/login/viewApproval/viewexpenses')" matTooltip="Click to view all expenses">
+          <div class="kpi-icon-bubble">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Total Expenses</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalExpensesCount }}</span>
+            </div>
+            <span class="kpi-subtext">Company expense submissions</span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-birthday></app-birthday> -->
-    </div>
+        <!-- KPI 3: Casual Leave Balance -->
+        <div class="kpi-card card-casual-leave" (click)="navigateTo('/login/leave')" matTooltip="Click to view Casual Leave details">
+          <div class="kpi-icon-bubble">
+            <mat-icon>beach_access</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Casual Leave</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ userCasualLeave?.leaveBalance ?? 0 }}</span>
+              <span class="kpi-unit">days</span>
+            </div>
+            <span class="kpi-subtext">Available balance</span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+        <!-- KPI 4: Upcoming Holidays -->
+        <div class="kpi-card card-holidays" (click)="navigateTo('/login/leave/leave-calendar')" matTooltip="Click to view company holiday calendar">
+          <div class="kpi-icon-bubble">
+            <mat-icon>event_available</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Upcoming Holidays</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalUpcomingHolidays || upcomingHolidays.length }}</span>
+            </div>
+            <span class="kpi-subtext">
+              @if (upcomingHolidays.length > 0) {
+                Next: <strong>{{ upcomingHolidays[0]?.name }}</strong>
+              } @else {
+                No holidays upcoming
+              }
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-@else if(payStat && !rm){
-  <div>
-    <!-- <app-info-cards></app-info-cards> -->
-  </div>
+        <!-- KPI 5: Announcements -->
+        <div class="kpi-card card-announcements" (click)="navigateTo('/login/announcements')" matTooltip="Click to open Company Announcements">
+          <div class="kpi-icon-bubble">
+            <mat-icon>campaign</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Broadcast Notices</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ announcements.length }}</span>
+            </div>
+            <span class="kpi-subtext">Active company notices</span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <!-- Regular Employee KPI Grid: Personal Leave Balances & Status -->
+      <div class="kpi-cards-grid employee-kpi-grid">
+        <!-- KPI 1: Casual Leave Balance -->
+        <div class="kpi-card card-casual-leave" (click)="navigateTo('/login/leave')" matTooltip="Click to view Casual Leave details">
+          <div class="kpi-icon-bubble">
+            <mat-icon>beach_access</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Casual Leave</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ userCasualLeave?.leaveBalance ?? 0 }}</span>
+              <span class="kpi-unit">days</span>
+            </div>
+            <span class="kpi-subtext">
+              Available balance
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="70" fxFlex.lt-sm="100" class="p-2">
-      <!-- <app-matrix-table></app-matrix-table> -->
-    </div>
-    <div fxFlex="30" fxFlex.lt-sm="100" class="p-2">
-        <!-- <app-holiday-calendar></app-holiday-calendar> -->
-    </div>
-  </div>
+        <!-- KPI 2: Sick Leave Balance -->
+        <div class="kpi-card card-sick-leave" (click)="navigateTo('/login/leave')" matTooltip="Click to view Sick Leave details">
+          <div class="kpi-icon-bubble">
+            <mat-icon>medical_services</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Sick Leave</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ userSickLeave?.leaveBalance ?? 0 }}</span>
+              <span class="kpi-unit">days</span>
+            </div>
+            <span class="kpi-subtext">
+              Medical balance
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-birthday></app-birthday> -->
-    </div>
+        <!-- KPI 3: Comp-Off Balance -->
+        <div class="kpi-card card-compoff-leave" (click)="navigateTo('/login/leave')" matTooltip="Click to view Comp-Off balance">
+          <div class="kpi-icon-bubble">
+            <mat-icon>event_repeat</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Comp Off</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ userCompOff?.leaveBalance ?? 0 }}</span>
+              <span class="kpi-unit">days</span>
+            </div>
+            <span class="kpi-subtext">
+              Comp-off credit
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+        <!-- KPI 4: My Pending Leave Requests -->
+        <div class="kpi-card card-leaves" (click)="navigateTo('/login/leave')" matTooltip="Click to track your leave applications">
+          <div class="kpi-icon-bubble">
+            <mat-icon>pending_actions</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">My Requests</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalPendingLeavesCount }}</span>
+              @if (totalPendingLeavesCount > 0) {
+                <span class="kpi-status-badge badge-alert">In Review</span>
+              } @else {
+                <span class="kpi-status-badge badge-ok">All Clear</span>
+              }
+            </div>
+            <span class="kpi-subtext">
+              {{ totalPendingLeavesCount > 0 ? 'Pending review' : 'No pending requests' }}
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-@else if(payStat && rm){
-  <div>
-    <!-- <app-info-cards></app-info-cards> -->
-  </div>
+        <!-- KPI 5: Upcoming Holidays -->
+        <div class="kpi-card card-holidays" (click)="navigateTo('/login/leave/leave-calendar')" matTooltip="Click to view holiday calendar">
+          <div class="kpi-icon-bubble">
+            <mat-icon>event_available</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Upcoming Holidays</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ totalUpcomingHolidays || upcomingHolidays.length }}</span>
+            </div>
+            <span class="kpi-subtext">
+              @if (upcomingHolidays.length > 0) {
+                Next: <strong>{{ upcomingHolidays[0]?.name }}</strong>
+              } @else {
+                No holidays upcoming
+              }
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="70" fxFlex.lt-sm="100" class="p-2">
-      <!-- <app-matrix-table></app-matrix-table> -->
-    </div>
-    <div fxFlex="30" fxFlex.lt-sm="100" class="p-2">
-        <!-- <app-holiday-calendar></app-holiday-calendar> -->
-    </div>
-  </div>
+        <!-- KPI 6: Announcements -->
+        <div class="kpi-card card-announcements" (click)="navigateTo('/login/announcements')" matTooltip="Click to open Company Announcements">
+          <div class="kpi-icon-bubble">
+            <mat-icon>campaign</mat-icon>
+          </div>
+          <div class="kpi-details">
+            <span class="kpi-label">Announcements</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ announcements.length }}</span>
+            </div>
+            <span class="kpi-subtext">
+              Broadcast notices
+            </span>
+          </div>
+          <div class="kpi-card-hover-arrow">
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
+      </div>
+    }
 
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="25" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-birthday></app-birthday> -->
-    </div>
-    <div fxFlex="50" fxFlex.lt-sm="100" class="p-2">
-      <!-- <app-leave-requests-notification></app-leave-requests-notification> -->
-    </div>
-    <div fxFlex="25" fxFlex.gt-sm="50" class="p-2">
-        <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+    <!-- Main Content Layout (Left Main Stream + Right Widget Column) -->
+    <div class="dashboard-main-grid">
+      <!-- LEFT STREAM (Primary Content) -->
+      <div class="main-stream-column">
+        <!-- Card 0: Published Celebration Wishes Showcase on Dashboard -->
+        @if (publishedCelebrationWishes.length > 0) {
+          <div class="dashboard-panel-card dashboard-wishes-showcase">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <div class="panel-icon-badge badge-amber">
+                  <mat-icon>celebration</mat-icon>
+                </div>
+                <div>
+                  <h3 class="panel-title">Celebration Wishes</h3>
+                  <p class="panel-subtitle">Warmest birthday and work anniversary wishes for our team</p>
+                </div>
+              </div>
+            </div>
 
-@else {
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="50" fxFlex.lt-sm="50" class="p-3">
-      <!-- <app-holiday-calendar></app-holiday-calendar> -->
-    </div>
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-3">
-      <!-- <app-announcements-list></app-announcements-list> -->
-    </div>
-  </div>
-  <div fxLayout="row" fxLayoutAlign="space-between" fxLayoutWrap fxLayout.lt-sm="column">
-    <div fxFlex="50" fxFlex.lt-sm="50" class="p-3">
-      <!-- <app-birthday></app-birthday> -->
-    </div>
-    <div fxFlex="50" fxFlex.gt-sm="50" class="p-3">
-      <!-- <app-joining-day></app-joining-day> -->
-    </div>
-  </div>
-}
+            <div class="panel-body">
+              <div class="dashboard-wishes-grid">
+                @for (wish of publishedCelebrationWishes; track $index; let idx = $index) {
+                  <div
+                    class="dashboard-wish-banner-card"
+                    [class.wish-theme-anniversary]="wish.type === 'anniversary'"
+                    [class.wish-theme-birthday]="wish.type === 'birthday'"
+                    (click)="openLoginWishViewPopup(idx)">
+                    @if (wish.imageUrl) {
+                      <div class="wish-banner-image-wrap">
+                        <img
+                          [src]="getFileUrl(wish.imageUrl)"
+                          [alt]="wish.title || wish.name"
+                          class="wish-banner-image" />
+                      </div>
+                    }
 
+                    <div class="wish-banner-content">
+                      <div class="wish-banner-top-row">
+                        <span class="wish-type-chip">
+                          <mat-icon>{{ wish.type === 'anniversary' ? 'emoji_events' : 'cake' }}</mat-icon>
+                          <span>{{ wish.type === 'anniversary' ? 'WORK ANNIVERSARY' : 'BIRTHDAY WISH' }}</span>
+                        </span>
+                        <span class="wish-date-chip">
+                          {{ wish.date | date: 'MMMM d' }}
+                        </span>
+                      </div>
+
+                      <h4 class="wish-banner-headline">{{ wish.title }}</h4>
+                      <p class="wish-banner-message">{{ wish.message }}</p>
+
+                      <div class="wish-banner-footer">
+                        <span class="wish-from-tag">
+                          <mat-icon>favorite</mat-icon>
+                          <span>{{ wish.createdBy || 'Team Onboard Aero Consultant' }}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Card 0.5: Dedicated Leave Granted Today Showcase -->
+        @if (leavesGrantedToday.length > 0 || todayGrantNotificationMessage) {
+          <div class="dashboard-panel-card leave-granted-today-card">
+            <div class="leave-granted-header">
+              <div class="leave-granted-icon-box">
+                <mat-icon>celebration</mat-icon>
+              </div>
+              <div class="leave-granted-title-info">
+                <div class="granted-badge-pill">
+                  <mat-icon>verified</mat-icon>
+                  <span>Leaves Credited Today · {{ currentDate | date: 'MMMM d, y' }}</span>
+                </div>
+                <h3 class="granted-main-title">Leaves Credited to Your Account!</h3>
+                <p class="granted-subtitle">
+                  {{ todayGrantNotificationMessage || 'New leave balances have been officially allocated and credited to your account today.' }}
+                </p>
+              </div>
+              <button mat-flat-button class="btn-view-balance" (click)="navigateTo('/login/leave')">
+                <mat-icon>account_balance_wallet</mat-icon>
+                <span>View Balance</span>
+              </button>
+            </div>
+
+            @if (leavesGrantedToday.length > 0) {
+              <div class="granted-tiles-row">
+                @for (item of leavesGrantedToday; track item.type) {
+                  <div class="granted-tile" [ngClass]="getLeaveTypeTileClass(item.type)">
+                    <div class="tile-icon-wrap">
+                      <mat-icon>{{ getLeaveTypeIcon(item.type) }}</mat-icon>
+                    </div>
+                    <div class="tile-details">
+                      <span class="tile-name">{{ item.type }}</span>
+                      <div class="tile-days-credited">
+                        <span class="credit-chip">+{{ item.days }} Day Granted</span>
+                      </div>
+                      <span class="tile-total-balance">
+                        Available Balance: <strong>{{ item.balance }} {{ item.balance === 1 ? 'day' : 'days' }}</strong>
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Card: Expenses Awaiting Approval & Disbursement (Finance Manager, Operations Manager & Super Admin only) -->
+        @if (canApproveExpenses) {
+          <div class="dashboard-panel-card finance-expenses-panel">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <div class="panel-icon-badge badge-finance">
+                  <mat-icon>account_balance_wallet</mat-icon>
+                </div>
+                <div>
+                  <h3 class="panel-title">{{ pendingExpensesPanelTitle }}</h3>
+                  <p class="panel-subtitle">
+                    {{ pendingExpensesPanelSubtitle }}
+                  </p>
+                </div>
+              </div>
+              <div class="panel-header-actions">
+                <button mat-button class="btn-panel-link" (click)="navigateTo('/login/viewApproval/viewexpenses')">
+                  <span>View All ({{ pendingFinanceExpensesCount }})</span>
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              @if (pendingExpensesForFinance.length === 0) {
+                <div class="empty-state-panel">
+                  <div class="empty-icon-wrap icon-success">
+                    <mat-icon>check_circle</mat-icon>
+                  </div>
+                  <h4 class="empty-title">All Expenses Cleared!</h4>
+                  <p class="empty-desc">
+                    There are currently no expense claims awaiting finance approval.
+                  </p>
+                  <button mat-stroked-button class="btn-empty-action" (click)="navigateTo('/login/viewApproval/viewexpenses')">
+                    <mat-icon>history</mat-icon>
+                    <span>View All Expenses</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="expense-approvals-list">
+                  @for (item of pendingExpensesForFinance; track item.id) {
+                    <div class="expense-approval-item" (click)="openExpenseDetail(item.id)">
+                      <div class="employee-avatar-wrap">
+                        <div class="avatar-initials">
+                          {{ getInitials(item.user?.name) }}
+                        </div>
+                      </div>
+
+                      <div class="expense-info-group">
+                        <div class="expense-top-row">
+                          <span class="employee-name">{{ item.user?.name || 'Employee' }}</span>
+                          <span class="employee-empid" *ngIf="item.user?.empNo">#{{ item.user?.empNo }}</span>
+                          <span class="expense-id-pill">{{ item.expenseNumber || ('EXP-' + item.id) }}</span>
+                          <span class="payment-mode-pill" [class.mode-bank]="item.paymentMode === 'Bank Transfer'" [class.mode-cash]="item.paymentMode === 'Cash'">
+                            <mat-icon class="mode-icon">{{ item.paymentMode === 'Bank Transfer' ? 'account_balance' : 'payments' }}</mat-icon>
+                            <span>{{ item.paymentMode || 'Standard' }}</span>
+                          </span>
+                        </div>
+
+                        <div class="expense-amount-row">
+                          <span class="expense-amount">
+                            {{ item.amount | number:'1.2-2' }} <small>{{ item.currency || 'INR' }}</small>
+                          </span>
+                          <span class="expense-date">
+                            <mat-icon class="inline-icon">calendar_today</mat-icon>
+                            {{ item.expenseDate | date: 'MMM d, y' }}
+                          </span>
+                          <span class="expense-status-badge">
+                            {{ item.status || 'Pending Finance Approval' }}
+                          </span>
+                        </div>
+
+                        @if (item.description) {
+                          <p class="expense-desc-preview">
+                            "{{ item.description }}"
+                          </p>
+                        }
+                      </div>
+
+                      <div class="expense-actions-wrap" (click)="$event.stopPropagation()">
+                        @if (canApproveExpenses) {
+                          <button
+                            type="button"
+                            mat-flat-button
+                            class="btn-quick-approve"
+                            [disabled]="isProcessingExpense"
+                            (click)="approveExpenseDirectly(item, $event)"
+                            matTooltip="Confirm amount transferred to employee">
+                            <mat-icon>payments</mat-icon>
+                            <span>Amount Transferred</span>
+                          </button>
+                          <button
+                            type="button"
+                            mat-stroked-button
+                            class="btn-quick-reject"
+                            [disabled]="isProcessingExpense"
+                            (click)="rejectExpenseDirectly(item, $event)"
+                            matTooltip="Revert expense claim back to employee">
+                            <mat-icon>reply</mat-icon>
+                            <span>Revert</span>
+                          </button>
+                        }
+                        <button
+                          type="button"
+                          mat-icon-button
+                          class="btn-quick-view"
+                          (click)="openExpenseDetail(item.id)"
+                          matTooltip="View full expense details">
+                          <mat-icon>chevron_right</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Card 1: Pending Leave Approvals / My Leave Requests -->
+        <div class="dashboard-panel-card">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <div class="panel-icon-badge badge-blue">
+                <mat-icon>pending_actions</mat-icon>
+              </div>
+              <div>
+                <h3 class="panel-title">{{ isHrOrSuperAdmin ? 'Pending Leave Requests' : 'My Leave Requests' }}</h3>
+                <p class="panel-subtitle">
+                  {{ isHrOrSuperAdmin ? 'Leave applications requiring administrative action' : 'Your recent leave applications and current status' }}
+                </p>
+              </div>
+            </div>
+            <div class="panel-header-actions">
+              <button mat-button class="btn-panel-link" (click)="navigateTo('/login/leave')">
+                <span>View All ({{ totalPendingLeavesCount }})</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (pendingLeaves.length === 0) {
+              <div class="empty-state-panel">
+                <div class="empty-icon-wrap icon-success">
+                  <mat-icon>check_circle</mat-icon>
+                </div>
+                <h4 class="empty-title">All Caught Up!</h4>
+                <p class="empty-desc">
+                  {{ isHrOrSuperAdmin ? 'There are currently no pending leave requests requiring review.' : 'You have no pending leave applications at this time.' }}
+                </p>
+                <button mat-stroked-button class="btn-empty-action" (click)="navigateTo('/login/leave')">
+                  <mat-icon>history</mat-icon>
+                  <span>{{ isHrOrSuperAdmin ? 'View Leave History' : 'Apply For Leave' }}</span>
+                </button>
+              </div>
+            } @else {
+              <div class="leave-requests-list">
+                @for (item of pendingLeaves; track item.id) {
+                  <div class="leave-request-item" (click)="openLeaveDetail(item.id)">
+                    <div class="employee-avatar-wrap">
+                      <div class="avatar-initials">
+                        {{ getInitials(item.user?.name) }}
+                      </div>
+                    </div>
+
+                    <div class="leave-info-group">
+                      <div class="leave-top-row">
+                        <span class="employee-name">{{ item.user?.name || 'Employee' }}</span>
+                        <span class="employee-empid" *ngIf="item.user?.empNo">#{{ item.user?.empNo }}</span>
+                        <span class="leave-type-chip">{{ item.leaveType?.leaveTypeName || 'Leave' }}</span>
+                      </div>
+
+                      <div class="leave-date-row">
+                        <mat-icon class="inline-icon">date_range</mat-icon>
+                        <span class="leave-dates">
+                          {{ item.startDate | date: 'MMM d' }} – {{ item.endDate | date: 'MMM d, y' }}
+                        </span>
+                        <span class="duration-pill">
+                          {{ getLeaveDuration(item.startDate, item.endDate) }} {{ getLeaveDuration(item.startDate, item.endDate) === 1 ? 'day' : 'days' }}
+                        </span>
+                      </div>
+
+                      @if (item.notes) {
+                        <p class="leave-notes-preview">
+                          "{{ item.notes }}"
+                        </p>
+                      }
+                    </div>
+
+                    <div class="leave-action-wrap">
+                      <span class="leave-status-tag" [ngClass]="getLeaveStatusClass(item.status)">
+                        {{ item.status || 'Pending' }}
+                      </span>
+                      <button
+                        mat-stroked-button
+                        class="btn-review-leave"
+                        (click)="$event.stopPropagation(); openLeaveDetail(item.id)">
+                        <span>{{ isHrOrSuperAdmin ? 'Review' : 'View' }}</span>
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Card 2: Company Announcements & Broadcasts -->
+        <div class="dashboard-panel-card">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <div class="panel-icon-badge badge-purple">
+                <mat-icon>campaign</mat-icon>
+              </div>
+              <div>
+                <h3 class="panel-title">Company Announcements</h3>
+                <p class="panel-subtitle">Official organizational news, updates, and corporate milestones</p>
+              </div>
+            </div>
+            <div class="panel-header-actions">
+              <button mat-button class="btn-panel-link" (click)="navigateTo('/login/announcements')">
+                <span>View Feed</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (announcements.length === 0) {
+              <div class="empty-state-panel">
+                <div class="empty-icon-wrap icon-neutral">
+                  <mat-icon>campaign</mat-icon>
+                </div>
+                <h4 class="empty-title">No Active Announcements</h4>
+                <p class="empty-desc">You are up to date! There are no new announcements published at this time.</p>
+                @if (isHrOrSuperAdmin) {
+                  <button mat-flat-button color="primary" class="btn-empty-action" (click)="navigateTo('/login/announcements')">
+                    <mat-icon>add_alert</mat-icon>
+                    <span>Post New Notice</span>
+                  </button>
+                }
+              </div>
+            } @else {
+              <div class="announcements-cards-list">
+                @for (item of announcements; track item.id) {
+                  <div class="dashboard-announcement-card">
+                    <div class="card-type-stripe" [ngClass]="item.type || 'info'"></div>
+
+                    <div class="announcement-content">
+                      <div class="announcement-meta-row">
+                        <span class="type-badge" [ngClass]="getAnnouncementTypeClass(item.type)">
+                          <mat-icon class="badge-icon">{{ getAnnouncementTypeIcon(item.type) }}</mat-icon>
+                          <span>{{ item.type ? (item.type | uppercase) : 'ANNOUNCEMENT' }}</span>
+                        </span>
+
+                        <div class="announcement-controls">
+                          @if (item.dismissible !== false) {
+                            <button
+                              mat-button
+                              class="btn-dash-dismiss"
+                              (click)="dismissAnnouncement(item, $event)"
+                              matTooltip="Dismiss this announcement from your dashboard">
+                              <mat-icon>visibility_off</mat-icon>
+                              <span>Dismiss</span>
+                            </button>
+                          }
+                        </div>
+                      </div>
+
+                      <p class="announcement-message">{{ item.message }}</p>
+
+                      @if (item.fileUrl) {
+                        <div class="announcement-attachment-row">
+                          <a [href]="getFileUrl(item.fileUrl)" target="_blank" class="attachment-pill">
+                            <mat-icon>attach_file</mat-icon>
+                            <span>View Attachment</span>
+                            <mat-icon class="external-icon">open_in_new</mat-icon>
+                          </a>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Card 3: Upcoming Holidays Timeline -->
+        <div class="dashboard-panel-card">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <div class="panel-icon-badge badge-emerald">
+                <mat-icon>beach_access</mat-icon>
+              </div>
+              <div>
+                <h3 class="panel-title">Upcoming Holidays</h3>
+                <p class="panel-subtitle">Official company non-working days and upcoming festive observances</p>
+              </div>
+            </div>
+            <div class="panel-header-actions">
+              <button mat-button class="btn-panel-link" (click)="navigateTo('/login/leave/leave-calendar')">
+                <span>Holiday Calendar</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (upcomingHolidays.length === 0) {
+              <div class="empty-state-panel">
+                <div class="empty-icon-wrap icon-neutral">
+                  <mat-icon>event_busy</mat-icon>
+                </div>
+                <h4 class="empty-title">No Holidays Scheduled</h4>
+                <p class="empty-desc">There are no upcoming company holidays in the immediate schedule.</p>
+              </div>
+            } @else {
+              <div class="holidays-timeline-grid">
+                @for (h of upcomingHolidays; track h.id) {
+                  <div class="holiday-timeline-tile">
+                    <div class="calendar-date-box">
+                      <span class="cal-month">{{ getHolidayMonth(h.date) }}</span>
+                      <span class="cal-day">{{ getHolidayDay(h.date) }}</span>
+                      <span class="cal-weekday">{{ getHolidayWeekday(h.date) }}</span>
+                    </div>
+
+                    <div class="holiday-details-box">
+                      <h4 class="holiday-name">{{ h.name }}</h4>
+                      <div class="holiday-badges-row">
+                        <span class="holiday-tag-date">{{ h.date | date: 'EEEE, MMMM d' }}</span>
+                        @if (h.comboAdded) {
+                          <span class="compo-tag" matTooltip="Eligible for Compensatory Off">
+                            <mat-icon>add_task</mat-icon>
+                            <span>Comp-Off</span>
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT WIDGET COLUMN (Celebrations, Confirmations, Shortcuts) -->
+      <div class="side-widgets-column">
+        <!-- Widget 1: Celebrations Hub (HR / Super Admin only) -->
+        @if (isHrOrSuperAdmin || roleName === 'GRAPHIC DESIGNER') {
+          <div class="dashboard-panel-card celebrations-panel">
+            <div class="celebration-panel-header">
+              <div class="celebration-title-row">
+                <div class="celebration-title-left">
+                  <div class="panel-icon-badge badge-amber">
+                    <mat-icon>celebration</mat-icon>
+                  </div>
+                  <h3 class="panel-title">Team Celebrations</h3>
+                </div>
+              </div>
+
+              <!-- Segmented Pill Switcher -->
+              <div class="celebration-tab-pills">
+                <button
+                  type="button"
+                  class="tab-pill"
+                  [class.active]="celebrationTab === 'birthdays'"
+                  (click)="setCelebrationTab('birthdays')">
+                  <mat-icon>cake</mat-icon>
+                  <span>Birthdays ({{ birthdaysThisMonth.length }})</span>
+                </button>
+                <button
+                  type="button"
+                  class="tab-pill"
+                  [class.active]="celebrationTab === 'anniversaries'"
+                  (click)="setCelebrationTab('anniversaries')">
+                  <mat-icon>emoji_events</mat-icon>
+                  <span>Anniversaries ({{ joiningsThisMonth.length }})</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <!-- TAB: Birthdays -->
+              @if (celebrationTab === 'birthdays') {
+                @if (birthdaysThisMonth.length === 0) {
+                  <div class="empty-state-panel compact">
+                    <div class="empty-icon-wrap icon-amber">
+                      <mat-icon>cake</mat-icon>
+                    </div>
+                    <h4 class="empty-title">No Birthdays This Month</h4>
+                    <p class="empty-desc">No team members have birthdays scheduled for this month.</p>
+                  </div>
+                } @else {
+                  <div class="celebration-items-list">
+                    @for (emp of birthdaysThisMonth; track $index) {
+                      <div
+                        class="celebration-item-card clickable-celebration"
+                        [class.highlight-today]="isTodayBirthday(emp.dateOfBirth)"
+                        (click)="openRowWishEditor(emp, 'birthday')"
+                        matTooltip="Click this row to upload wish image & customize message">
+                        @if (getCelebrationWish(emp)?.imageUrl) {
+                          <img
+                            class="celebration-wish-thumb"
+                            [src]="getFileUrl(getCelebrationWish(emp)?.imageUrl)"
+                            [alt]="emp.user?.name || 'Birthday Wish'" />
+                        } @else {
+                          <div class="celebration-avatar">
+                            {{ getInitials(emp.user?.name) }}
+                          </div>
+                        }
+
+                        <div class="celebration-text">
+                          <div class="celebration-name-row">
+                            <span class="celebration-name">{{ emp.user?.name || 'Colleague' }}</span>
+                            @if (isTodayBirthday(emp.dateOfBirth)) {
+                              <span class="today-sparkle-pill">
+                                <mat-icon>cake</mat-icon>
+                                <span>Today!</span>
+                              </span>
+                            }
+                            @if (getCelebrationWish(emp)?.imageUrl) {
+                              <span class="wish-poster-pill" matTooltip="Celebration image uploaded">
+                                <mat-icon>image</mat-icon>
+                              </span>
+                            }
+                          </div>
+                          <span class="celebration-subtext">
+                            {{ emp.dateOfBirth | date: 'MMMM d' }}
+                            @if (getCelebrationWish(emp)?.title) {
+                              · {{ getCelebrationWish(emp)?.title }}
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              <!-- TAB: Work Anniversaries -->
+              @if (celebrationTab === 'anniversaries') {
+                @if (joiningsThisMonth.length === 0) {
+                  <div class="empty-state-panel compact">
+                    <div class="empty-icon-wrap icon-amber">
+                      <mat-icon>emoji_events</mat-icon>
+                    </div>
+                    <h4 class="empty-title">No Anniversaries This Month</h4>
+                    <p class="empty-desc">No work anniversaries occurring this month.</p>
+                  </div>
+                } @else {
+                  <div class="celebration-items-list">
+                    @for (emp of joiningsThisMonth; track $index) {
+                      <div
+                        class="celebration-item-card clickable-celebration"
+                        [class.highlight-today]="isTodayAnniversary(emp.dateOfJoining)"
+                        (click)="openRowWishEditor(emp, 'anniversary')"
+                        matTooltip="Click this row to upload anniversary wish image & customize message">
+                        @if (getCelebrationWish(emp)?.imageUrl) {
+                          <img
+                            class="celebration-wish-thumb"
+                            [src]="getFileUrl(getCelebrationWish(emp)?.imageUrl)"
+                            [alt]="emp.user?.name || 'Anniversary Wish'" />
+                        } @else {
+                          <div class="celebration-avatar anniversary-avatar">
+                            {{ getInitials(emp.user?.name) }}
+                          </div>
+                        }
+
+                        <div class="celebration-text">
+                          <div class="celebration-name-row">
+                            <span class="celebration-name">{{ emp.user?.name || 'Colleague' }}</span>
+                            @if (isTodayAnniversary(emp.dateOfJoining)) {
+                              <span class="today-sparkle-pill">
+                                <mat-icon>emoji_events</mat-icon>
+                                <span>Today!</span>
+                              </span>
+                            }
+                            @if (getCelebrationWish(emp)?.imageUrl) {
+                              <span class="wish-poster-pill" matTooltip="Celebration image uploaded">
+                                <mat-icon>image</mat-icon>
+                              </span>
+                            }
+                          </div>
+                          <span class="celebration-subtext">
+                            Joined {{ emp.dateOfJoining | date: 'MMMM d, y' }}
+                          </span>
+                        </div>
+
+                        <div class="celebration-card-actions">
+                          <div class="anniversary-badge-box">
+                            <mat-icon>military_tech</mat-icon>
+                            <span>{{ getAnniversaryLabel(emp.dateOfJoining) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Widget 2: Confirmations & Probation Due (HR/Admin only) -->
+        @if (isHrOrSuperAdmin) {
+          <div class="dashboard-panel-card probation-panel">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <div class="panel-icon-badge badge-rose">
+                  <mat-icon>assignment_late</mat-icon>
+                </div>
+                <div>
+                  <h3 class="panel-title">Confirmations Due</h3>
+                  <p class="panel-subtitle">Probation review milestones</p>
+                </div>
+              </div>
+              <div class="panel-header-actions">
+                <button mat-button class="btn-panel-link" (click)="navigateTo('/login/users/confirmation')">
+                  <span>Manage</span>
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              @if (probationDues.length === 0) {
+                <div class="empty-state-panel compact">
+                  <div class="empty-icon-wrap icon-success">
+                    <mat-icon>verified</mat-icon>
+                  </div>
+                  <h4 class="empty-title">No Confirmations Pending</h4>
+                  <p class="empty-desc">All employees are confirmed or not yet approaching probation deadlines.</p>
+                </div>
+              } @else {
+                <div class="probation-items-list">
+                  @for (emp of probationDues; track $index) {
+                    <div class="probation-item-card" (click)="navigateTo('/login/users/confirmation')">
+                      <div class="probation-avatar">
+                        {{ getInitials(emp.name) }}
+                      </div>
+
+                      <div class="probation-info">
+                        <span class="probation-name">{{ emp.name }}</span>
+                        <span class="probation-date">
+                          Due: {{ (getProbationDate(emp) | date: 'MMM d, y') || 'Review Date' }}
+                        </span>
+                      </div>
+
+                      <div class="probation-countdown">
+                        @if (getProbationDate(emp)) {
+                          <span class="countdown-tag" [ngClass]="getProbationBadgeClass(getDaysRemaining(getProbationDate(emp)))">
+                            {{ getProbationText(getDaysRemaining(getProbationDate(emp))) }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Widget 3: Quick HR Services & Shortcuts -->
+        <div class="dashboard-panel-card shortcuts-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <div class="panel-icon-badge badge-slate">
+                <mat-icon>apps</mat-icon>
+              </div>
+              <div>
+                <h3 class="panel-title">{{ isHrOrSuperAdmin ? 'Quick HR Services' : (isFinanceRole ? 'Quick Finance Services' : (isOperationsRole ? 'Quick Operations Services' : (isSalesRole ? 'Quick Sales Services' : (isTeamLeadRole ? 'Quick Team Services' : 'Quick Shortcuts')))) }}</h3>
+                <p class="panel-subtitle">Frequently accessed organizational modules</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            <div class="shortcuts-grid">
+              <!-- Shortcut 1: Apply Leave -->
+              <button type="button" class="shortcut-tile" (click)="navigateTo('/login/leave')">
+                <div class="shortcut-icon-box box-blue">
+                  <mat-icon>event_available</mat-icon>
+                </div>
+                <span class="shortcut-title">Leave Portal</span>
+                <span class="shortcut-hint">Apply & track leaves</span>
+              </button>
+
+              @if (isHrOrSuperAdmin) {
+                <!-- Shortcut 2: Month-End Payroll (Admin only) -->
+                <button type="button" class="shortcut-tile" (click)="navigateTo('/login/payroll/month-end')">
+                  <div class="shortcut-icon-box box-emerald">
+                    <mat-icon>payments</mat-icon>
+                  </div>
+                  <span class="shortcut-title">Month End</span>
+                  <span class="shortcut-hint">Salary processing</span>
+                </button>
+              }
+
+              <!-- Shortcut 3: Payslips -->
+              <button type="button" class="shortcut-tile" (click)="navigateTo('/login/payroll/payslip')">
+                <div class="shortcut-icon-box box-purple">
+                  <mat-icon>receipt</mat-icon>
+                </div>
+                <span class="shortcut-title">{{ isHrOrSuperAdmin ? 'Payslip Central' : 'My Payslips' }}</span>
+                <span class="shortcut-hint">View monthly statements</span>
+              </button>
+
+              <!-- Shortcut 4: Directory -->
+              <button type="button" class="shortcut-tile" (click)="navigateTo('/login/users')">
+                <div class="shortcut-icon-box box-amber">
+                  <mat-icon>auto_stories</mat-icon>
+                </div>
+                <span class="shortcut-title">Directory</span>
+                <span class="shortcut-hint">Colleagues & staff</span>
+              </button>
+
+              @if (!isHrOrSuperAdmin) {
+                <!-- Shortcut 4b: Holiday Calendar for Employee -->
+                <button type="button" class="shortcut-tile" (click)="navigateTo('/login/leave/leave-calendar')">
+                  <div class="shortcut-icon-box box-emerald">
+                    <mat-icon>beach_access</mat-icon>
+                  </div>
+                  <span class="shortcut-title">Holidays</span>
+                  <span class="shortcut-hint">Calendar view</span>
+                </button>
+              }
+
+              <!-- Shortcut 5: Advance Salary -->
+              <button type="button" class="shortcut-tile" (click)="navigateTo('/login/payroll/advance-salary')">
+                <div class="shortcut-icon-box box-teal">
+                  <mat-icon>credit_card</mat-icon>
+                </div>
+                <span class="shortcut-title">Advance Salary</span>
+                <span class="shortcut-hint">Loan & advances</span>
+              </button>
+
+              <!-- Shortcut 6: Announcements -->
+              <button type="button" class="shortcut-tile" (click)="navigateTo('/login/announcements')">
+                <div class="shortcut-icon-box box-rose">
+                  <mat-icon>campaign</mat-icon>
+                </div>
+                <span class="shortcut-title">Announcements</span>
+                <span class="shortcut-hint">Company broadcasts</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

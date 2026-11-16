@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, QueryList, ViewChildren } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -16,19 +16,24 @@ import { ActivatedRoute } from '@angular/router';
   templateUrl: './payments.component.html',
   styleUrl: './payments.component.scss'
 })
-export class PaymentsComponent implements OnInit{
+export class PaymentsComponent implements OnInit, OnDestroy {
   currentTabIndex: number = 0;
   currentPage: number = 1;
   private readonly route = inject(ActivatedRoute);
   private refreshSub!: Subscription;
+
+  ngOnDestroy(): void {
+    this.refreshSub?.unsubscribe();
+    this.roleSub?.unsubscribe();
+  }
+
   ngOnInit(): void {
-    const token: any = localStorage.getItem('token')
-    const user = JSON.parse(token)
-    const roleId = user.role
-    this.refreshSub = interval(5000).subscribe(() => {
+    const token: any = localStorage.getItem('token');
+    const user = token ? JSON.parse(token) : null;
+    const roleId = user?.role;
+    if (roleId) {
       this.getRoleById(roleId);
-    });
-    this.getRoleById(roleId);
+    }
   }
 
   @ViewChildren('viewApproval') viewApprovalComponents!: QueryList<ViewApprovalComponent>;
@@ -51,8 +56,25 @@ export class PaymentsComponent implements OnInit{
   teamLead: boolean = false;
   pendingHeader : string = '';
   getRoleById(id: number){
+    const token: any = localStorage.getItem('token');
+    let isSuperAdminFromToken = false;
+    if (token) {
+      try {
+        const u = JSON.parse(token);
+        const d = (u.designationName || u.roleName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin')) {
+          isSuperAdminFromToken = true;
+        }
+      } catch (e) {}
+    }
+
     this.roleSub = this.invoiceService.getRoleById(id).subscribe(role => {
-      this.roleName = role.roleName;  
+      const rLower = (role.roleName || '').toLowerCase().trim();
+      if (isSuperAdminFromToken || rLower === 'hr & administration manager' || rLower === 'hr & admin manager') {
+        this.roleName = 'Super Administrator';
+      } else {
+        this.roleName = role.roleName;
+      }  
       if(!this.isSubmitted){
         if(this.roleName === 'Sales Executive' || this.roleName === 'Team Lead') { 
           this.status = 'GENERATED'; this.sp = true; this.header = 'REJECTED'; this.pendingHeader='GENERATED'
@@ -66,7 +88,7 @@ export class PaymentsComponent implements OnInit{
         if(this.roleName === 'Accountant') { 
           this.status = 'AM VERIFIED'; this.ma = true; this.pendingHeader='VERIFIED'
         }
-        if(this.roleName === 'Administrator' || this.roleName === 'Super Administrator') { this.admin = true, this.status = '' }
+        if(this.roleName === 'Administrator' || this.roleName === 'Super Administrator' || (this.roleName || '').toLowerCase().trim() === 'hr & administration manager') { this.admin = true, this.status = '' }
         if(this.roleName === 'Team Lead') { this.teamLead = true }
       }else{
         this.status = '';
@@ -107,6 +129,8 @@ export class PaymentsComponent implements OnInit{
   
   selectedTabIndex: number = 0;
   onTabChange(event: number) {
+    this.selectedTabIndex = event;
+    this.invoiceService.setState('tabIndex', { tabIndex: event });
     switch (this.roleName) {
       case 'Sales Executive':
         switch (event) {
@@ -272,12 +296,12 @@ export class PaymentsComponent implements OnInit{
       if (activeComponent) {
         activeComponent.loadData(this.data, event);
       } 
-    } else if (event === 0 && this.viewApprovalComponents.length > 0 && (this.roleName === 'Administrator' || this.roleName === 'Super Administrator')) {
+    } else if (event === 0 && this.viewApprovalComponents.length > 0 && (this.roleName === 'Administrator' || this.roleName === 'Super Administrator' || (this.roleName || '').toLowerCase().trim() === 'hr & administration manager')) {
       const activeComponent = this.viewApprovalComponents.toArray()[0]; 
       if (activeComponent) {
         activeComponent.loadData(this.data, event);
       } 
-    }  else if (event === 1 && this.viewExpenseComponent.length > 0 && (this.roleName === 'Administrator' || this.roleName === 'Super Administrator')) {
+    }  else if (event === 1 && this.viewExpenseComponent.length > 0 && (this.roleName === 'Administrator' || this.roleName === 'Super Administrator' || (this.roleName || '').toLowerCase().trim() === 'hr & administration manager')) {
       const activeComponent = this.viewExpenseComponent.toArray()[0]; 
       if (activeComponent) {
         activeComponent.loadData(this.data, event);

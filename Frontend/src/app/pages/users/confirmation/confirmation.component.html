@@ -1,71 +1,322 @@
-<div class="table-container">
-  <!-- Probation Employees Table -->
-  <table class="styled-table">
-    <thead>
-      <tr>
-        <th colspan="2">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Probation Employees</mat-label>
-            <input matInput [(ngModel)]="probationSearch" placeholder="Type to search" />
-          </mat-form-field>
-        </th>
-      </tr>
-      <tr>
-        <th class="wide-header">Probation</th>
-        <th class="narrow-header"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (temp of probEmp | searchFilter: probationSearch; track $index; let i = $index) {
-        <tr>
-          <td class="wide-cell">{{ temp.name }}</td>
-          <td class="narrow-cell">
-            @if (selectedEmployeeId !== temp.id) {
-              <mat-icon class="clickable-icon" (click)="onConfirmClick(temp.id)">
-                arrow_forward
-              </mat-icon>
-            }
-            @if (selectedEmployeeId === temp.id) {
-              <div class="note-entry">
-                <mat-form-field appearance="outline" class="note-input">
-                  <mat-label>Add a note</mat-label>
-                  <input matInput [(ngModel)]="note" placeholder="Enter note" />
+<div class="confirmation-page-container">
+  <!-- Page Header Banner -->
+  <div class="page-header-card">
+    <div class="header-info-wrap">
+      <div class="header-icon-box">
+        <mat-icon>verified_user</mat-icon>
+      </div>
+      <div class="header-text-content">
+        <h1 class="page-title">Employee Confirmation & Probation Management</h1>
+        <p class="page-subtitle">Track probation periods, transition staff into permanent employment, and configure leave entitlements.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button class="refresh-btn" (click)="refreshData()" matTooltip="Reload employee records" matTooltipPosition="below">
+        <mat-icon>refresh</mat-icon>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="kpi-summary-row">
+    <div class="kpi-card kpi-probation">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">On Probation</span>
+        <h2 class="kpi-value">{{ probEmp.length }}</h2>
+        <span class="kpi-meta">Awaiting confirmation</span>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-permanent">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>verified</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Confirmed Staff</span>
+        <h2 class="kpi-value">{{ permanentEmp.length }}</h2>
+        <span class="kpi-meta">Permanent employment</span>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-total">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>people</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Tracked</span>
+        <h2 class="kpi-value">{{ probEmp.length + permanentEmp.length }}</h2>
+        <span class="kpi-meta">Active workforce records</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Split Two-Column Workspace -->
+  <div class="dashboard-columns-grid">
+    <!-- COLUMN 1: PROBATION EMPLOYEES -->
+    <div class="column-panel panel-probation">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <div class="panel-badge-pill badge-probation">
+            <mat-icon>hourglass_top</mat-icon>
+            <span>Probation</span>
+          </div>
+          <span class="panel-count-tag">{{ filteredProbEmp.length }} {{ filteredProbEmp.length === 1 ? 'Employee' : 'Employees' }}</span>
+        </div>
+        <p class="panel-subtitle">Employees currently serving their probationary period</p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="panel-search-box">
+        <mat-icon class="search-lead-icon">search</mat-icon>
+        <input
+          type="text"
+          class="panel-search-input"
+          placeholder="Search probation by name, ID or role..."
+          [(ngModel)]="probationSearch"
+        />
+        @if (probationSearch) {
+          <button type="button" class="search-clear-btn" (click)="probationSearch = ''" matTooltip="Clear search">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Employee List -->
+      <div class="employee-list-scroll">
+        @if (filteredProbEmp.length === 0) {
+          <div class="empty-state-box">
+            <mat-icon class="empty-icon">person_search</mat-icon>
+            <p class="empty-title">{{ probationSearch ? 'No matching probation employees found' : 'No employees currently on probation' }}</p>
+            <span class="empty-desc">{{ probationSearch ? 'Try a different search term.' : 'All active employees are confirmed.' }}</span>
+          </div>
+        }
+
+        @for (emp of filteredProbEmp; track emp.id) {
+          <div class="employee-item-card" [class.selected-for-note]="selectedEmployeeId === emp.id">
+            <div class="emp-main-row">
+              <!-- Avatar -->
+              <div class="emp-avatar-box">
+                @if (emp.url) {
+                  <img [src]="getUserImageUrl(emp.url)" alt="{{ emp.name }}" (error)="$any($event.target).style.display='none'; fallbackAvatar.style.display='flex'">
+                }
+                <div #fallbackAvatar class="avatar-initials" [style.display]="emp.url ? 'none' : 'flex'">
+                  {{ getInitials(emp.name) }}
+                </div>
+              </div>
+
+              <!-- Info -->
+              <div class="emp-details-wrap">
+                <div class="emp-name-row">
+                  <span class="emp-name" (click)="viewEmployee(emp.id)" matTooltip="Click to view employee profile">{{ emp.name }}</span>
+                  <span class="status-pill status-probation">Probation</span>
+                </div>
+                <div class="emp-meta-row">
+                  <span class="meta-tag meta-empno" matTooltip="Employee Number">
+                    <mat-icon>badge</mat-icon>
+                    <span>{{ emp.empNo || '—' }}</span>
+                  </span>
+                  @if (getEmployeeRoleLabel(emp)) {
+                    <span class="meta-tag meta-role">
+                      <mat-icon>card_membership</mat-icon>
+                      <span>{{ getEmployeeRoleLabel(emp) }}</span>
+                    </span>
+                  }
+                  @if (emp.email) {
+                    <span class="meta-tag meta-email" matTooltip="{{ emp.email }}">
+                      <mat-icon>email</mat-icon>
+                      <span>{{ emp.email }}</span>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="emp-actions-group">
+                @if (selectedEmployeeId !== emp.id) {
+                  <button
+                    mat-flat-button
+                    class="btn-action btn-confirm"
+                    (click)="onConfirmClick(emp.id)"
+                    matTooltip="Quick confirm with note"
+                    matTooltipPosition="above">
+                    <mat-icon>verified</mat-icon>
+                    <span>Confirm</span>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="btn-icon-dialog"
+                    (click)="openConfirmationDialog(emp, 'confirmation')"
+                    matTooltip="Advanced status settings"
+                    matTooltipPosition="above">
+                    <mat-icon>tune</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="btn-icon-view"
+                    (click)="viewEmployee(emp.id)"
+                    matTooltip="View full employee profile"
+                    matTooltipPosition="above">
+                    <mat-icon>open_in_new</mat-icon>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Inline Confirmation Note Drawer -->
+            @if (selectedEmployeeId === emp.id) {
+              <div class="inline-confirm-drawer">
+                <div class="drawer-header">
+                  <mat-icon class="drawer-icon">edit_note</mat-icon>
+                  <span>Confirming <strong>{{ emp.name }}</strong> ({{ emp.empNo }})</span>
+                </div>
+                <mat-form-field appearance="outline" class="note-form-field">
+                  <mat-label>Confirmation Note (Optional)</mat-label>
+                  <input
+                    matInput
+                    [(ngModel)]="note"
+                    placeholder="e.g. Completed probation period satisfactorily"
+                    (keydown.enter)="confirmEmployee(emp.id, emp.name, note)"
+                  />
+                  <mat-icon matSuffix class="field-icon">comment</mat-icon>
                 </mat-form-field>
-                <button mat-button color="primary" (click)="confirmEmployee(temp.id, temp.empNo, note)">Confirm</button>
-                <button mat-button color="warn" (click)="cancelNote()" type="button">Cancel</button>
+                <div class="drawer-actions">
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    class="btn-drawer-confirm"
+                    (click)="confirmEmployee(emp.id, emp.name, note)">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>Confirm Status</span>
+                  </button>
+                  <button
+                    mat-button
+                    class="btn-drawer-cancel"
+                    (click)="cancelNote()"
+                    type="button">
+                    Cancel
+                  </button>
+                </div>
               </div>
             }
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
+          </div>
+        }
+      </div>
+    </div>
 
-  <!-- Permanent Employees Table -->
-  <table class="styled-table">
-    <thead>
-      <tr>
-        <th colspan="2">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Permanent Employees</mat-label>
-            <input matInput [(ngModel)]="permanentSearch" placeholder="Type to search" />
-          </mat-form-field>
-        </th>
-      </tr>
-      <tr>
-        <th>Permanent</th>
-        <th>Leave</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (emp of permanentEmp | searchFilter: permanentSearch; track $index) {
-        <tr>
-          <td>{{ emp.name }}</td>
-          <td class="narrow-cell" style="width: 30px;" (click)="updateUserLeave(emp.id, emp.name)">
-            <mat-icon>edit_note</mat-icon>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
+    <!-- COLUMN 2: PERMANENT EMPLOYEES -->
+    <div class="column-panel panel-permanent">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <div class="panel-badge-pill badge-permanent">
+            <mat-icon>verified</mat-icon>
+            <span>Permanent</span>
+          </div>
+          <span class="panel-count-tag">{{ filteredPermanentEmp.length }} {{ filteredPermanentEmp.length === 1 ? 'Employee' : 'Employees' }}</span>
+        </div>
+        <p class="panel-subtitle">Confirmed staff with active permanent employment status</p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="panel-search-box">
+        <mat-icon class="search-lead-icon">search</mat-icon>
+        <input
+          type="text"
+          class="panel-search-input"
+          placeholder="Search permanent by name, ID or role..."
+          [(ngModel)]="permanentSearch"
+        />
+        @if (permanentSearch) {
+          <button type="button" class="search-clear-btn" (click)="permanentSearch = ''" matTooltip="Clear search">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Employee List -->
+      <div class="employee-list-scroll">
+        @if (filteredPermanentEmp.length === 0) {
+          <div class="empty-state-box">
+            <mat-icon class="empty-icon">person_search</mat-icon>
+            <p class="empty-title">{{ permanentSearch ? 'No matching permanent employees found' : 'No permanent employees recorded' }}</p>
+            <span class="empty-desc">{{ permanentSearch ? 'Try a different search term.' : 'Confirmed employees will appear here.' }}</span>
+          </div>
+        }
+
+        @for (emp of filteredPermanentEmp; track emp.id) {
+          <div class="employee-item-card permanent-card">
+            <div class="emp-main-row">
+              <!-- Avatar -->
+              <div class="emp-avatar-box avatar-permanent">
+                @if (emp.url) {
+                  <img [src]="getUserImageUrl(emp.url)" alt="{{ emp.name }}" (error)="$any($event.target).style.display='none'; fallbackPermAvatar.style.display='flex'">
+                }
+                <div #fallbackPermAvatar class="avatar-initials initials-permanent" [style.display]="emp.url ? 'none' : 'flex'">
+                  {{ getInitials(emp.name) }}
+                </div>
+              </div>
+
+              <!-- Info -->
+              <div class="emp-details-wrap">
+                <div class="emp-name-row">
+                  <span class="emp-name" (click)="viewEmployee(emp.id)" matTooltip="Click to view employee profile">{{ emp.name }}</span>
+                  <span class="status-pill status-confirmed">Confirmed</span>
+                </div>
+                <div class="emp-meta-row">
+                  <span class="meta-tag meta-empno" matTooltip="Employee Number">
+                    <mat-icon>badge</mat-icon>
+                    <span>{{ emp.empNo || '—' }}</span>
+                  </span>
+                  @if (getEmployeeRoleLabel(emp)) {
+                    <span class="meta-tag meta-role">
+                      <mat-icon>card_membership</mat-icon>
+                      <span>{{ getEmployeeRoleLabel(emp) }}</span>
+                    </span>
+                  }
+                  @if (emp.email) {
+                    <span class="meta-tag meta-email" matTooltip="{{ emp.email }}">
+                      <mat-icon>email</mat-icon>
+                      <span>{{ emp.email }}</span>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="emp-actions-group">
+                <button
+                  mat-stroked-button
+                  class="btn-action btn-leave"
+                  (click)="updateUserLeave(emp.id, emp.name)"
+                  matTooltip="Manage leave balances & entitlements"
+                  matTooltipPosition="above">
+                  <mat-icon>edit_note</mat-icon>
+                  <span>Leaves</span>
+                </button>
+                <button
+                  mat-icon-button
+                  class="btn-icon-revert"
+                  (click)="openConfirmationDialog(emp, 'probation')"
+                  matTooltip="Revert status to probation"
+                  matTooltipPosition="above">
+                  <mat-icon>hourglass_top</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  class="btn-icon-view"
+                  (click)="viewEmployee(emp.id)"
+                  matTooltip="View full employee profile"
+                  matTooltipPosition="above">
+                  <mat-icon>open_in_new</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
 </div>

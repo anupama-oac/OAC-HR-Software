@@ -1,5 +1,32 @@
 const { Team, TeamLeader, TeamMember, User } = require('../models');
 
+const formatTeam = (teamInstance) => {
+  if (!teamInstance) return null;
+  const data = teamInstance.toJSON ? teamInstance.toJSON() : teamInstance;
+  const rawLeaders = data.TeamLeaders || data.team_leaders || data.teamLeaders || [];
+  const rawMembers = data.TeamMembers || data.team_members || data.teamMembers || [];
+
+  const leaders = rawLeaders.map(l => ({
+    ...l,
+    user: l.User || l.user || null
+  }));
+
+  const members = rawMembers.map(m => ({
+    ...m,
+    user: m.User || m.user || null
+  }));
+
+  return {
+    ...data,
+    TeamLeaders: leaders,
+    teamLeaders: leaders,
+    team_leaders: leaders,
+    TeamMembers: members,
+    teamMembers: members,
+    team_members: members
+  };
+};
+
 exports.createTeam = async (req, res) => {
   try {
     const { teamName, teamLeaders, teamMembers } = req.body;
@@ -17,7 +44,7 @@ exports.createTeam = async (req, res) => {
     if (teamLeaders && teamLeaders.length > 0) {
       const teamLeaderRecords = teamLeaders.map(userId => ({
         teamId: team.id,
-        userId
+        userId: typeof userId === 'object' ? (userId.userId || userId.id) : userId
       }));
       await TeamLeader.bulkCreate(teamLeaderRecords);
     }
@@ -26,7 +53,7 @@ exports.createTeam = async (req, res) => {
     if (teamMembers && teamMembers.length > 0) {
       const teamMemberRecords = teamMembers.map(userId => ({
         teamId: team.id,
-        userId
+        userId: typeof userId === 'object' ? (userId.userId || userId.id) : userId
       }));
       await TeamMember.bulkCreate(teamMemberRecords);
     }
@@ -36,11 +63,11 @@ exports.createTeam = async (req, res) => {
       include: [
         { 
           model: TeamLeader,
-          include: [User]
+          include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
         },
         { 
           model: TeamMember,
-          include: [User]
+          include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
         }
       ]
     });
@@ -48,7 +75,7 @@ exports.createTeam = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Team created successfully',
-      data: createdTeam
+      data: formatTeam(createdTeam)
     });
     
   } catch (error) {
@@ -75,20 +102,23 @@ exports.createTeam = async (req, res) => {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-}
+};
 
 exports.getTeams = async (req, res) => {
     try {
-        const team = await Team.findAll({include: [
-            { model: TeamLeader, attributes: ['userId'], include: [{model: User, attributes: ['name']}] },
-            { model: TeamMember, attributes: ['userId'], include: [{model: User, attributes: ['name']}] }]
+        const teams = await Team.findAll({
+            include: [
+                { model: TeamLeader, include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }] },
+                { model: TeamMember, include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }] }
+            ],
+            order: [['id', 'DESC']]
         });
         
-        res.send(team);
+        res.json(teams.map(formatTeam));
     } catch (error) {
-        res.send(error.message)
+        res.status(500).json({ error: error.message });
     }
-}
+};
 
 exports.getTeamById = async (req, res) => {
   try {
@@ -99,23 +129,11 @@ exports.getTeamById = async (req, res) => {
       include: [
         {
           model: TeamLeader,
-          attributes: ['userId'],
-          include: [
-            {
-              model: User,
-              attributes: ['id', 'name']
-            }
-          ]
+          include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
         },
         {
           model: TeamMember,
-          attributes: ['userId'],
-          include: [
-            {
-              model: User,
-              attributes: ['id', 'name']
-            }
-          ]
+          include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
         }
       ]
     });
@@ -127,7 +145,7 @@ exports.getTeamById = async (req, res) => {
       });
     }
 
-    res.json(team);
+    res.json(formatTeam(team));
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -176,23 +194,21 @@ exports.updateTeam = async (req, res) => {
             return res.status(400).json({ error: 'Team name is required' });
         }
 
-        const [num] = await Team.update(
-            { teamName: teamName.trim() },
-            { where: { id: req.params.id } }
-        );
-
-        if (num !== 1) {
+        const team = await Team.findByPk(req.params.id);
+        if (!team) {
             return res.status(404).json({
-                message: `Cannot update Team with id=${req.params.id}. Maybe Team was not found or req.body is empty!`
+                message: `Team with id=${req.params.id} was not found!`
             });
         }
+
+        await team.update({ teamName: teamName.trim() });
 
         if (Array.isArray(teamLeaders)) {
             await TeamLeader.destroy({ where: { teamId: req.params.id } });
             if (teamLeaders.length > 0) {
                 const teamLeaderRecords = teamLeaders.map(userId => ({
                     teamId: req.params.id,
-                    userId
+                    userId: typeof userId === 'object' ? (userId.userId || userId.id) : userId
                 }));
                 await TeamLeader.bulkCreate(teamLeaderRecords);
             }
@@ -203,7 +219,7 @@ exports.updateTeam = async (req, res) => {
             if (teamMembers.length > 0) {
                 const teamMemberRecords = teamMembers.map(userId => ({
                     teamId: req.params.id,
-                    userId
+                    userId: typeof userId === 'object' ? (userId.userId || userId.id) : userId
                 }));
                 await TeamMember.bulkCreate(teamMemberRecords);
             }
@@ -213,11 +229,11 @@ exports.updateTeam = async (req, res) => {
             include: [
                 {
                     model: TeamLeader,
-                    include: [User]
+                    include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
                 },
                 {
                     model: TeamMember,
-                    include: [User]
+                    include: [{ model: User, attributes: ['id', 'name', 'email', 'empNo'] }]
                 }
             ]
         });
@@ -225,7 +241,7 @@ exports.updateTeam = async (req, res) => {
         return res.json({
             success: true,
             message: "Team updated successfully.",
-            data: updatedTeam
+            data: formatTeam(updatedTeam)
         });
     } catch (error) {
         return res.status(500).json({
@@ -234,7 +250,7 @@ exports.updateTeam = async (req, res) => {
             message: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
-}
+};
 
 exports.deleteTeam = async (req, res) => {
     try {

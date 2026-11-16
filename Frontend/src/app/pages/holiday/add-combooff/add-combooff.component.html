@@ -1,36 +1,505 @@
-<div class="combo-off-container">
-  <div class="header">
-    <h3>
-      @if(editStatus){
-        Update
-      }@else{
-        Add 
-      } Comp Off for Employees
-    </h3>
-    <button class="btn btn-secondary back-button" (click)="goBack()">
-      <mat-icon>exit_to_app</mat-icon>
-    </button>
-  </div>
-  <form [formGroup]="comboOffForm" (ngSubmit)="onSubmit()">
-    <div class="form-group" formArrayName="employees">
-      <label for="employees">Select Employees:</label>
-      @for (employee of employees; let i = $index; track $index) {
-        <div>
-          <input 
-            type="checkbox" 
-            [formControlName]="i" 
-            (change)="onCheckboxChange($event, employee.id)" /> 
-          {{ employee.name }}
-        </div>
-      }
+<div class="compoff-page-container">
+  <!-- Top Navigation & Action Header Card -->
+  <div class="compoff-header-card">
+    <div class="header-left">
+      <button
+        mat-stroked-button
+        class="btn-back"
+        (click)="goBack()"
+        matTooltip="Return to holiday management"
+        aria-label="Back">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Holidays</span>
+      </button>
 
+      <div class="header-title-box">
+        <div class="header-icon-badge">
+          <mat-icon>event_repeat</mat-icon>
+        </div>
+        <div class="header-text-group">
+          <h1 class="page-title">
+            {{ editStatus ? 'Manage & Update Comp-Off Allocations' : 'Allocate Compensatory Off' }}
+          </h1>
+          <p class="page-subtitle">
+            Assign official compensatory off (Comp-Off) credits to employees who worked on public holidays.
+          </p>
+        </div>
+      </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">
-      @if(editStatus){
-        Update
-      }@else{
-        Add
-      } Comp Off</button>
-  </form>
+    <div class="header-right">
+      @if (editStatus && hasChanges) {
+        <button
+          mat-stroked-button
+          class="btn-reset-header"
+          (click)="resetToInitial()"
+          [disabled]="isSaving"
+          matTooltip="Revert selection back to initial state">
+          <mat-icon>restart_alt</mat-icon>
+          <span>Reset Changes</span>
+        </button>
+      }
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="btn-submit-header"
+        (click)="onSubmit()"
+        [disabled]="isSaving || (editStatus ? !hasChanges : selectedCount === 0)">
+        @if (isSaving) {
+          <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          <span>Saving...</span>
+        } @else {
+          <mat-icon>{{ editStatus ? 'save' : 'add_task' }}</mat-icon>
+          <span>{{ editStatus ? 'Update Comp-Off' : 'Save Allocations' }}</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading) {
+    <div class="loading-state-card">
+      <mat-spinner diameter="44"></mat-spinner>
+      <h3>Loading employee directory & holiday allocations...</h3>
+      <p>Please wait while we verify eligible staff records.</p>
+    </div>
+  } @else {
+    <!-- Holiday Context Showcase Card -->
+    <div class="holiday-banner-card">
+      <div class="banner-content">
+        <div class="holiday-badge-icon">
+          <mat-icon>celebration</mat-icon>
+        </div>
+
+        <div class="holiday-info">
+          <div class="holiday-meta-tags">
+            <span class="tag-status" [class.status-active]="editStatus" [class.status-pending]="!editStatus">
+              <mat-icon>{{ editStatus ? 'check_circle' : 'hourglass_top' }}</mat-icon>
+              {{ editStatus ? 'Comp-Off Configured' : 'New Allocation' }}
+            </span>
+
+            @if (holiday?.type) {
+              <span class="tag-holiday-type">
+                {{ holiday?.type }}
+              </span>
+            }
+
+            @if (holiday?.date) {
+              <span class="tag-holiday-date">
+                <mat-icon>calendar_today</mat-icon>
+                {{ holiday?.date | date: 'EEEE, MMMM d, y' }}
+              </span>
+            }
+          </div>
+
+          <h2 class="holiday-title">
+            {{ holiday?.name || 'Holiday #' + holidayId }}
+          </h2>
+
+          @if (holiday?.comments) {
+            <p class="holiday-description">
+              <mat-icon class="quote-icon">format_quote</mat-icon>
+              {{ holiday?.comments }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="banner-notice">
+        <div class="notice-icon">
+          <mat-icon>info</mat-icon>
+        </div>
+        <div class="notice-text">
+          <strong>Leave Credit Rule:</strong>
+          Every selected employee receives <strong>+1 day</strong> credited to their annual Comp-Off leave balance for the year.
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Metrics KPI Row -->
+    <div class="metrics-grid">
+      <!-- Total Confirmed Staff -->
+      <div class="metric-card">
+        <div class="metric-icon-box bg-slate">
+          <mat-icon>groups</mat-icon>
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">Confirmed Staff</span>
+          <span class="metric-value">{{ totalEmployeesCount }}</span>
+          <span class="metric-subtext">Eligible active employees</span>
+        </div>
+      </div>
+
+      <!-- Total Comp-Off Selected -->
+      <div class="metric-card" [class.card-highlight-active]="selectedCount > 0">
+        <div class="metric-icon-box bg-blue">
+          <mat-icon>assignment_ind</mat-icon>
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">Comp-Off Selected</span>
+          <span class="metric-value text-blue">{{ selectedCount }}</span>
+          <span class="metric-subtext">{{ totalEmployeesCount > 0 ? ((selectedCount / totalEmployeesCount) * 100 | number: '1.0-0') : 0 }}% of workforce</span>
+        </div>
+      </div>
+
+      <!-- Newly Added Count (in Edit Mode) -->
+      @if (editStatus) {
+        <div class="metric-card" [class.card-highlight-emerald]="newlyAddedCount > 0">
+          <div class="metric-icon-box bg-emerald">
+            <mat-icon>person_add</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Newly Added</span>
+            <span class="metric-value text-emerald">+{{ newlyAddedCount }}</span>
+            <span class="metric-subtext">Will receive +1 day credit</span>
+          </div>
+        </div>
+
+        <!-- Deselected / Deduction Count -->
+        <div class="metric-card" [class.card-highlight-rose]="deselectedCount > 0">
+          <div class="metric-icon-box bg-rose">
+            <mat-icon>person_remove</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Marked for Removal</span>
+            <span class="metric-value text-rose">-{{ deselectedCount }}</span>
+            <span class="metric-subtext">Will lose 1 day credit on save</span>
+          </div>
+        </div>
+      } @else {
+        <!-- Remaining Unselected in New Mode -->
+        <div class="metric-card">
+          <div class="metric-icon-box bg-amber">
+            <mat-icon>person_outline</mat-icon>
+          </div>
+          <div class="metric-details">
+            <span class="metric-label">Unallocated</span>
+            <span class="metric-value text-amber">{{ unselectedCount }}</span>
+            <span class="metric-subtext">Standard holiday off</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Deduction Warning Alert Banner -->
+    @if (editStatus && deselectedCount > 0) {
+      <div class="deduction-warning-card">
+        <div class="warning-left">
+          <div class="warning-icon-pill">
+            <mat-icon>warning</mat-icon>
+          </div>
+          <div class="warning-text">
+            <h4>Comp-Off Balance Reduction Notice</h4>
+            <p>
+              Saving changes will <strong>deduct 1 day</strong> from the Comp-Off leave balance of
+              <strong>{{ deselectedCount }}</strong> previously credited employee{{ deselectedCount > 1 ? 's' : '' }}:
+            </p>
+            <div class="deselected-chips-list">
+              @for (emp of deselectedEmployeesList; track emp.id) {
+                <span class="deselected-chip">
+                  <span class="chip-name">{{ emp.name }}</span>
+                  <span class="chip-empno">({{ emp.empNo || 'ID #' + emp.id }})</span>
+                  <button
+                    type="button"
+                    class="btn-undo-chip"
+                    (click)="reIncludeEmployee(emp.id)"
+                    matTooltip="Undo removal and re-include employee"
+                    aria-label="Re-include">
+                    <mat-icon>undo</mat-icon>
+                    <span>Re-include</span>
+                  </button>
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Search, Filter & Quick-Actions Toolbar -->
+    <div class="toolbar-filter-card">
+      <div class="toolbar-top-row">
+        <!-- Search Input -->
+        <div class="search-box">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            placeholder="Search by employee name, ID (empNo), email, or role..."
+            aria-label="Search Employees" />
+          @if (searchQuery) {
+            <button
+              mat-icon-button
+              class="btn-clear-search"
+              (click)="clearSearch()"
+              aria-label="Clear search">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Department / Team Filter Dropdown -->
+        @if (departments.length > 0) {
+          <div class="dept-select-box">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Department / Team</mat-label>
+              <mat-select [(ngModel)]="selectedDepartment">
+                <mat-option value="all">All Departments ({{ employees.length }})</mat-option>
+                @for (dept of departments; track dept) {
+                  <mat-option [value]="dept">{{ dept }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+
+        <!-- Quick Selection Tools -->
+        <div class="selection-tools">
+          <button
+            mat-stroked-button
+            class="btn-tool"
+            (click)="selectAllFiltered()"
+            [disabled]="isAllFilteredSelected || filteredEmployees.length === 0"
+            matTooltip="Select all employees currently shown in this list">
+            <mat-icon>done_all</mat-icon>
+            <span>Select Visible ({{ filteredEmployees.length }})</span>
+          </button>
+
+          <button
+            mat-stroked-button
+            class="btn-tool"
+            (click)="deselectAllFiltered()"
+            [disabled]="filteredEmployees.length === 0"
+            matTooltip="Deselect all employees currently shown in this list">
+            <mat-icon>remove_done</mat-icon>
+            <span>Deselect Visible</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Tabs / Badges Row -->
+      <div class="toolbar-tabs-row">
+        <div class="filter-tabs">
+          <button
+            type="button"
+            class="tab-pill"
+            [class.active]="activeFilterTab === 'all'"
+            (click)="setFilterTab('all')">
+            <span>All Staff</span>
+            <span class="tab-count">{{ employees.length }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="tab-pill tab-selected"
+            [class.active]="activeFilterTab === 'selected'"
+            (click)="setFilterTab('selected')">
+            <span>Selected</span>
+            <span class="tab-count count-blue">{{ selectedCount }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="tab-pill"
+            [class.active]="activeFilterTab === 'unselected'"
+            (click)="setFilterTab('unselected')">
+            <span>Unselected</span>
+            <span class="tab-count">{{ unselectedCount }}</span>
+          </button>
+
+          @if (editStatus && newlyAddedCount > 0) {
+            <button
+              type="button"
+              class="tab-pill tab-added"
+              [class.active]="activeFilterTab === 'added'"
+              (click)="setFilterTab('added')">
+              <span>Newly Added</span>
+              <span class="tab-count count-emerald">+{{ newlyAddedCount }}</span>
+            </button>
+          }
+
+          @if (editStatus && deselectedCount > 0) {
+            <button
+              type="button"
+              class="tab-pill tab-removed"
+              [class.active]="activeFilterTab === 'removed'"
+              (click)="setFilterTab('removed')">
+              <span>Marked for Removal</span>
+              <span class="tab-count count-rose">-{{ deselectedCount }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="list-summary-stats">
+          Showing <strong>{{ filteredEmployees.length }}</strong> of <strong>{{ employees.length }}</strong> employees
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Cards Grid -->
+    @if (filteredEmployees.length > 0) {
+      <div class="employee-cards-grid">
+        @for (emp of filteredEmployees; track emp.id) {
+          @let status = getEmployeeStatus(emp.id);
+          @let isChecked = isEmployeeSelected(emp.id);
+
+          <div
+            class="employee-card"
+            [class.card-selected]="isChecked"
+            [class.card-status-added]="status === 'added'"
+            [class.card-status-removed]="status === 'removed'"
+            (click)="toggleEmployee(emp.id)">
+            
+            <!-- Checkbox Control -->
+            <div class="card-checkbox-container" (click)="$event.stopPropagation()">
+              <mat-checkbox
+                [checked]="isChecked"
+                (change)="toggleEmployee(emp.id)"
+                color="primary"
+                [attr.aria-label]="'Select ' + emp.name">
+              </mat-checkbox>
+            </div>
+
+            <!-- Avatar -->
+            <div class="card-avatar" [style.background]="getAvatarGradient(emp.name)">
+              @if (emp.userImage) {
+                <img [src]="emp.userImage" [alt]="emp.name" class="avatar-img" />
+              } @else {
+                <span class="avatar-text">{{ getInitials(emp.name) }}</span>
+              }
+            </div>
+
+            <!-- Employee Info Details -->
+            <div class="card-details">
+              <div class="card-name-row">
+                <span class="emp-name">{{ emp.name }}</span>
+                @if (emp.empNo) {
+                  <span class="emp-code-pill">{{ emp.empNo }}</span>
+                }
+              </div>
+
+              <div class="card-role-row">
+                <span class="emp-role">
+                  {{ (emp.role?.roleName) || (emp.team?.teamName) || 'Employee' }}
+                </span>
+                @if (emp.team?.teamName && emp.role?.roleName && emp.team?.teamName !== emp.role?.roleName) {
+                  <span class="role-separator">•</span>
+                  <span class="emp-dept">{{ emp.team?.teamName }}</span>
+                }
+              </div>
+
+              <div class="card-contact-row">
+                <mat-icon class="contact-icon">mail_outline</mat-icon>
+                <span class="contact-email">
+                  {{ (emp.userPosition?.officialMailId) || emp.email || 'No email provided' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Allocation Status Pill Badge -->
+            <div class="card-status-badge">
+              @switch (status) {
+                @case ('active') {
+                  <span class="badge-active" matTooltip="Comp-off active from previous allocation">
+                    <mat-icon>verified</mat-icon>
+                    <span>Active Credit</span>
+                  </span>
+                }
+                @case ('added') {
+                  <span class="badge-added" matTooltip="Newly selected: +1 day comp-off will be credited upon saving">
+                    <mat-icon>add_circle</mat-icon>
+                    <span>+1 Day Credit</span>
+                  </span>
+                }
+                @case ('removed') {
+                  <span class="badge-removed" matTooltip="Deselected: 1 day will be deducted from balance upon saving">
+                    <mat-icon>remove_circle</mat-icon>
+                    <span>-1 Day on Save</span>
+                  </span>
+                }
+                @case ('unassigned') {
+                  <span class="badge-unassigned">
+                    <span>Not Allocated</span>
+                  </span>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Empty Filter State -->
+      <div class="empty-filter-card">
+        <div class="empty-icon-wrap">
+          <mat-icon>person_search</mat-icon>
+        </div>
+        <h3>No employees found</h3>
+        <p>No confirmed employees match your current search query or active filter tab.</p>
+        <button mat-stroked-button color="primary" class="btn-clear-filters" (click)="clearSearch(); setFilterTab('all')">
+          <mat-icon>filter_alt_off</mat-icon>
+          <span>Reset Search & Filters</span>
+        </button>
+      </div>
+    }
+
+    <!-- Sticky Bottom Action Footer Bar -->
+    <div class="sticky-footer-bar">
+      <div class="footer-left">
+        <div class="selection-pill">
+          <mat-icon>how_to_reg</mat-icon>
+          <span class="selection-text">
+            <strong>{{ selectedCount }}</strong> of <strong>{{ totalEmployeesCount }}</strong> selected
+          </span>
+        </div>
+
+        @if (editStatus && hasChanges) {
+          <div class="changes-summary-pill">
+            @if (newlyAddedCount > 0) {
+              <span class="pill-added">+{{ newlyAddedCount }} new</span>
+            }
+            @if (deselectedCount > 0) {
+              <span class="pill-removed">-{{ deselectedCount }} removed</span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="footer-right">
+        <button
+          mat-stroked-button
+          class="btn-footer-cancel"
+          (click)="goBack()"
+          [disabled]="isSaving">
+          <span>Cancel</span>
+        </button>
+
+        @if (editStatus && hasChanges) {
+          <button
+            mat-stroked-button
+            class="btn-footer-reset"
+            (click)="resetToInitial()"
+            [disabled]="isSaving">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset</span>
+          </button>
+        }
+
+        <button
+          mat-flat-button
+          color="primary"
+          class="btn-footer-submit"
+          (click)="onSubmit()"
+          [disabled]="isSaving || (editStatus ? !hasChanges : selectedCount === 0)">
+          @if (isSaving) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Saving Allocations...</span>
+          } @else {
+            <mat-icon>{{ editStatus ? 'check_circle' : 'add_task' }}</mat-icon>
+            <span>{{ editStatus ? 'Update Comp-Off' : 'Confirm & Save Comp-Off' }}</span>
+          }
+        </button>
+      </div>
+    </div>
+  }
 </div>

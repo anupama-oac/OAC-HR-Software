@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { provideMomentDateAdapter } from '@angular/material-moment-adapter';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -9,390 +9,473 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute } from '@angular/router';
-import { UsersService } from '@services/users.service';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatDividerModule } from '@angular/material/divider';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AssetReturnComponent } from './asset-return/asset-return.component';
+
+import { UsersService } from '@services/users.service';
 import { AssetsService } from '@services/assets.service';
 import { Assets } from '../../../common/interfaces/assets/assets';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { User } from '../../../common/interfaces/users/user';
 import { AddUserAssetsComponent } from '../../assets/add-user-assets/add-user-assets.component';
+import { AssetReturnComponent } from './asset-return/asset-return.component';
+import { environment } from '../../../../environments/environment';
 
 export const MY_FORMATS = {
   parse: {
-    dateInput: 'DD/MM/YYYY', // Change to desired format
+    dateInput: 'DD/MM/YYYY',
   },
   display: {
-    dateInput: 'DD/MM/YYYY', // Display format for the input field
-    monthYearLabel: 'MMM YYYY', // Format for month/year in the header
-    dateA11yLabel: 'DD/MM/YYYY', // Accessibility format for dates
-    monthYearA11yLabel: 'MMMM YYYY', // Accessibility format for month/year
+    dateInput: 'DD/MM/YYYY',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'DD/MM/YYYY',
+    monthYearA11yLabel: 'MMMM YYYY',
   },
 };
 
+export interface AllocatedAssetRow {
+  id?: number;
+  assetId: number | null;
+  assetName: string;
+  serialNumber?: string;
+  assignedDate: string;
+  status: boolean;
+  returnDate?: string | null;
+  note?: string;
+}
 
 @Component({
   selector: 'app-user-assets',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, MatFormFieldModule, MatInputModule, CommonModule, MatDatepickerModule,
-    MatNativeDateModule, MatAutocompleteModule
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatDividerModule,
+    DatePipe
   ],
   templateUrl: './user-assets.component.html',
   styleUrl: './user-assets.component.scss',
-
   providers: [provideMomentDateAdapter(MY_FORMATS)]
 })
-export class UserAssetsComponent implements OnDestroy{
-  dialogRef = inject(MatDialogRef<UserAssetsComponent>, { optional: true })
-  assetData = inject(MAT_DIALOG_DATA, { optional: true });
-  ngOnDestroy(): void {
-    this.userAssetSub?.unsubscribe();
-    this.assetSub?.unsubscribe();
-    this.userSub?.unsubscribe();
-    this.userPosition?.unsubscribe();
-  }
+export class UserAssetsComponent implements OnInit, OnDestroy {
+  dialogRef = inject(MatDialogRef<UserAssetsComponent>, { optional: true });
+  dialogData = inject(MAT_DIALOG_DATA, { optional: true });
 
-  rows: any[] = [];
   private fb = inject(FormBuilder);
-  form = this.fb.group({
-    assetCode: [''],
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private snackbar = inject(MatSnackBar);
+  private userService = inject(UsersService);
+  private assetService = inject(AssetsService);
+
+  readonly s3Url = environment.s3Url || `https://${environment.AWS_BUCKET_NAME || 'aerohr-uploads'}.s3.amazonaws.com/`;
+
+  userId!: number;
+  user: User | null = null;
+  userName: string = '';
+  empNo: string = '';
+  userRole: string = '';
+
+  isLoading: boolean = false;
+  isSubmitting: boolean = false;
+  updateStatus: boolean = false;
+
+  assets: Assets[] = [];
+  filteredOptions: Assets[] = [];
+  filterValue: string = '';
+  showAddOption: boolean = false;
+
+  rows: AllocatedAssetRow[] = [];
+
+  form: FormGroup = this.fb.group({
     newRow: this.fb.group({
-      assetId: <any>[],
-      assetName: [''],
+      assetId: [null as number | null, Validators.required],
+      assetName: ['', Validators.required],
       serialNumber: [''],
-      assignedDate: [],
+      assignedDate: [new Date(), Validators.required],
       status: [true]
-    }),
+    })
   });
 
-  private route = inject(ActivatedRoute);
+  private subscriptions: Subscription[] = [];
+
+  get isDialog(): boolean {
+    return !!this.dialogRef;
+  }
+
+  get userImageUrl(): string | null {
+    if (!this.user?.url) return null;
+    return this.user.url.startsWith('http') ? this.user.url : `${this.s3Url}${this.user.url}`;
+  }
+
+  getInitials(): string {
+    if (!this.userName) return 'EM';
+    const parts = this.userName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+
   ngOnInit(): void {
     let id = this.route.snapshot.params['id'];
-    if(!id){
-      id = this.assetData.id
+    if (!id && this.dialogData?.id) {
+      id = this.dialogData.id;
     }
-    this.getUserById(id)
-    this.getAssets()
-    // let assetNameChanged = false;
+    this.userId = Number(id);
 
-    // this.form.get(['newRow', 'assetName'])?.valueChanges.subscribe(() => {
-    //   assetNameChanged = true;
-    // });
-  
-    // Monitor value changes for the specified fields
-    // const fieldsToWatch = ['identifierType', 'identificationNumber', 'description'];
-    
-    // fieldsToWatch.forEach((field, index) => {
-    //   this.form.get(['newRow', field])?.valueChanges.subscribe((newValue) => {
-    //     if (newValue !== null && newValue !== '' && !assetNameChanged) {
-    //       this.isInvalidAsset = true; 
-    //     }
-    //     if (index === fieldsToWatch.length - 1) {
-    //       assetNameChanged = false;
-    //     }
-    //   });
-    // });
-  }
-
-  private companyAssetSub!: Subscription;
-  private readonly assetService = inject(AssetsService);
-  assets : Assets [] = [];
-  getAssets(){
-    this.companyAssetSub = this.assetService.getUserAssets().subscribe(asset => {
-      this.assets = asset;
-      this.filteredOptions = this.assets
-    })
-  }
-
-  patch(selectedAsset: Assets) {
-    this.form.patchValue({
-      newRow: {
-        assetId: selectedAsset.id,
-        assetName: selectedAsset.assetName,
-        serialNumber: selectedAsset.serialNumber
-      }
-    });
-  }
-
-  filterValue: string;
-  filteredOptions: Assets[] = [];
-  inputValue: string = '';
-  showAddOption: any = false;
-  search(event: Event) {
-    this.filterValue = (event.target as HTMLInputElement).value.trim().replace(/\s+/g, '').toLowerCase();
-    this.filteredOptions = this.assets.filter(option =>
-      option.assetName.replace(/\s+/g, '').toLowerCase().includes(this.filterValue)||
-      option.serialNumber.replace(/\s+/g, '').toLowerCase().includes(this.filterValue)
-    );
-    this.form.patchValue({
-      newRow: {
-        assetId: null,
-        serialNumber: ''
-      }
-    });
-  
-  // Show "Add new" option if no matches and input is not empty
-  this.showAddOption = this.filterValue && this.filteredOptions.length === 0;
-  }
-
-  addNewIfNoMatch() {
-    const dialogRef = this.dialog.open(AddUserAssetsComponent, {
-      data: { initialName: this.filterValue }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log(result);
-          this.form.patchValue({
-            newRow: {
-              assetId: result.id,
-              assetName: result.assetName,
-              serialNumber: result.serialNumber
-            }
-          });
-        this.getAssets()
-      }
-    });
-  }
-
-onOptionSelected(event: MatAutocompleteSelectedEvent) {
-  // Your existing selection logic
-  const selectedValue = event.option.value;
-  // ... handle the selection
-}
-  // search(event: Event) {
-  //   this.filterValue = (event.target as HTMLInputElement).value.trim().replace(/\s+/g, '').toLowerCase();
-  //   this.filteredOptions = this.assets.filter(option =>
-  //     option.assetName.replace(/\s+/g, '').toLowerCase().includes(this.filterValue)||
-  //     option.serialNumber.replace(/\s+/g, '').toLowerCase().includes(this.filterValue)
-  //   );
-  //   this.form.patchValue({
-  //     newRow: {
-  //       assetId: null,
-  //       identifierType: '',
-  //       identificationNumber: '',
-  //       description: ''
-  //     }
-  //   });
-  // }
-
-  // isInvalidAsset: boolean = false;
-  // validateInput(event: Event): void {
-  //   const value = (event.target as HTMLInputElement).value.trim().replace(/\s+/g, '').toLowerCase();
-  //   const match = this.filteredOptions.some(
-  //     option => option.assetName.toLowerCase() === value.toLowerCase()
-  //   );
-  //   this.isInvalidAsset = !match;
-  // }
-
-  private snackbar = inject(MatSnackBar);
-  updateStatus: boolean = false;
-  id: number;
-  userName: string;
-  private userSub!: Subscription;
-  userPosition: Subscription;
-  getUserById(id: number){
-    while(this.rows.length > 0) {
-      this.removeRow(0); // Always remove the first item until none remain
+    if (this.userId) {
+      this.getUserById(this.userId);
+      this.getAssets();
     }
-    this.id = id;
-    this.userSub = this.assetService.getUserAssetsByUser(id).subscribe(data =>{
-      if(data){
-        this.updateStatus = true;
-        for (let index = 0; index < data.length; index++) {
-          const element = data[index];
-          this.addRow(element)
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  getUserById(id: number): void {
+    this.isLoading = true;
+
+    // Load user basic profile
+    const userSub = this.userService.getUserById(id).subscribe({
+      next: (user) => {
+        this.user = user;
+        this.userName = user.name || 'Employee';
+        this.empNo = user.empNo || '';
+        this.userRole = user.userPosition?.designation?.designationName || user.role?.roleName || 'Employee';
+      },
+      error: (err) => console.error('Failed to load user info:', err)
+    });
+    this.subscriptions.push(userSub);
+
+    // Load currently assigned assets
+    const assetSub = this.assetService.getUserAssetsByUser(id).subscribe({
+      next: (data) => {
+        this.isLoading = false;
+        this.rows = [];
+        if (Array.isArray(data) && data.length > 0) {
+          this.updateStatus = true;
+          data.forEach(item => this.addRow(item));
+        } else {
+          this.updateStatus = false;
         }
-      }else{
-        this.userPosition = this.userService.getUserPositionDetailsByUser(id).subscribe(position=>{
-          if(position=== null || !position.department){
-            alert("Add department details...");
-            if(this.dialogRef) this.dialogRef.close();
-            else history.back();
-          }
-          this.userName = position.user.name
-          // this.generateCode(position?.department)
-        });
+        this.updateFilteredOptions();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Failed to load user assets:', err);
       }
+    });
+    this.subscriptions.push(assetSub);
+  }
+
+  getAssets(): void {
+    const sub = this.assetService.getUserAssets('', 1, 500).subscribe({
+      next: (res) => {
+        const list = Array.isArray(res) ? res : (res?.items || res?.data || []);
+        this.assets = list;
+        this.updateFilteredOptions();
+      },
+      error: (err) => console.error('Failed to load assets inventory:', err)
+    });
+    this.subscriptions.push(sub);
+  }
+
+  getAvailableAssets(): Assets[] {
+    const activeAllocatedIds = new Set(
+      this.rows
+        .filter(r => r.status !== false)
+        .map(r => Number(r.assetId))
+    );
+
+    return this.assets.filter(a => {
+      const assetId = Number(a.id);
+      // Exclude if already in this employee's active allocation list
+      if (activeAllocatedIds.has(assetId)) {
+        return false;
+      }
+      // Available only if not actively assigned
+      return !a.assignedStatus;
     });
   }
 
-  editRow(row: any, index: number): void {
+  updateFilteredOptions(): void {
+    const available = this.getAvailableAssets();
+
+    if (!this.filterValue) {
+      this.filteredOptions = [...available];
+      this.showAddOption = false;
+      return;
+    }
+
+    const term = this.filterValue.replace(/\s+/g, '');
+    this.filteredOptions = available.filter(option => {
+      const name = (option.assetName || '').replace(/\s+/g, '').toLowerCase();
+      const serial = (option.serialNumber || '').replace(/\s+/g, '').toLowerCase();
+      const num = (option.assetNumber || '').replace(/\s+/g, '').toLowerCase();
+      return name.includes(term) || serial.includes(term) || num.includes(term);
+    });
+
+    // Check if typed name exactly matches an available option
+    const exactMatch = available.some(
+      a => (a.assetName || '').trim().toLowerCase() === this.filterValue
+    );
+    this.showAddOption = !exactMatch;
+  }
+
+  search(event: Event): void {
+    const rawVal = (event.target as HTMLInputElement).value || '';
+    this.filterValue = rawVal.trim().toLowerCase();
+    this.updateFilteredOptions();
+  }
+
+  onOptionSelected(event: MatAutocompleteSelectedEvent): void {
+    const selected: Assets = event.option.value;
+    if (selected) {
+      this.patchAssetSelection(selected);
+    }
+  }
+
+  patchAssetSelection(asset: Assets): void {
+    this.form.get('newRow')?.patchValue({
+      assetId: Number(asset.id),
+      assetName: asset.assetName,
+      serialNumber: asset.serialNumber || ''
+    });
+  }
+
+  displayAssetFn(asset: any): string {
+    if (!asset) return '';
+    return typeof asset === 'string' ? asset : (asset.assetName || '');
+  }
+
+  addNewIfNoMatch(): void {
+    const dialogRef = this.dialog.open(AddUserAssetsComponent, {
+      width: '640px',
+      data: { initialName: this.filterValue || this.form.get(['newRow', 'assetName'])?.value }
+    });
+
+    const sub = dialogRef.afterClosed().subscribe((result) => {
+      if (result && typeof result === 'object') {
+        const newAsset = result.data || result;
+        if (newAsset && (newAsset.id || newAsset.assetName)) {
+          this.form.get('newRow')?.patchValue({
+            assetId: newAsset.id || null,
+            assetName: newAsset.assetName,
+            serialNumber: newAsset.serialNumber || ''
+          });
+          this.getAssets();
+          this.snackbar.open(`✨ Registered asset "${newAsset.assetName}" selected!`, 'Close', { duration: 3500 });
+        }
+      }
+    });
+    this.subscriptions.push(sub);
+  }
+
+  addRow(data?: any): void {
+    if (data) {
+      const isReturned = data.status === 'Returned' || !!data.returnDate;
+      const newRow: AllocatedAssetRow = {
+        id: data.id,
+        assetId: Number(data.userAssetId || data.userAsset?.id || 0),
+        assetName: data.userAsset?.assetName || data.assetName || 'Hardware Asset',
+        serialNumber: data.userAsset?.serialNumber || data.serialNumber || 'N/A',
+        assignedDate: data.assignedDate,
+        status: !isReturned,
+        returnDate: data.returnDate || null,
+        note: data.note || ''
+      };
+      this.rows.push(newRow);
+      return;
+    }
+
+    const newRowControl = this.form.get('newRow');
+    if (!newRowControl?.valid) {
+      newRowControl?.markAllAsTouched();
+      this.snackbar.open('Please select an asset and valid assignment date.', 'Close', { duration: 3000 });
+      return;
+    }
+
+    const val = newRowControl.value;
+    let assetId = val.assetId ? Number(val.assetId) : null;
+    let serialNumber = val.serialNumber;
+
+    // Check if typed name matches an existing asset in list if not selected via click
+    if (!assetId && val.assetName) {
+      const match = this.assets.find(
+        a => (a.assetName || '').trim().toLowerCase() === val.assetName.trim().toLowerCase()
+      );
+      if (match) {
+        assetId = Number(match.id);
+        serialNumber = match.serialNumber || serialNumber;
+      }
+    }
+
+    // Check if asset is already assigned to this employee in active state
+    if (assetId && this.rows.some(r => Number(r.assetId) === Number(assetId) && r.status !== false)) {
+      this.snackbar.open('⚠️ This asset is already actively allocated to this employee.', 'Close', { duration: 3500 });
+      return;
+    }
+
+    const assignedDateVal = val.assignedDate;
+    const formattedDate = assignedDateVal && typeof assignedDateVal.format === 'function'
+      ? assignedDateVal.format('YYYY-MM-DD')
+      : (assignedDateVal ? new Date(assignedDateVal).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+
+    const newRow: AllocatedAssetRow = {
+      assetId: assetId,
+      assetName: typeof val.assetName === 'string' ? val.assetName : (val.assetName?.assetName || 'Asset'),
+      serialNumber: serialNumber || 'N/A',
+      assignedDate: formattedDate,
+      status: true,
+      returnDate: null,
+      note: ''
+    };
+
+    this.rows.push(newRow);
+
+    // Reset row builder with today's date
+    newRowControl.reset({
+      assetId: null,
+      assetName: '',
+      serialNumber: '',
+      assignedDate: new Date(),
+      status: true
+    });
+    this.updateFilteredOptions();
+    this.showAddOption = false;
+  }
+
+  editRow(row: AllocatedAssetRow, index: number): void {
+    if (!row.status) return; // Cannot edit returned rows
+
     this.form.get('newRow')?.patchValue({
       assetId: row.assetId,
       assetName: row.assetName,
       serialNumber: row.serialNumber,
       assignedDate: row.assignedDate,
-      status: row.assignedStatus
+      status: row.status
     });
     this.rows.splice(index, 1);
+    this.updateFilteredOptions();
   }
 
-  submit: Subscription;
-  addRow(data?: any) {
-    // console.log(this.isInvalidAsset);
-    
-    // if(!this.isInvalidAsset){
-      let newRow;
-      if(data){
-         newRow = {
-          id: data.id,
-          assetId: data.userAssetId,
-          assetName: data.userAsset.assetName,
-          serialNumber: data.userAsset.serialNumber,
-          assignedDate: data.assignedDate,
-          status: data.userAsset.assignedStatus,
-          returnDate: data.returnDate,
-          note: data.note
-         }
+  removeRow(index: number): void {
+    this.rows.splice(index, 1);
+    this.updateFilteredOptions();
+  }
+
+  returnAsset(index: number): void {
+    const row = this.rows[index];
+    const dialogRef = this.dialog.open(AssetReturnComponent, {
+      width: '580px',
+      panelClass: 'modern-return-dialog',
+      autoFocus: false,
+      data: {
+        assetName: row.assetName,
+        serialNumber: row.serialNumber,
+        assignedDate: row.assignedDate,
+        userName: this.userName,
+        empNo: this.empNo
       }
-      else if (this.form.valid)  newRow = { ...this.form.value.newRow };
-      this.rows.push(newRow);
-      this.form.reset();
-    // }
-    // else{
-    //   const data = {
-    //     assetName: this.form.getRawValue().newRow.assetName,
-    //     serialNumber: this.form.getRawValue().newRow.serialNumber,
-    //     assignedDate: this.form.getRawValue().newRow.assignedDate
-    //   }
-    //   this.submit = this.assetService.addAssets(data).subscribe((res: any)=>{
-    //     this.snackbar.open("Asset added succesfully...","" ,{duration:3000})
-    //     let newRow;
-    //     if(data) { 
-    //       newRow = {
-    //         ...data, 
-    //         assetId: res.id
-    //       }
-    //     }
-    //     this.rows.push(newRow);
-    //     this.form.reset();
-    //     this.getAssets();
-    //   })
-    // }
-  }
+    });
 
-  assetSub!: Subscription;
-  saveAssets() {
-    const data = {
-      userId: this.route.snapshot.params['id']?this.route.snapshot.params['id']:this.assetData.id,
-      assets: this.rows
-    }
-    if(this.updateStatus){
-      this.assetSub = this.assetService.updateUserAssets(data, this.id).subscribe((res: any) => {
-        if(res.success){
-          this.getAssets();
-          this.dialogRef?.close();
-          this.snackbar.open("Assets updated successfully...","" ,{duration:3000})
-        }else{
-          alert(res.message)
-        }
-      })
-    }else{
-      this.assetSub = this.assetService.addAssetDetails(data).subscribe(() => {
-        this.getAssets();
-        this.updateStatus = true;
-        this.dialogRef?.close();
-        this.snackbar.open("Assets saved successfully...","" ,{duration:3000})
-      })
-    }
-    this.getUserById(this.id)
-  }
-
-  removeRow(index: number) {
-    this.rows.splice(index, 1); // Remove the row at the specified index
-  }
-
-  private userService = inject(UsersService);
-  public assetCode: string;
-  userAssetSub!: Subscription;
-  generateCode(department?: string) {
-    let prefix: string;
-    const currentYear = new Date().getFullYear();
-    const twoDigitYear = currentYear.toString().slice(-2);
-
-    // this.userAssetSub = this.userService.getUserAssets(department).subscribe((res) => {
-    //   const users = res;
-
-    //   if (users.length > 0) {
-    //     const maxId = users.reduce((prevMax, inv) => {
-    //       const empNoParts = inv.assetCode.split('-'); // Split by '-'
-
-    //       const idNumber = parseInt(empNoParts[empNoParts.length - 1], 10);
-
-    //       prefix = this.extractLetters(inv.assetCode); // Get the prefix
-
-    //       if (!isNaN(idNumber)) {
-    //         // Compare and return the maximum ID
-    //         return idNumber > prevMax ? idNumber : prevMax;
-    //       } else {
-    //         return prevMax;
-    //       }
-    //     }, 0);
-
-    //     const nextId = maxId + 1;
-
-    //     const paddedId = `${prefix}-${twoDigitYear}-${department}-${nextId.toString().padStart(3, "0")}`;
-
-    //     const ivNum = paddedId;
-    //     this.assetCode = ivNum;
-    //     this.form.get('assetCode')?.setValue(ivNum);
-    //   } else {
-    //     const nextId = 0o1;
-
-    //     const departmentAbbreviations: { [key: string]: string } = {
-    //       Finance: "FIN",
-    //       Sales: "SAL",
-    //       Marketing: "MKT",
-    //       Designing: "DES",
-    //       Logistics: "LOG",
-    //       Operation: "OPS",
-    //       HR: "HR",
-    //       IT: "IT"
-    //   };
-
-    //   const departmentAbbr = department 
-    //   ? departmentAbbreviations[department] || department 
-    //   : "GEN";
-
-    //     prefix = `OAC-${twoDigitYear}-${departmentAbbr}-`;
-        
-    //     const paddedId = `${prefix}${nextId.toString().padStart(3, "0")}`;
-    //     const ivNum = paddedId;
-
-    //     this.form.get('assetCode')?.setValue(ivNum);
-    //     this.assetCode = ivNum;
-        
-    //   }
-    // });
-  }
-
-  extractLetters(input: string): string {
-    const match = input.match(/^[A-Za-z]+/);
-
-    return match ? match[0] : '';
-  }
-
-  private dialog = inject(MatDialog);
-  returnAsset(i: number): void {
-    const dialogRef = this.dialog.open(AssetReturnComponent, {});
-  
-    dialogRef.afterClosed().subscribe((res) => {
-      if (res.confirmed) {
-        const data = {
+    const sub = dialogRef.afterClosed().subscribe((res) => {
+      if (res?.confirmed && res.data) {
+        const payload = {
           returnDate: res.data.returnDate,
           note: res.data.note
         };
-        
-        this.assetSub = this.assetService.returnUserAssets(data, this.rows[i].id).subscribe(() => {
-          this.getUserById(this.id)
-          this.getAssets()
-          this.snackbar.open("Assets updated successfully...","" ,{duration:3000})
-        })
+
+        if (row.id) {
+          this.assetService.returnUserAssets(payload, row.id).subscribe({
+            next: () => {
+              this.snackbar.open('Equipment return recorded successfully.', 'Close', { duration: 3000 });
+              this.getUserById(this.userId);
+              this.getAssets();
+            },
+            error: (err) => {
+              console.error('Error recording return:', err);
+              this.snackbar.open('Failed to record asset return.', 'Close', { duration: 3000 });
+            }
+          });
+        } else {
+          // Unsaved row locally marked returned
+          row.status = false;
+          row.returnDate = res.data.returnDate;
+          row.note = res.data.note;
+          this.updateFilteredOptions();
+          this.snackbar.open('Marked as returned in roster.', 'Close', { duration: 2500 });
+        }
       }
     });
+    this.subscriptions.push(sub);
   }
-  
 
+  saveAssets(): void {
+    if (this.isSubmitting) return;
+
+    this.isSubmitting = true;
+    const payload = {
+      userId: this.userId,
+      assets: this.rows
+    };
+
+    const request$ = this.updateStatus
+      ? this.assetService.updateUserAssets(payload, this.userId)
+      : this.assetService.addAssetDetails(payload);
+
+    const sub = request$.subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.snackbar.open('🎉 Asset allocations saved successfully!', 'Close', { duration: 4000 });
+        this.getAssets();
+        this.updateStatus = true;
+        if (this.dialogRef) {
+          this.dialogRef.close(true);
+        } else {
+          this.getUserById(this.userId);
+        }
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        console.error('Failed to save assets:', err);
+        const msg = err.error?.message || err.message || 'Failed to save assets';
+        this.snackbar.open(`Error: ${msg}`, 'Close', { duration: 4000 });
+      }
+    });
+    this.subscriptions.push(sub);
+  }
+
+  getActiveCount(): number {
+    return this.rows.filter(r => r.status !== false).length;
+  }
+
+  getReturnedCount(): number {
+    return this.rows.filter(r => r.status === false).length;
+  }
+
+  goBack(): void {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      this.router.navigate(['/login/users']);
+    }
+  }
 }

@@ -4,7 +4,7 @@ import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angula
 import { Subscription } from 'rxjs';
 import { PayrollService } from '@services/payroll.service';
 import { Payroll } from '../../../common/interfaces/payRoll/payroll';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AdvanceSalary } from '../../../common/interfaces/payRoll/advanceSalary';
 import * as XLSX from 'xlsx'; 
@@ -16,6 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import * as ExcelJS from 'exceljs';
 import saveAs from 'file-saver';
 import { NewLeaveService } from '@services/new-leave.service';
@@ -23,8 +24,16 @@ import { NewLeaveService } from '@services/new-leave.service';
 @Component({
   selector: 'app-monthend',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, MatButtonModule, MatProgressSpinnerModule, MatIconModule, MatFormFieldModule,
-    MatSelectModule
+  imports: [
+    ReactiveFormsModule,
+    FormsModule,
+    CommonModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatTooltipModule
   ],
   templateUrl: './monthend.component.html',
   styleUrl: './monthend.component.scss'
@@ -565,13 +574,104 @@ export class MonthendComponent implements OnInit, OnDestroy{
     this.isPreviousMonth = (selectedMonth < currentMonth);
     this.month = this.months[selectedMonth].name;
     this.daysInMonth = new Date(this.currentYear, selectedMonth+1, 0).getDate();
-    this.clearAllRows()
+    this.clearAllRows();
     this.isLocked = false;
     this.updateStatus = false;
     this.getLeaveDays();
-    this.getPayroll()
+    this.getPayroll();
   }
-  
+
+  searchQuery: string = '';
+
+  // KPI & Metric Helpers
+  get totalHeadcount(): number {
+    return this.doc()?.controls?.length || 0;
+  }
+
+  get totalGrossPayout(): number {
+    if (!this.doc()?.controls) return 0;
+    return this.doc().controls.reduce((sum, ctrl) => {
+      const basic = Number(ctrl.get('basic')?.value || 0);
+      const hra = Number(ctrl.get('hra')?.value || 0);
+      const ca = Number(ctrl.get('conveyanceAllowance')?.value || 0);
+      const lta = Number(ctrl.get('lta')?.value || 0);
+      const sa = Number(ctrl.get('specialAllowance')?.value || 0);
+      const ot = Number(ctrl.get('ot')?.value || 0);
+      const inc = Number(ctrl.get('incentive')?.value || 0);
+      const payout = Number(ctrl.get('payOut')?.value || 0);
+      const encash = Number(ctrl.get('leaveEncashmentAmount')?.value || 0);
+      return sum + basic + hra + ca + lta + sa + ot + inc + payout + encash;
+    }, 0);
+  }
+
+  get totalDeductions(): number {
+    if (!this.doc()?.controls) return 0;
+    return this.doc().controls.reduce((sum, ctrl) => {
+      const pf = Number(ctrl.get('pfDeduction')?.value || 0);
+      const esi = Number(ctrl.get('esi')?.value || 0);
+      const pt = Number(ctrl.get('incentiveDeduction')?.value || 0);
+      const tds = Number(ctrl.get('tds')?.value || 0);
+      const adv = Number(ctrl.get('advanceAmount')?.value || 0);
+      const lop = Number(ctrl.get('leaveDeduction')?.value || 0);
+      return sum + pf + esi + pt + tds + adv + lop;
+    }, 0);
+  }
+
+  get totalNetPayout(): number {
+    if (!this.doc()?.controls) return 0;
+    return this.doc().controls.reduce((sum, ctrl) => {
+      return sum + Number(ctrl.get('toPay')?.value || 0);
+    }, 0);
+  }
+
+  getColumnTotal(field: string): number {
+    if (!this.doc()?.controls) return 0;
+    return this.doc().controls.reduce((sum, ctrl) => {
+      const val = ctrl.get(field)?.value;
+      return sum + (Number(val) || 0);
+    }, 0);
+  }
+
+  isRowMatching(payrollCtrl: any, query: string): boolean {
+    if (!query || !query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    const name = (payrollCtrl.get('userName')?.value || '').toLowerCase();
+    const empId = (payrollCtrl.get('employeeId')?.value || '').toLowerCase();
+    return name.includes(q) || empId.includes(q);
+  }
+
+  get matchingCount(): number {
+    if (!this.searchQuery || !this.searchQuery.trim()) return this.totalHeadcount;
+    return this.doc().controls.filter(ctrl => this.isRowMatching(ctrl, this.searchQuery)).length;
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'EMP';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+
+  getStatusBadge(): { label: string; class: string; icon: string } {
+    if (this.isLocked) {
+      return { label: 'Payroll Completed & Locked', class: 'status-locked', icon: 'lock' };
+    }
+    if (this.isApproved) {
+      return { label: 'Approved & Ready to Disburse', class: 'status-approved', icon: 'check_circle' };
+    }
+    if (this.approval) {
+      return { label: 'Verification In Progress', class: 'status-pending', icon: 'hourglass_top' };
+    }
+    if (this.isRejected) {
+      return { label: 'Rejected - Revision Required', class: 'status-rejected', icon: 'cancel' };
+    }
+    if (this.updateStatus) {
+      return { label: 'Saved Draft (Edit Mode)', class: 'status-draft', icon: 'edit_note' };
+    }
+    return { label: 'Draft Calculation', class: 'status-calculating', icon: 'pending' };
+  }
 
   ngOnDestroy(): void {
     this.advanceSUb?.unsubscribe();

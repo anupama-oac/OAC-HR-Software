@@ -28,7 +28,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { User } from '../../../common/interfaces/users/user';
 import { UserNomineeComponent } from "../user-nominee/user-nominee.component";
+import { UserSalaryComponent } from "../user-salary/user-salary.component";
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard';
+import { environment } from '../../../../environments/environment';
 
 
 @Component({
@@ -37,18 +44,21 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   imports: [ReactiveFormsModule, FlexLayoutModule, MatTabsModule, MatFormFieldModule, MatInputModule, MatIconModule,
     MatNativeDateModule, MatRadioModule, MatDialogModule, MatButtonModule, MatToolbarModule, MatProgressSpinnerModule,
     PersonalDetailsComponent, UserPositionComponent, StatuatoryInfoComponent, UserAccountComponent, UserDocumentsComponent, MatCardModule,
-    MatOptionModule, MatSelectModule, CommonModule, MatAutocompleteModule, UserNomineeComponent, FormsModule],
+    MatOptionModule, MatSelectModule, CommonModule, MatAutocompleteModule, UserNomineeComponent, UserSalaryComponent, FormsModule,
+    MatTooltipModule, MatDividerModule, ClipboardModule],
   templateUrl: './user-dialog.component.html',
   styleUrl: './user-dialog.component.scss'
 })
 export class UserDialogComponent implements OnInit, OnDestroy {
-  url = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/`;
+  s3Url = environment.s3Url || `https://${environment.AWS_BUCKET_NAME || 'aerohr-uploads'}.s3.amazonaws.com/`;
+  url = this.s3Url;
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
   private fb = inject(FormBuilder)
   private userService = inject(UsersService);
   private route = inject(ActivatedRoute);
-  private teamService = inject(TeamService)
+  private teamService = inject(TeamService);
+  private clipboard = inject(Clipboard);
 
   public passwordHide: boolean = true;
   editStatus: boolean = false;
@@ -114,8 +124,9 @@ export class UserDialogComponent implements OnInit, OnDestroy {
 
   patchUser(user: User){
     this.invNo = user.empNo
+    this.dataToPass = { id: user.id || this.id, empNo: user.empNo, name: user.name, updateStatus: this.editStatus };
     if(user.url != null && user.url != '' && user.url != 'undefined'){
-      this.imageUrl = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/${user.url}`
+      this.imageUrl = user.url.startsWith('http') ? user.url : `${this.s3Url}${user.url}`;
     }
     this.form.patchValue({
       empNo: user.empNo,
@@ -154,12 +165,12 @@ export class UserDialogComponent implements OnInit, OnDestroy {
       }
       this.uploadSub = this.userService.uploadImage(this.file).subscribe({
         next: (invoice) => {
-
-          this.imageUrl = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/${ invoice.fileUrl}`;
+          const fileKey = invoice.fileUrl || invoice.key;
+          this.imageUrl = invoice.url || (fileKey && fileKey.startsWith('http') ? fileKey : `${this.s3Url}${fileKey}`);
           if (this.imageUrl) {
             this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.imageUrl);
           }
-          this.form.get('url')?.setValue(invoice.fileUrl);
+          this.form.get('url')?.setValue(fileKey);
           this.uploadComplete = true; // Set to true when upload is complete
         },
         error: () => {
@@ -189,71 +200,147 @@ export class UserDialogComponent implements OnInit, OnDestroy {
   isAccountFormSubmitted: boolean = false;
   isQualFormSubmitted: boolean = false;
   isNomineeFormSubmitted: boolean = false;
+  isSalaryFormSubmitted: boolean = false;
   submit!: Subscription;
   onSubmit(){
     this.isLoading = true;
     if(this.editStatus){
-      this.submit = this.userService.updateUser(this.id, this.form.getRawValue()).subscribe(()=>{
-        this.snackBar.open("User updated succesfully...","" ,{duration:3000})
-        this.isLoading = false;
-      })
+      this.submit = this.userService.updateUser(this.id, this.form.getRawValue()).subscribe({
+        next: () => {
+          this.snackBar.open("User updated successfully...", "", { duration: 3000 });
+          this.isLoading = false;
+        },
+        error: (err) => {
+          this.isLoading = false;
+          const msg = err?.error?.message || err?.error || err?.message || "Failed to update user";
+          this.snackBar.open(typeof msg === 'string' ? msg : "Failed to update user", "", { duration: 4000 });
+        }
+      });
     }else{
-      this.submit = this.userService.addUser(this.form.getRawValue()).subscribe((res) => {        
-        this.editStatus = true;
-        this.id = res.id;
-        this.userName = res.name
-        this.dataToPass = { id: res.id, empNo: this.invNo, name: res.name, updateStatus: this.editStatus };
-        // this.selectedTabIndex = 1;
-        // if (this.personalDetailsComponent && this.selectedTabIndex === 1) {
-        //   this.personalDetailsComponent.ngOnInit();
-        // }
-        this.isFormSubmitted = true;
-        this.formSubmitted = false;
-        this.snackBar.open("User added succesfully...","" ,{duration:3000})
-        this.isLoading = false;
-      })
+      this.submit = this.userService.addUser(this.form.getRawValue()).subscribe({
+        next: (res) => {        
+          this.isLoading = false;
+          if (typeof res === 'string' && res.includes('already exists')) {
+            this.snackBar.open(res, "", { duration: 4000 });
+            return;
+          }
+          this.editStatus = true;
+          this.id = res?.id;
+          this.userName = res?.name;
+          this.dataToPass = { id: res?.id, empNo: this.invNo, name: res?.name, updateStatus: this.editStatus };
+          this.isFormSubmitted = true;
+          this.formSubmitted = false;
+          this.snackBar.open("User added successfully...", "", { duration: 3000 });
+          this.selectedTabIndex = 1;
+          this.scrollToTop();
+          setTimeout(() => this.initCurrentTab(), 100);
+        },
+        error: (err) => {
+          this.isLoading = false;
+          const msg = err?.error?.message || err?.error || err?.message || "Failed to add user";
+          this.snackBar.open(typeof msg === 'string' ? msg : "Failed to add user", "", { duration: 4000 });
+        }
+      });
     }
+  }
+
+  scrollToTop(): void {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    const performScroll = () => {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+
+        const mainSidenav = document.getElementById('main');
+        if (mainSidenav) {
+          mainSidenav.scrollTop = 0;
+        }
+
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+          mainContent.scrollTop = 0;
+        }
+
+        const scrollableContainers = document.querySelectorAll(
+          'mat-sidenav-content, .mat-drawer-content, .sidenav-content-inner, .mat-mdc-tab-body-content, .mat-tab-body-content'
+        );
+        scrollableContainers.forEach((el: any) => {
+          if (el && typeof el.scrollTop === 'number') {
+            el.scrollTop = 0;
+          }
+        });
+      } catch {
+        // Ignore scroll errors
+      }
+    };
+
+    performScroll();
+    setTimeout(performScroll, 50);
+    setTimeout(performScroll, 150);
+    setTimeout(performScroll, 260);
   }
 
   personalSubmit(event: any){
     this.isWorkFormSubmitted = event.isFormSubmitted
     this.isFormSubmitted = false;
     this.selectedTabIndex = 2;
+    this.scrollToTop();
     if (this.userPositionComponent && this.selectedTabIndex === 2) {
-      this.userPositionComponent.triggerNew();
+      this.userPositionComponent.triggerNew(this.dataToPass);
     }
   }
 
   workSubmit(event: any){
-    this.isContactsFormSubmitted = event.isFormSubmitted
+    this.isContactsFormSubmitted = event.isFormSubmitted;
     this.isWorkFormSubmitted = false;
-    this.selectedTabIndex = 3
+    this.selectedTabIndex = 3;
+    this.scrollToTop();
+    if (this.statuatoryInfoComponent && this.selectedTabIndex === 3) {
+      this.statuatoryInfoComponent.triggerNew(this.dataToPass);
+    }
   }
 
   contactSubmit(event: any){
     this.isSocialFormSubmitted = event.isFormSubmitted
     this.isContactsFormSubmitted = false;
     this.selectedTabIndex = 4
+    this.scrollToTop();
     if (this.userAccountComponent && this.selectedTabIndex === 4) {
-      this.userAccountComponent.ngOnInit();
+      this.userAccountComponent.triggerNew(this.dataToPass);
     }
   }
 
   accountSubmit(event: any){
-    this.isNomineeFormSubmitted = event.isFormSubmitted
+    this.isNomineeFormSubmitted = event.isFormSubmitted;
     this.isSocialFormSubmitted = false;
-    this.selectedTabIndex = 5
-    // if (this.userNomineeComponent && this.selectedTabIndex === 5) {
-    //   this.userNomineeComponent.ngOnInit();
-    // }
+    this.selectedTabIndex = 5;
+    this.scrollToTop();
+    if (this.userNomineeComponent && this.selectedTabIndex === 5) {
+      this.userNomineeComponent.triggerNew(this.dataToPass);
+    }
   }
 
   nomineeSubmit(event: any){
-    this.isAccountFormSubmitted = event.isFormSubmitted
+    this.isSalaryFormSubmitted = event.isFormSubmitted;
     this.isNomineeFormSubmitted = false;
-    this.selectedTabIndex = 6
-    if (this.userDocumentsComponent && this.selectedTabIndex === 6) {
-      this.userDocumentsComponent.trigger();
+    this.selectedTabIndex = 6;
+    this.scrollToTop();
+    if (this.userSalaryComponent && this.selectedTabIndex === 6) {
+      this.userSalaryComponent.triggerNew(this.dataToPass);
+    }
+  }
+
+  salarySubmit(event: any){
+    this.isAccountFormSubmitted = event.isFormSubmitted;
+    this.isSalaryFormSubmitted = false;
+    this.selectedTabIndex = 7;
+    this.scrollToTop();
+    if (this.userDocumentsComponent && this.selectedTabIndex === 7) {
+      this.userDocumentsComponent.triggerNew(this.dataToPass);
     }
   }
 
@@ -302,6 +389,15 @@ export class UserDialogComponent implements OnInit, OnDestroy {
     this.isEditingInvNo = false;
   }
 
+  cancelEditingInvNo() {
+    this.invNo = this.originalInvNo;
+    this.isEditingInvNo = false;
+  }
+
+  goBack() {
+    window.history.back();
+  }
+
   private destroy$ = new Subject<void>();
   private inputChange$ = new Subject<void>();
   debounceTime = 2000;
@@ -336,72 +432,73 @@ export class UserDialogComponent implements OnInit, OnDestroy {
   desiredPrefix: any = 'OAC';
   generateEmployeeNumber() {
     const currentYear = new Date().getFullYear();
+    const defaultPrefix = (this.desiredPrefix || 'OAC').toUpperCase();
 
-    this.userSub = this.userService.getUser().subscribe((res) => {
-      const users = res;
-      // Find all users with standard format (AAA-YYYY-NNN)
-      const standardFormatUsers = users.filter(user => 
-        typeof user.empNo === 'string' && 
-        user.empNo.match(/^[A-Za-z]{3}-\d{4}-\d{3}$/)
-      ); // Default prefix
+    // Set immediate default ID so user never sees "Generating..." indefinitely
+    const initialFallbackId = `${defaultPrefix}-${currentYear}-001`;
+    this.invNo = initialFallbackId;
+    this.form.get('empNo')?.setValue(initialFallbackId);
 
-      if (standardFormatUsers.length > 0) {
-        // Extract prefixes and find the most common one
-        const prefixCounts: any = {};
-        standardFormatUsers.forEach(user => {
-          const prefix = user.empNo.split('-')[0];
-          prefixCounts[prefix] = (prefixCounts[prefix] || 0) + 1;
-        });
-
-        // Get the most frequent prefix
-        this.desiredPrefix = Object.keys(prefixCounts).reduce((a, b) => 
-          prefixCounts[a] > prefixCounts[b] ? a : b
+    // Fetch users (request higher pageSize to find true latest employee number)
+    this.userSub = this.userService.getUser('', 1, 1000).subscribe({
+      next: (res: any) => {
+        const users: User[] = Array.isArray(res) ? res : (res?.items || []);
+        
+        // Find all users with standard format (e.g. OAC-2026-001)
+        const standardFormatUsers = users.filter(user => 
+          typeof user?.empNo === 'string' && 
+          user.empNo.match(/^[A-Za-z]{2,5}-\d{4}-\d{3,4}$/)
         );
-      } else {
-        // No standard format users found, prompt for prefix
-        this.desiredPrefix = prompt('No employees with standard format found. Enter employee number prefix (3 letters):', 'OAC');
-        
-        // Validate the prefix input
-        while (this.desiredPrefix && !/^[A-Za-z]{3}$/.test(this.desiredPrefix)) {
-          this.desiredPrefix = prompt('Invalid prefix. Please enter exactly 3 letters:', 'OAC');
+
+        let prefix = defaultPrefix;
+
+        if (standardFormatUsers.length > 0) {
+          // Extract prefixes and find the most common one
+          const prefixCounts: Record<string, number> = {};
+          standardFormatUsers.forEach(user => {
+            const p = user.empNo.split('-')[0].toUpperCase();
+            prefixCounts[p] = (prefixCounts[p] || 0) + 1;
+          });
+
+          prefix = Object.keys(prefixCounts).reduce((a, b) => 
+            prefixCounts[a] > prefixCounts[b] ? a : b
+          );
         }
-        
-        if (!this.desiredPrefix) {
-          console.warn('No valid prefix provided');
-          return;
+
+        this.desiredPrefix = prefix;
+
+        // Filter users with the determined prefix
+        const prefixedUsers = users.filter(user => 
+          typeof user?.empNo === 'string' && 
+          user.empNo.toUpperCase().startsWith(prefix)
+        );
+
+        let nextId = 1;
+        if (prefixedUsers.length > 0) {
+          // Find the maximum sequence number among prefixed users
+          const maxId = prefixedUsers.reduce((prevMax, user) => {
+            const empNoParts = user.empNo.split('-');
+            if (empNoParts.length >= 2) {
+              const lastPart = empNoParts[empNoParts.length - 1];
+              const idNumber = parseInt(lastPart, 10);
+              return !isNaN(idNumber) ? Math.max(prevMax, idNumber) : prevMax;
+            }
+            return prevMax;
+          }, 0);
+          nextId = maxId + 1;
         }
+
+        // Generate the new employee number
+        const paddedId = `${prefix}-${currentYear}-${nextId.toString().padStart(3, "0")}`;
         
-        this.desiredPrefix = this.desiredPrefix.toUpperCase();
+        this.invNo = paddedId;
+        this.form.get('empNo')?.setValue(paddedId);
+      },
+      error: (err) => {
+        console.error('Error fetching users for employee number generation:', err);
+        this.invNo = initialFallbackId;
+        this.form.get('empNo')?.setValue(initialFallbackId);
       }
-
-      // Filter users with the determined prefix
-      const prefixedUsers = users.filter(user => 
-        typeof user.empNo === 'string' && 
-        user.empNo.startsWith(this.desiredPrefix)
-      );
-
-      let nextId;
-      if (prefixedUsers.length > 0) {
-        // Find the maximum ID among prefixed users
-        const maxId = prefixedUsers.reduce((prevMax, user) => {
-          const empNoParts = user.empNo.split('-');
-          if (empNoParts.length === 3) {
-            const idNumber = parseInt(empNoParts[2], 10);
-            return !isNaN(idNumber) ? Math.max(prevMax, idNumber) : prevMax;
-          }
-          return prevMax;
-        }, 0);
-        nextId = maxId + 1;
-      } else {
-        // No users with this prefix, start with 001
-        nextId = 1;
-      }
-
-      // Generate the new employee number
-      const paddedId = `${this.desiredPrefix}-${currentYear}-${nextId.toString().padStart(3, "0")}`;
-      
-      this.invNo = paddedId;
-      this.form.get('empNo')?.setValue(paddedId);
     });
   }
 
@@ -417,50 +514,54 @@ export class UserDialogComponent implements OnInit, OnDestroy {
   @ViewChild(UserAccountComponent) userAccountComponent!: UserAccountComponent;
   @ViewChild(UserDocumentsComponent) userDocumentsComponent!: UserDocumentsComponent;
   @ViewChild(UserNomineeComponent) userNomineeComponent!: UserNomineeComponent;
+  @ViewChild(UserSalaryComponent) userSalaryComponent!: UserSalaryComponent;
   // @ViewChild(UserQualificationComponent) userQualificationComponent!: UserQualificationComponent;
+
+  onTabSelected(event: any) {
+    this.selectedTabIndex = event.index;
+    if (!this.dataToPass) {
+      this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName };
+    }
+    this.scrollToTop();
+    setTimeout(() => this.initCurrentTab(), 0);
+  }
+
+  initCurrentTab() {
+    if (!this.dataToPass && this.id) {
+      this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName, empNo: this.invNo };
+    }
+    if (this.selectedTabIndex === 1 && this.personalDetailsComponent) {
+      this.isFormSubmitted = true;
+      this.personalDetailsComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 2 && this.userPositionComponent) {
+      this.isWorkFormSubmitted = true;
+      this.userPositionComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 3 && this.statuatoryInfoComponent) {
+      this.isContactsFormSubmitted = true;
+      this.statuatoryInfoComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 4 && this.userAccountComponent) {
+      this.isSocialFormSubmitted = true;
+      this.userAccountComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 5 && this.userNomineeComponent) {
+      this.isNomineeFormSubmitted = true;
+      this.userNomineeComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 6 && this.userSalaryComponent) {
+      this.isSalaryFormSubmitted = true;
+      this.userSalaryComponent.triggerNew(this.dataToPass);
+    } else if (this.selectedTabIndex === 7 && this.userDocumentsComponent) {
+      this.isAccountFormSubmitted = true;
+      this.userDocumentsComponent.triggerNew(this.dataToPass);
+    }
+  }
+
   goToNextTab() {
-    if (this.selectedTabIndex < 6) {
-      if( this.dataToPass === undefined){
-        this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName }
+    if (this.selectedTabIndex < 7) {
+      if (this.dataToPass === undefined) {
+        this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName, empNo: this.invNo };
       }
       this.selectedTabIndex++;
-
-      if (this.personalDetailsComponent && this.selectedTabIndex === 1) {
-        this.isFormSubmitted = true;
-        this.personalDetailsComponent.triggerNew(this.dataToPass);
-      }
-
-      else if (this.userPositionComponent && this.selectedTabIndex === 2) {
-        this.isFormSubmitted = false;
-        this.isWorkFormSubmitted = true;
-        this.userPositionComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.statuatoryInfoComponent && this.selectedTabIndex === 3) {
-        this.isWorkFormSubmitted = false;
-        this.isContactsFormSubmitted = true;
-        this.statuatoryInfoComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.userAccountComponent && this.selectedTabIndex === 4) {
-        this.isContactsFormSubmitted = false;
-        this.isSocialFormSubmitted = true;
-        this.userAccountComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.userNomineeComponent && this.selectedTabIndex === 5) {
-        this.isSocialFormSubmitted = false;
-        this.isNomineeFormSubmitted = true;
-        this.userNomineeComponent.triggerNew(this.dataToPass);
-      }
-      // else if (this.userQualificationComponent && this.selectedTabIndex === 5) {
-      //   this.isSocialFormSubmitted = false;
-      //   this.isQualFormSubmitted = true;
-      //   this.userQualificationComponent.triggerNew(this.dataToPass);
-      // }
-      
-      else if (this.userDocumentsComponent && this.selectedTabIndex === 6) {
-        this.isNomineeFormSubmitted = false;
-        this.isAccountFormSubmitted = true;
-        this.userDocumentsComponent.triggerNew(this.dataToPass);
-      }
+      this.scrollToTop();
+      setTimeout(() => this.initCurrentTab(), 0);
     }
   }
 
@@ -474,49 +575,15 @@ export class UserDialogComponent implements OnInit, OnDestroy {
 
   goToPreviousTab(): void {
     if (this.selectedTabIndex > 0) {
-      if( this.dataToPass === undefined){
-        this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName }
+      if (this.dataToPass === undefined) {
+        this.dataToPass = { updateStatus: this.editStatus, id: this.id, name: this.userName, empNo: this.invNo };
       }
-      this.selectedTabIndex --;
-      if(this.selectedTabIndex === 0){
-          this.triggerNew(this.dataToPass)
-      }
-
-      if (this.personalDetailsComponent && this.selectedTabIndex === 1) {
-        this.isFormSubmitted = true;
-        this.personalDetailsComponent.triggerNew(this.dataToPass);
-      }
-      
-      else if (this.userPositionComponent && this.selectedTabIndex === 2) {
-        this.isFormSubmitted = false;
-        this.isWorkFormSubmitted = true;
-        this.userPositionComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.statuatoryInfoComponent && this.selectedTabIndex === 3) {
-        this.isWorkFormSubmitted = false;
-        this.isContactsFormSubmitted = true;
-        this.statuatoryInfoComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.userAccountComponent && this.selectedTabIndex === 4) {
-        this.isContactsFormSubmitted = false;
-        this.isSocialFormSubmitted = true;
-        this.userAccountComponent.triggerNew(this.dataToPass);
-      }
-      else if (this.userNomineeComponent && this.selectedTabIndex === 5) {
-        this.isSocialFormSubmitted = false;
-        this.isNomineeFormSubmitted = true;
-        this.userNomineeComponent.triggerNew(this.dataToPass);
-      }
-      // else if (this.userQualificationComponent && this.selectedTabIndex === 5) {
-      //   this.isSocialFormSubmitted = false;
-      //   this.isQualFormSubmitted = true;
-      //   this.userQualificationComponent.triggerNew(this.dataToPass);
-      // }
-      
-      else if (this.userDocumentsComponent && this.selectedTabIndex === 6) {
-        this.isQualFormSubmitted = false;
-        this.isAccountFormSubmitted = true;
-        this.userDocumentsComponent.triggerNew(this.dataToPass);
+      this.selectedTabIndex--;
+      this.scrollToTop();
+      if (this.selectedTabIndex === 0) {
+        this.triggerNew(this.dataToPass);
+      } else {
+        setTimeout(() => this.initCurrentTab(), 0);
       }
     }
   }
@@ -532,20 +599,90 @@ export class UserDialogComponent implements OnInit, OnDestroy {
     // this.form.get('confirmPassword')?.setValue(password);  // Clear confirm password
   }
 
+  isCopied: boolean = false;
   copyEmpNoAndPassword() {
-    const empNo = this.form.get('empNo')?.value;
-    const password = this.form.get('password')?.value;
+    let empNo = this.form.get('empNo')?.value || this.invNo;
+    let password = this.form.get('password')?.value;
 
-    if (empNo && password) {
-      const textToCopy = `Emp ID: ${empNo}\nPassword: ${password}`;
+    // If password hasn't been generated or entered, generate one automatically
+    if (!password) {
+      this.generateRandomPassword();
+      password = this.form.get('password')?.value;
+    }
+
+    // Keep form empNo in sync with invNo if needed
+    if (!empNo && this.invNo) {
+      empNo = this.invNo;
+      this.form.get('empNo')?.setValue(this.invNo);
+    }
+
+    const officialMail = this.form.get('officialMailId')?.value;
+    const personalMail = this.form.get('email')?.value;
+    const email = officialMail || personalMail || '';
+    const name = this.form.get('name')?.value || this.userName || '';
+
+    const lines: string[] = [];
+    if (name) lines.push(`Name: ${name}`);
+    if (empNo) lines.push(`Emp ID: ${empNo}`);
+    if (email) lines.push(`Email: ${email}`);
+    if (password) lines.push(`Password: ${password}`);
+
+    const textToCopy = lines.length > 0 ? lines.join('\n') : `Password: ${password}`;
+
+    let success = false;
+    try {
+      success = this.clipboard.copy(textToCopy);
+    } catch {
+      success = false;
+    }
+
+    if (!success && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(textToCopy).then(
         () => {
-          this.snackBar.open('Email and password copied to clipboard',"" ,{duration:3000});
+          this.handleCopySuccess();
         },
-        (err) => {
-          console.error('Could not copy text: ', err);
+        () => {
+          this.fallbackCopyText(textToCopy);
         }
       );
+      return;
+    }
+
+    if (success) {
+      this.handleCopySuccess();
+    } else {
+      this.fallbackCopyText(textToCopy);
+    }
+  }
+
+  private handleCopySuccess() {
+    this.isCopied = true;
+    setTimeout(() => {
+      this.isCopied = false;
+    }, 2500);
+    this.snackBar.open('Credentials copied to clipboard!', '', { duration: 3000 });
+  }
+
+  private fallbackCopyText(text: string) {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        this.handleCopySuccess();
+      } else {
+        this.snackBar.open('Unable to copy automatically. Please copy manually: ' + text, '', { duration: 5000 });
+      }
+    } catch {
+      this.snackBar.open('Unable to copy credentials. Please copy manually.', '', { duration: 3000 });
     }
   }
 
@@ -570,5 +707,3 @@ export class UserDialogComponent implements OnInit, OnDestroy {
       this.isLoading = isLoading;
   }
 }
-
-

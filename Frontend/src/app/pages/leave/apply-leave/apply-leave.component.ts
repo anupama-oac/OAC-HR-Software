@@ -17,14 +17,14 @@ import { CommonModule, DatePipe, formatDate } from '@angular/common';
 import { SafePipe } from "../../../common/pipes/safe.pipe";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Leave } from '../../../common/interfaces/leaves/leave';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NewLeaveService } from '@services/new-leave.service';
 import { provideMomentDateAdapter } from '@angular/material-moment-adapter';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RoleService } from '@services/role.service';
 import { Role } from '../../../common/interfaces/users/role';
-import { UserEmailComponent } from '../../users/user-email/user-email.component';
 import { MatDialog } from '@angular/material/dialog';
 import { LeaveInfoDialogComponent } from './leave-info-dialog/leave-info-dialog.component';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -33,37 +33,61 @@ import { LeaveType } from '../../../common/interfaces/leaves/leaveType';
 
 export const MY_FORMATS = {
   parse: {
-    dateInput: 'DD/MM/YYYY', // Change to desired format
+    dateInput: 'DD/MM/YYYY',
   },
   display: {
-    dateInput: 'DD/MM/YYYY', // Display format for the input field
-    monthYearLabel: 'MMM YYYY', // Format for month/year in the header
-    dateA11yLabel: 'DD/MM/YYYY', // Accessibility format for dates
-    monthYearA11yLabel: 'MMMM YYYY', // Accessibility format for month/year
+    dateInput: 'DD/MM/YYYY',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'DD/MM/YYYY',
+    monthYearA11yLabel: 'MMMM YYYY',
   },
 };
 
 @Component({
   selector: 'app-apply-leave',
   standalone: true,
-  imports: [MatCardModule, MatChipsModule, MatIconModule, ReactiveFormsModule, MatFormFieldModule, MatOptionModule, MatDatepickerModule,
-    MatCheckboxModule, MatProgressSpinnerModule, MatSelectModule, SafePipe, DatePipe, MatInputModule, CommonModule, MatButtonModule, 
-    MatAutocompleteModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatChipsModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatOptionModule,
+    MatDatepickerModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    SafePipe,
+    DatePipe,
+    MatInputModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatAutocompleteModule
+  ],
   templateUrl: './apply-leave.component.html',
   styleUrl: './apply-leave.component.scss',
-    providers: [ provideMomentDateAdapter(MY_FORMATS), DatePipe ]
+  providers: [provideMomentDateAdapter(MY_FORMATS), DatePipe]
 })
-export class ApplyLeaveComponent implements OnInit, OnDestroy{
+export class ApplyLeaveComponent implements OnInit, OnDestroy {
   private readonly leaveService = inject(NewLeaveService);
-
   private readonly fb = inject(FormBuilder);
+  private readonly roleService = inject(RoleService);
+  private readonly userService = inject(UsersService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly datePipe = inject(DatePipe);
+
   leaveRequestForm = this.fb.group({
     userId: <any>[, Validators.required],
     leaveTypeId: <any>['', Validators.required],
     startDate: <any>['', Validators.required],
     endDate: <any>['', Validators.required],
     notes: ['', Validators.required],
-    fileUrl:[''],
+    fileUrl: [''],
     leaveDates: this.fb.array([]),
     status: [''],
     fromEmail: [''],
@@ -72,32 +96,62 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy{
   });
 
   filteredOptions: User[] = [];
-  patch(selectedSuggestion: User) {
+  filterValue: string = '';
+  maxDate!: Date;
+  maxEndDate!: Date;
+  isEditMode: boolean = false;
+  originalLeaveTypes: LeaveType[] = [];
+  roleName: string = '';
+  employeeStat: boolean = false;
+  userLeaves: UserLeave[] = [];
+  users: User[] = [];
+  leaveTypes: any[] = [];
+  slId: number = 0;
+  minEndDate: Date | null = null;
+  isLoading: boolean = false;
+  uploadProgress: number | null = null;
+  file!: File;
+  imageUrl: string = '';
+  fileName: string = '';
+  isFileSelected: boolean = false;
+  isSick: boolean = false;
+  isCertificateRequired: boolean = false;
+  allowedFileTypes = ['pdf', 'jpeg', 'jpg', 'png'];
+
+  private roleSub?: Subscription;
+  private leaveSub?: Subscription;
+  private ulSub?: Subscription;
+  private userSub?: Subscription;
+  private employeeSub?: Subscription;
+  private leaveTypeSub?: Subscription;
+  private submitSub?: Subscription;
+  private leave: any;
+
+  patch(selectedSuggestion: User): void {
     this.leaveRequestForm.patchValue({ userId: selectedSuggestion.id, userName: selectedSuggestion.name });
     this.checkProbationStatus(selectedSuggestion.id);
   }
 
-  filterValue: string;
-  search(event: Event) {
+  search(event: Event): void {
     this.filterValue = (event.target as HTMLInputElement).value.trim().replace(/\s+/g, '').toLowerCase();
     this.filteredOptions = this.users.filter(option =>
-      option.name.replace(/\s+/g, '').toLowerCase().includes(this.filterValue)||
+      option.name.replace(/\s+/g, '').toLowerCase().includes(this.filterValue) ||
       option.empNo.toString().replace(/\s+/g, '').toLowerCase().includes(this.filterValue)
     );
   }
 
-  maxDate: Date;
-  maxEndDate: Date;
-  isEditMode: boolean = false;
-  private readonly route = inject(ActivatedRoute);
-  originalLeaveTypes: LeaveType[] = [];
   ngOnInit(): void {
-    const token: any = localStorage.getItem('token')
-    const user = JSON.parse(token)
+    const token: any = localStorage.getItem('token');
+    if (token) {
+      try {
+        const user = JSON.parse(token);
+        const roleId = user.role;
+        this.getRoleById(roleId, user.id);
+      } catch (e) {
+        console.error('Error parsing token', e);
+      }
+    }
 
-    const roleId = user.role
-    this.getRoleById(roleId, user.id)
-    // this.getLeaveType();
     const leaveId = this.route.snapshot.params['id'];
     this.getLeaveType().subscribe(() => {
       if (leaveId) {
@@ -107,318 +161,420 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy{
     });
 
     this.maxDate = new Date();
-    this.maxDate.setDate(this.maxDate.getDate() + 7); // "Start Date" max is 7 days from today
+    this.maxDate.setDate(this.maxDate.getDate() + 7);
 
     this.maxEndDate = new Date(this.maxDate);
     this.maxEndDate.setDate(this.maxDate.getDate() + 2);
   }
 
-  private readonly roleService = inject(RoleService);
-  private roleSub!: Subscription;
-  roleName: string;
-  employeeStat: boolean = false;
-  getRoleById(id: number, userId: number){
+  getRoleById(id: number, userId: number): void {
+    const token: any = localStorage.getItem('token');
+    let isSuperAdminDesignation = false;
+    if (token) {
+      try {
+        const u = JSON.parse(token);
+        const d = (u.designationName || u.roleName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin')) {
+          isSuperAdminDesignation = true;
+        }
+      } catch (e) {}
+    }
+
+    if (isSuperAdminDesignation) {
+      this.roleName = 'Super Admin';
+      this.employeeStat = false;
+      this.getUsers();
+      this.leaveRequestForm.get('status')?.setValue('AdminApproved');
+      return;
+    }
+
+    this.userSub?.unsubscribe();
+    this.userSub = this.userService.getUserById(userId).subscribe({
+      next: (userRes: any) => {
+        const desig = (userRes?.userPosition?.designation?.designationName || '').toLowerCase().trim();
+        if (desig.includes('hr & administration manager') || desig.includes('hr & admin manager') || desig.includes('super admin')) {
+          this.roleName = 'Super Admin';
+          this.employeeStat = false;
+          this.getUsers();
+          this.leaveRequestForm.get('status')?.setValue('AdminApproved');
+        } else {
+          this.fetchRole(id, userId);
+        }
+      },
+      error: () => {
+        this.fetchRole(id, userId);
+      }
+    });
+  }
+
+  private fetchRole(id: number, userId: number): void {
     this.roleSub = this.roleService.getRoleById(id).subscribe((res: Role) => {
-      this.roleName = res.abbreviation
-      if(this.roleName !== 'HR Admin' && this.roleName !== 'Super Admin'){
+      this.roleName = res.abbreviation;
+      if (this.roleName !== 'HR Admin' && this.roleName !== 'Super Admin') {
         this.employeeStat = true;
         this.checkProbationStatus(userId);
         this.leaveRequestForm.get('userId')?.setValue(userId);
         this.leaveRequestForm.get('status')?.setValue('Requested');
-      }else{
-        this.getUsers()
+      } else {
+        this.getUsers();
         this.leaveRequestForm.get('status')?.setValue('AdminApproved');
       }
-    })
+    });
   }
 
-  private leaveSub!: Subscription;
-  private leave: Leave;
-  getLeaveDetails(id: number) {
+  getLeaveDetails(id: number): void {
     this.leaveSub = this.leaveService.getLeaveById(id).subscribe((leave) => {
-      this.checkProbationStatus(leave.userId)
-      if(leave.fileUrl){
+      this.checkProbationStatus(leave.userId);
+      if (leave.fileUrl) {
         this.imageUrl = leave.fileUrl;
       }
       this.minEndDate = new Date(leave.startDate);
-      this.minEndDate.setDate(this.minEndDate.getDate());
       this.leave = leave;
-      
-      if(this.roleName !== 'HR Admin' && this.roleName !== 'Super Admin'){
-        const endDate = new Date(leave.endDate);
-        const today = new Date();
-        // const timeDiff = today.getTime() - endDate.getTime();
-        // const dayDiff = timeDiff / (1000 * 3600 * 24);
-        // const roundedDayDiff = Math.floor(dayDiff);
-        // const isFriday = endDate.getDay() === 5;
-        // const thresholdDays = isFriday ? 3 : 2;
-        // // Filter leaveTypes if difference > 2
-        // if (roundedDayDiff > thresholdDays) {
-        //   this.leaveTypes = this.leaveTypes.filter(type => type.leaveTypeName === 'LOP');
-        // }
-      }
+
       this.leaveRequestForm.patchValue({
-        userName: this.leave.user.name,
+        userName: this.leave.user?.name,
         userId: this.leave.userId,
         leaveTypeId: this.leave.leaveTypeId,
         startDate: this.leave.startDate,
         endDate: this.leave.endDate,
         notes: this.leave.notes
       });
-      
+
       const leaveDatesArray = this.leaveRequestForm.get('leaveDates') as FormArray;
       leaveDatesArray.clear();
-      this.leave.leaveDates.forEach((leaveDate: any) => {
+      this.leave.leaveDates?.forEach((leaveDate: any) => {
         leaveDatesArray.push(this.fb.group({
           date: [leaveDate.date],
           session1: [leaveDate.session1],
           session2: [leaveDate.session2]
-        }));
+        }, { validators: sessionSelectionValidator }));
       });
+
+      this.checkLeaveValidityAndRequirements();
     });
   }
 
-  ulSub!: Subscription;
-  userLeaves: UserLeave[] = [];
-  getUserLeaves(id: number){
+  getUserLeaves(id: number): void {
     this.ulSub = this.leaveService.getUserLeaveByUser(id).subscribe((response: any) => {
-      this.userLeaves = response;
+      this.userLeaves = response || [];
     });
   }
 
-  private readonly userService = inject(UsersService);
-  private userSub!: Subscription;
-  public users : User[] = [];
-  getUsers(){
-    this.userSub = this.userService.getUser().subscribe(res=>{
-      this.users = res;
-      this.filteredOptions = this.users
-    })
+  getUsers(): void {
+    this.userSub = this.userService.getUser().subscribe(res => {
+      this.users = res || [];
+      this.filteredOptions = this.users;
+    });
   }
 
-  private employeeSub!: Subscription;
-  checkProbationStatus(id: number) {
-     this.getLeaveType()
-     this.getUserLeaves(id)
-     this.employeeSub = this.userService.getProbationEmployees().subscribe((employees) => {
-       const isProbationEmployee = employees.some((emp: any) => emp.id === id);
-       if (isProbationEmployee) {
-         const id = this.leaveTypes.find(type => type.leaveTypeName === 'LOP').id
-         this.leaveTypes = this.leaveTypes.filter(type => type.leaveTypeName === 'LOP');
-         this.leaveRequestForm.get('leaveTypeId')?.setValue(id)
-       }
-     });
-  }
-
-  private leaveTypeSub!: Subscription;
-  leaveTypes: any[] = [];
-  slId: number;
-  // getLeaveType() {
-  //   this.leaveTypeSub = this.leaveService.getLeaveType().subscribe( (leaveTypes: any) => {
-  //       this.leaveTypes = leaveTypes;
-  //       console.log(leaveTypes);
-        
-  //       this.slId = this.leaveTypes.find(type => type.leaveTypeName === 'Sick Leave').id
-  //     },(error) => {
-  //       console.error('Error fetching leave types:', error);
-  //     }
-  //   );
-  // }
-  getLeaveType() {
-    return new Observable(observer => {
-      this.leaveTypeSub = this.leaveService.getLeaveType().subscribe((leaveTypes: any) => {
-        this.leaveTypes = leaveTypes; 
-        this.originalLeaveTypes = [...leaveTypes];
-        
-        this.slId = this.leaveTypes.find(type => type.leaveTypeName === 'Sick Leave')?.id;
-        observer.next();
-        observer.complete();
-      }, (error) => {
-        console.error('Error fetching leave types:', error);
-        observer.error(error);
+  checkProbationStatus(id: number): void {
+    this.getLeaveType().subscribe(() => {
+      this.getUserLeaves(id);
+      this.employeeSub = this.userService.getProbationEmployees().subscribe({
+        next: (employees: any) => {
+          const empList: any[] = Array.isArray(employees) ? employees : (employees?.items || []);
+          const isProbationEmployee = empList.some((emp: any) => emp.id === id);
+          if (isProbationEmployee) {
+            const lopType = this.originalLeaveTypes.find(type => type.leaveTypeName === 'LOP');
+            if (lopType) {
+              this.leaveTypes = [lopType];
+              this.leaveRequestForm.get('leaveTypeId')?.setValue(lopType.id);
+              this.checkLeaveValidityAndRequirements();
+            }
+          } else {
+            this.leaveTypes = [...this.originalLeaveTypes];
+          }
+        },
+        error: () => {
+          this.leaveTypes = [...this.originalLeaveTypes];
+        }
       });
     });
   }
-  minEndDate: Date | null = null;
-  onDateChange() {
+
+  getLeaveType(): Observable<void> {
+    return new Observable(observer => {
+      this.leaveTypeSub = this.leaveService.getLeaveType().subscribe({
+        next: (response: any) => {
+          let list: any[] = [];
+          if (response && Array.isArray(response.items)) {
+            list = response.items;
+          } else if (Array.isArray(response)) {
+            list = response;
+          }
+          this.leaveTypes = list;
+          this.originalLeaveTypes = [...list];
+          this.slId = this.leaveTypes.find(type => type.leaveTypeName === 'Sick Leave')?.id || 0;
+          observer.next();
+          observer.complete();
+        },
+        error: (error) => {
+          console.error('Error fetching leave types:', error);
+          this.leaveTypes = [];
+          this.originalLeaveTypes = [];
+          observer.error(error);
+        }
+      });
+    });
+  }
+
+  onDateChange(): void {
     const startDate: any = this.leaveRequestForm.get('startDate')!.value;
     const leaveDatesArray = this.leaveRequestForm.get('leaveDates') as FormArray;
     leaveDatesArray.clear();
     this.leaveRequestForm.get('endDate')?.reset();
     if (startDate) {
       this.minEndDate = new Date(startDate);
-      this.minEndDate.setDate(this.minEndDate.getDate());
     }
+    this.checkLeaveValidityAndRequirements();
   }
 
-  isPastDate: boolean = false;
-  onEndDateChange() {
+  onEndDateChange(): void {
     const startDate: any = this.leaveRequestForm.get('startDate')!.value;
-    const endDate: any = this.leaveRequestForm.get('endDate')!.value;    
-    // if (endDate && this.roleName !== 'HR Admin' && this.roleName !== 'Super Admin') {
-    //   const today = new Date();
-    //   today.setHours(0, 0, 0, 0); 
-    
-    //   const selectedDate = new Date(endDate);
-    //   selectedDate.setHours(0, 0, 0, 0);
-    //   const isFriday = selectedDate.getDay() === 5;
-    
-    //   const diffInTime = today.getTime() - selectedDate.getTime();
-    //   const diffInDays = diffInTime / (1000 * 3600 * 24);
-    //   const thresholdDays = isFriday ? 3 : 2;
-        
-    //   this.isPastDate = diffInDays > thresholdDays;
-    //   if(this.isPastDate) {
-    //     this.leaveTypes = this.leaveTypes.filter(lt => lt.leaveTypeName === 'LOP');
-    //     this.leaveRequestForm.get('leaveTypeId')?.setValue(this.leaveTypes[0].id)
-    //   }else{
-    //     this.leaveTypes = this.originalLeaveTypes;
-    //   }
-    // } else {
-    //   this.isPastDate = false;
-    // }
-  
+    const endDate: any = this.leaveRequestForm.get('endDate')!.value;
     if (startDate && endDate && new Date(endDate) >= new Date(startDate)) {
       this.updateLeaveDates(new Date(startDate), new Date(endDate));
     } else {
-      // Clear the leaveDatesArray if the dates are invalid
       const leaveDatesArray = this.leaveRequestForm.get('leaveDates') as FormArray;
       leaveDatesArray.clear();
     }
+    this.checkLeaveValidityAndRequirements();
   }
 
+  onLeaveTypeChange(): void {
+    this.checkLeaveValidityAndRequirements();
+  }
+
+  selectLeaveType(typeId: number): void {
+    this.leaveRequestForm.get('leaveTypeId')?.setValue(typeId);
+    this.leaveRequestForm.get('leaveTypeId')?.markAsDirty();
+    this.onLeaveTypeChange();
+  }
 
   endDateFilter = (date: Date | null): boolean => {
     if (!date || !this.minEndDate) {
       return false;
     }
-    return date >= this.minEndDate; 
+    return date >= this.minEndDate;
   };
 
-  // isSickLeaveAndMoreThanThreeDays(): boolean {
-  //   const leaveTypeId = this.leaveRequestForm.get('leaveTypeId')?.value;
-  //   const startDate: any = this.leaveRequestForm.get('startDate')?.value;
-  //   const endDate: any = this.leaveRequestForm.get('endDate')?.value;
-
-  //   const sickLeaveTypeId = this.leaveTypes.find(type => type.leaveTypeName === 'Sick Leave')?.id;
-
-  //   if (leaveTypeId === sickLeaveTypeId && startDate && endDate) {
-  //     const duration = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 3600 * 24) + 1; // Calculate the duration in days
-  //     return duration > 3;
-  //   }
-  //   return false;
-  // }
-
-  updateLeaveDates(start: Date, end: Date) {
+  updateLeaveDates(start: Date, end: Date): void {
     const leaveDatesArray = this.leaveRequestForm.get('leaveDates') as FormArray;
     leaveDatesArray.clear();
-  
-    // Reset time component to 00:00:00 for both start and end dates
+
     const startDate = new Date(start);
-    startDate.setHours(0, 0, 0, 0); // Reset time to 00:00:00
+    startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(end);
-    endDate.setHours(0, 0, 0, 0); // Reset time to 00:00:00
-  
+    endDate.setHours(0, 0, 0, 0);
+
     for (let dt = new Date(startDate); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
       const leaveDateGroup = this.fb.group({
         date: [formatDate(dt, 'yyyy-MM-dd', 'en-US')],
-        session1: [false],
-        session2: [false]
+        session1: [true],
+        session2: [true]
       }, { validators: sessionSelectionValidator });
-  
+
       leaveDatesArray.push(leaveDateGroup);
     }
+    this.leaveRequestForm.markAsDirty();
   }
 
-  emergencyPrefix = 'Emergency: ';
+  setAllSessions(fullDay: boolean): void {
+    this.leaveDates.controls.forEach(ctrl => {
+      ctrl.get('session1')?.setValue(fullDay);
+      ctrl.get('session2')?.setValue(fullDay);
+      ctrl.get('session1')?.markAsDirty();
+      ctrl.get('session2')?.markAsDirty();
+      ctrl.updateValueAndValidity();
+    });
+    this.leaveRequestForm.markAsDirty();
+  }
+
+  toggleDayFull(index: number): void {
+    const group = this.leaveDates.at(index) as FormGroup;
+    const s1 = group.get('session1')?.value;
+    const s2 = group.get('session2')?.value;
+    const makeFull = !(s1 && s2);
+    group.get('session1')?.setValue(makeFull);
+    group.get('session2')?.setValue(makeFull);
+    group.get('session1')?.markAsDirty();
+    group.get('session2')?.markAsDirty();
+    group.updateValueAndValidity();
+    this.leaveRequestForm.markAsDirty();
+  }
+
   prefixEmergency(): void {
     const notesControl = this.leaveRequestForm.get('notes');
-    if (notesControl && !notesControl.value?.startsWith(this.emergencyPrefix)) {
-      notesControl.setValue(this.emergencyPrefix + notesControl.value);
+    const emergencyPrefix = 'Emergency: ';
+    if (notesControl && !notesControl.value?.startsWith(emergencyPrefix)) {
+      notesControl.setValue(emergencyPrefix + notesControl.value);
     }
   }
 
-  isLoading: boolean = false;
-  uploadProgress: number | null = null;
-  file!: File;
-  imageUrl: string = '';
-  fileName: string = ''; // Holds the name of the file
-  isFileSelected: boolean = false;
-  allowedFileTypes = ['pdf', 'jpeg', 'jpg', 'png'];
-  uploadFile(event: Event) {
+  uploadFile(event: Event): void {
     this.isLoading = true;
     const input = event.target as HTMLInputElement;
     const selectedFile = input.files?.[0];
-    const fileType: any = selectedFile?.type.split('/')[1];
+    const fileType: any = selectedFile?.type.split('/')[1]?.toLowerCase();
     if (!this.allowedFileTypes.includes(fileType)) {
-      alert('Invalid file type. Please select a PDF, JPEG, JPG, or PNG file.');
+      this.isLoading = false;
+      this.snackBar.open('Invalid file type. Please select a PDF, JPEG, JPG, or PNG file.', 'Close', { duration: 3000 });
       return;
     }
 
-    if (selectedFile) { // Check if a file was selected
-      this.file = selectedFile; // Assign the file
-      this.fileName = this.file.name; // Store the file name
-      this.isFileSelected = true; // Set the selected state to true
+    if (selectedFile) {
+      this.file = selectedFile;
+      this.fileName = this.file.name;
       this.leaveService.uploadImage(this.file).subscribe({
         next: (res) => {
           this.isLoading = false;
           this.imageUrl = `https://approval-management-data-s3.s3.ap-south-1.amazonaws.com/${res.fileUrl}`;
           this.leaveRequestForm.get('fileUrl')?.setValue(this.imageUrl);
           this.leaveRequestForm.get('fileUrl')?.markAsDirty();
+          this.checkLeaveValidityAndRequirements();
+          this.snackBar.open('Document uploaded successfully!', 'Close', { duration: 2500 });
         },
-        error: () => console.error('Upload failed'),
+        error: () => {
+          this.isLoading = false;
+          this.snackBar.open('Upload failed. Please try again.', 'Close', { duration: 3000 });
+        }
       });
     } else {
-      this.fileName = ''; // Reset the file name if no file is selected
-      this.isFileSelected = false; // Reset the selected state
+      this.isLoading = false;
+      this.fileName = '';
+      this.checkLeaveValidityAndRequirements();
     }
   }
 
-  private readonly snackBar = inject(MatSnackBar);
-  onDeleteImage(){
+  onDeleteImage(): void {
     this.isLoading = true;
-    this.leaveService.deleteUploadByurl(this.imageUrl).subscribe(()=>{
-      this.isLoading = false;
-      this.imageUrl = ''
-      this.leaveRequestForm.get('fileUrl')?.setValue('')
-      this.leaveRequestForm.get('fileUrl')?.markAsDirty();
-      this.snackBar.open("File is deleted successfully...","" ,{duration:3000})
+    this.leaveService.deleteUploadByurl(this.imageUrl).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.imageUrl = '';
+        this.fileName = '';
+        this.leaveRequestForm.get('fileUrl')?.setValue('');
+        this.leaveRequestForm.get('fileUrl')?.markAsDirty();
+        this.checkLeaveValidityAndRequirements();
+        this.snackBar.open('File deleted successfully.', '', { duration: 3000 });
+      },
+      error: () => {
+        this.isLoading = false;
+        this.imageUrl = '';
+        this.fileName = '';
+        this.leaveRequestForm.get('fileUrl')?.setValue('');
+        this.checkLeaveValidityAndRequirements();
+      }
     });
   }
 
   get leaveDates(): FormArray {
     return this.leaveRequestForm.get('leaveDates') as FormArray;
   }
-  onSessionChange(index: number, session: string) {
-    const leaveDateGroup = this.leaveDates.at(index) as FormGroup;
 
-    // Check if the form control exists
+  onSessionChange(index: number, session: string): void {
+    const leaveDateGroup = this.leaveDates.at(index) as FormGroup;
     const sessionControl = leaveDateGroup.get(session);
     if (sessionControl) {
-      // Toggle the value
-      const currentValue = sessionControl.value;
-      sessionControl.setValue(!currentValue);
-
-      // Mark the control as dirty
+      sessionControl.setValue(!sessionControl.value);
       sessionControl.markAsDirty();
-
-      // Update the validity of the control and its group
       sessionControl.updateValueAndValidity();
       leaveDateGroup.updateValueAndValidity();
     }
-
-    // Optionally mark the whole form as dirty
     this.leaveRequestForm.markAsDirty();
   }
 
+  get totalCalculatedDays(): number {
+    const dates = this.leaveDates?.controls || [];
+    let total = 0;
+    for (const ctrl of dates) {
+      const s1 = ctrl.get('session1')?.value;
+      const s2 = ctrl.get('session2')?.value;
+      if (s1 && s2) total += 1;
+      else if (s1 || s2) total += 0.5;
+    }
+    return total;
+  }
 
-  private submit: Subscription;
-  private readonly router = inject(Router);
-  emailSub!: Subscription;
-  private readonly dialog = inject(MatDialog);
-  private dialogSub!: Subscription;
-  private readonly datePipe = inject(DatePipe)
-  onSubmit(){
+  get selectedLeaveTypeName(): string {
+    const id = this.leaveRequestForm.get('leaveTypeId')?.value;
+    const found = this.leaveTypes.find(t => t.id === id);
+    return found ? found.leaveTypeName : '';
+  }
+
+  getLeaveTypeIcon(typeName?: string): string {
+    const name = typeName?.toLowerCase() || '';
+    if (name.includes('casual')) return 'beach_access';
+    if (name.includes('sick')) return 'local_hospital';
+    if (name.includes('comp')) return 'more_time';
+    if (name.includes('lop') || name.includes('loss')) return 'money_off';
+    if (name.includes('maternity') || name.includes('paternity')) return 'child_friendly';
+    return 'event_available';
+  }
+
+  getLeaveTypeClass(typeName?: string): string {
+    const name = typeName?.toLowerCase() || '';
+    if (name.includes('casual')) return 'type-casual';
+    if (name.includes('sick')) return 'type-sick';
+    if (name.includes('comp')) return 'type-compoff';
+    if (name.includes('lop') || name.includes('loss')) return 'type-lop';
+    return 'type-default';
+  }
+
+  isCriticalDay(dateStr: string): boolean {
+    const m = moment(dateStr);
+    const day = m.day();
+    return day === 1 || day === 5 || day === 6; // Mon (1), Fri (5), Sat (6)
+  }
+
+  checkLeaveValidityAndRequirements(): void {
+    const leaveTypeId = this.leaveRequestForm.get('leaveTypeId')?.value;
+    const selectedType = this.leaveTypes.find(t => t.id === leaveTypeId);
+    const typeName = (selectedType?.leaveTypeName || '').toLowerCase();
+    this.isSick = (leaveTypeId === this.slId) || typeName.includes('sick');
+
+    // Certificate is mandatory for all sick leaves
+    if (this.isSick) {
+      this.isCertificateRequired = true;
+      this.isFileSelected = !this.imageUrl;
+    } else {
+      this.isCertificateRequired = false;
+      this.isFileSelected = false;
+    }
+  }
+
+  isLeaveDurationInvalid(): boolean {
+    const startDateValue = this.leaveRequestForm.get('startDate')?.value;
+    const endDateValue = this.leaveRequestForm.get('endDate')?.value;
+    const leaveTypeId = this.leaveRequestForm.get('leaveTypeId')?.value;
+
+    if (!startDateValue || !endDateValue || !leaveTypeId) {
+      return false;
+    }
+
+    const startDate = moment(startDateValue).startOf('day');
+    const endDate = moment(endDateValue).startOf('day');
+    const diffInDays = endDate.diff(startDate, 'days') + 1;
+
+    const selectedType = this.leaveTypes.find(t => t.id === leaveTypeId);
+    const typeName = (selectedType?.leaveTypeName || '').toLowerCase();
+    // For Sick Leave and Maternity Leave, diffInDays > 3 does not apply
+    if (leaveTypeId === this.slId || typeName.includes('sick') || typeName.includes('maternity')) {
+      return false;
+    }
+    return diffInDays > 3;
+  }
+
+  get isSubmitDisabled(): boolean {
+    if (this.leaveRequestForm.pristine && !this.isEditMode) return true;
+    if (!this.leaveRequestForm.valid) return true;
+    if (this.isLeaveDurationInvalid()) return true;
+    if (this.isCertificateRequired && !this.imageUrl) return true;
+    if (this.totalCalculatedDays <= 0) return true;
+    return false;
+  }
+
+  onSubmit(): void {
     const leaveDates = this.leaveRequestForm.get('leaveDates')!.value as { date: string | number | Date }[];
 
     const leaveRequest = {
@@ -428,6 +584,7 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy{
         date: this.datePipe.transform(item.date, 'yyyy-MM-dd')
       }))
     };
+
     if (this.leaveRequestForm.get('startDate')?.value) {
       const sd = this.leaveRequestForm.get('startDate')?.value as string | number | Date;
       leaveRequest.startDate = this.datePipe.transform(sd, 'yyyy-MM-dd');
@@ -436,34 +593,30 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy{
       const ed = this.leaveRequestForm.get('endDate')?.value as string | number | Date;
       leaveRequest.endDate = this.datePipe.transform(ed, 'yyyy-MM-dd');
     }
-    if(!this.employeeStat){
+
+    if (!this.employeeStat) {
       this.isLoading = true;
       if (this.isEditMode) {
-        this.submit = this.leaveService.updatemergencyLeave(leaveRequest, this.leave.id).subscribe({
-          next: (res: any) => {
-            this.openDialog(res, res?.not);
-          },
-          error: (err) => { 
+        this.submitSub = this.leaveService.updatemergencyLeave(leaveRequest, this.leave.id).subscribe({
+          next: (res: any) => this.openDialog(res, res?.not),
+          error: (err) => {
             this.isLoading = false;
             this.router.navigateByUrl('/login/leave');
-            this.snackBar.open(err, "", { duration: 3000 });
+            this.snackBar.open(err, '', { duration: 3000 });
           }
         });
       } else {
-        this.submit = this.leaveService.addEmergencyLeave(leaveRequest).subscribe({
-          next: (res: any) => {
-            this.openDialog(res, res?.not);
-          },
-          error: (err) => { 
+        this.submitSub = this.leaveService.addEmergencyLeave(leaveRequest).subscribe({
+          next: (res: any) => this.openDialog(res, res?.not),
+          error: (err) => {
             this.isLoading = false;
             this.router.navigateByUrl('/login/leave');
-            this.snackBar.open(err, "", { duration: 3000 });
+            this.snackBar.open(err, '', { duration: 3000 });
           }
         });
       }
-    }else{
-        const id: any = this.leaveRequestForm.get('userId')?.value
-        this.submitLeaveRequest(leaveRequest);
+    } else {
+      this.submitLeaveRequest(leaveRequest);
     }
   }
 
@@ -473,111 +626,63 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy{
       ? this.leaveService.updateLeave(this.leave.id, leaveRequest)
       : this.leaveService.addLeave(leaveRequest);
     request$.subscribe({
-      next: (res: any) => {
-        this.openDialog(res, res?.not);
-      },
-      error: (err) => { 
+      next: (res: any) => this.openDialog(res, res?.not),
+      error: (err) => {
         this.isLoading = false;
         this.router.navigateByUrl('/login/leave');
-        this.snackBar.open(err, "", { duration: 3000 });
+        this.snackBar.open(err, '', { duration: 3000 });
       }
     });
   }
 
-  openDialog(message: any, not: any) {
+  openDialog(message: any, not: any): void {
     const dialogRef = this.dialog.open(LeaveInfoDialogComponent, {
-      data: {
-        message: message,
-      }
+      data: { message: message }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if(result.action === 'proceed') this.handleDialogResult(result, not);
-      else {
+      if (result?.action === 'proceed') {
+        this.handleDialogResult(result, not);
+      } else {
         this.isLoading = false;
-        this.router.navigateByUrl('/login/leave')
+        this.router.navigateByUrl('/login/leave');
         this.snackBar.open('Leave request cancelled!', 'Close', { duration: 3000 });
       }
     });
   }
 
-  handleDialogResult(result: any, not: any) {
+  handleDialogResult(result: any, not: any): void {
     this.isLoading = false;
-    if(not.length > 0) alert("• " + not.join("\n• "));
+    if (not && not.length > 0) {
+      alert('• ' + not.join('\n• '));
+    }
     this.router.navigateByUrl('/login/leave');
-    this.snackBar.open("Leave added successfully...", "", { duration: 3000 });
+    this.snackBar.open('Leave added successfully...', '', { duration: 3000 });
   }
 
-isSick: boolean = false;
-isLeaveDurationInvalid(): boolean {
-  const startDateValue = this.leaveRequestForm.get('startDate')?.value;
-  const endDateValue = this.leaveRequestForm.get('endDate')?.value;
-  const leaveTypeId = this.leaveRequestForm.get('leaveTypeId')?.value;
-
-  if (!startDateValue || !endDateValue || !leaveTypeId) {
-    return false;
-  }
-
-  const startDate = moment(startDateValue).startOf('day');
-  const endDate = moment(endDateValue).startOf('day');
-  const diffInDays = endDate.diff(startDate, 'days') + 1; 
-  const sickLeaveId = this.slId;
-
-  // Check if any day in range is Monday (1), Friday (5), or Saturday (6)
-  let requiresCertificateDay = false;
-  let curr = moment(startDate);
-  while (curr <= endDate) {
-    const dayOfWeek = curr.day(); 
-    if (dayOfWeek === 1 || dayOfWeek === 5 || dayOfWeek === 6) { // Added 6 for Saturday
-      requiresCertificateDay = true;
-      break;
-    }
-    curr.add(1, 'days');
-  }
-
-  if (leaveTypeId === sickLeaveId) {
-    // Sick Leave Rule: Mandatory if > 2 days OR if it touches Mon/Fri/Sat
-    if (diffInDays > 2 || requiresCertificateDay) {
-      this.isSick = true;
-      this.isFileSelected = !this.imageUrl; 
-      return false; 
-    } else {
-      this.isSick = true;
-      this.isFileSelected = false;
-      return false;
-    }
-  } else {
-    this.isSick = false;
-    this.isFileSelected = false;
-    return diffInDays > 3; 
-  }
-}
-
-  ngOnDestroy(): void {
-    this.ulSub?.unsubscribe();
-    this.userSub?.unsubscribe();
-    this.employeeSub?.unsubscribe();
-    this.leaveTypeSub?.unsubscribe();
-  }
-
-  convertToLowercase() {
+  convertToLowercase(): void {
     let value = this.leaveRequestForm.controls['notes'].value;
     if (value) {
       value = value
         .toLowerCase()
-        .replace(/(^\s*\w|[\.\!\?]\s*\w)/g, (char) => char.toUpperCase()); 
+        .replace(/(^\s*\w|[\.\!\?]\s*\w)/g, (char) => char.toUpperCase());
       this.leaveRequestForm.controls['notes'].setValue(value, { emitEvent: false });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.roleSub?.unsubscribe();
+    this.leaveSub?.unsubscribe();
+    this.ulSub?.unsubscribe();
+    this.userSub?.unsubscribe();
+    this.employeeSub?.unsubscribe();
+    this.leaveTypeSub?.unsubscribe();
+    this.submitSub?.unsubscribe();
   }
 }
 
 function sessionSelectionValidator(group: FormGroup) {
   const session1 = group.get('session1')?.value;
   const session2 = group.get('session2')?.value;
-
   return (session1 || session2) ? null : { sessionRequired: true };
-
-
-
-
 }

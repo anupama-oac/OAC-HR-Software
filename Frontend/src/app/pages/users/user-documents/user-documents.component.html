@@ -1,59 +1,158 @@
+<form [formGroup]="mainForm" class="documents-form-wrapper">
+  
+  <div class="documents-container">
 
-  <form [formGroup]="mainForm" enctype="multipart/form-data">
-    <mat-card class="full-width">
-      <mat-card-header><mat-card-title>Documents</mat-card-title></mat-card-header>
-      <div fxLayout="column" class="form-field-outer">
-        <div formArrayName="uploadForms">
-          <div *ngFor="let uploadForm of doc().controls; let i = index;" [formGroupName]="i" class="form-instance">
-            <div class="row" style="margin-top: 20px;">
-              <div class="col">
-                <mat-form-field class="w-100" appearance="outline">
-                  <mat-label>Document Type</mat-label>
-                  <input matInput formControlName="docName">
-                </mat-form-field>
-              </div>
-    
-              @if(!imageUrl[i]){
-                <div class="col">
-                  <input type="file" class="file-input" hidden #fileInput (change)="onFileSelected($event, i)">
-                  <mat-icon (click)="fileInput.click()">cloud_upload</mat-icon>
-                  <p class="file-upload-text" (click)="fileInput.click()">Browse file to upload</p>
-                </div>
-              }
-              @else{
-                <div class="col">
-                  <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="center center">
-                    <iframe [src]="imageUrl[i] | safe" width="100%" height="300px"></iframe>
-                    <mat-icon style="color: red;" (click)="onDeleteImage(i)">delete</mat-icon>
-                  </div>
-                </div>
-              }
-              <div class="col">
-                <button mat-raised-button color="primary" type="button" (click)="onSubmit(i)" 
-                [disabled]="uploadForm.pristine || !uploadForm.valid"> {{ editStatus[i] ? 'Update' : 'Save' }}
-                </button>
-                <button mat-icon-button color="warn" (click)="removeData(i)">
-                  <mat-icon>remove_circle</mat-icon>
-                </button>
-              </div>
-            </div>
-          </div>
+    <!-- Header Section Card -->
+    <div class="section-card header-card">
+      <div class="section-header">
+        <div class="section-badge badge-indigo">
+          <mat-icon>folder_shared</mat-icon>
         </div>
-        <button mat-raised-button (click)="triggerPreviousTab()" [disabled]="isAnyFormClicked()">
-          <div class="text-with-icon">
-            <mat-icon>arrow_back_ios</mat-icon>
-            <!-- <span>Previous</span> -->
-          </div>
-        </button>
-        <button mat-raised-button class="button" (click)="addDoc()"  style="margin-left: 10px;"
-        [disabled]="!isAllFormsValidAndSaved()">New Line</button>
-        <button mat-raised-button class="button" (click)="completeForm()"
-        [disabled]="!isAllFormsValidAndSaved()">Complete</button>
-        <button mat-raised-button class="button" onclick="history.back()" style="margin-left: 10px;"
-          [disabled]="isAnyFormClicked()">
-          Exit
+        <div class="section-title-wrap">
+          <h3 class="section-title">Employee Compliance Documents & Attachments</h3>
+          <p class="section-desc">Upload statutory identity proofs, certificates, employment contracts, and academic credentials (PDF, PNG, JPG up to 10MB).</p>
+        </div>
+      </div>
+
+      <div class="header-action-row">
+        <div class="summary-pill">
+          <mat-icon class="pill-icon">attachment</mat-icon>
+          <span>{{ doc().controls.length }} Document{{ doc().controls.length === 1 ? '' : 's' }} Attached</span>
+        </div>
+        <button type="button" mat-stroked-button class="btn-add-line" (click)="addDoc()">
+          <mat-icon>add</mat-icon>
+          <span>Add Another Document</span>
         </button>
       </div>
-    </mat-card>
-  </form>
-<!-- </div> -->
+    </div>
+
+    <!-- Document Items FormArray -->
+    <div formArrayName="uploadForms" class="documents-list">
+      @for (uploadForm of doc().controls; track $index; let i = $index) {
+        <div [formGroupName]="i" class="doc-item-card">
+          
+          <div class="doc-card-top">
+            <div class="doc-number-badge">
+              <span class="doc-badge-text">Document #{{ i + 1 }}</span>
+            </div>
+
+            <div class="doc-actions-top">
+              @if (imageUrl[i]) {
+                <span class="status-chip success">
+                  <mat-icon>check_circle</mat-icon> Attached
+                </span>
+              } @else {
+                <span class="status-chip pending">
+                  <mat-icon>schedule</mat-icon> Pending File
+                </span>
+              }
+
+              <button type="button" mat-icon-button class="btn-remove-row" (click)="removeData(i)" matTooltip="Remove this document row">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="doc-card-body">
+            <!-- Left: Document Type / Title -->
+            <div class="doc-field-wrap">
+              <mat-form-field appearance="outline" class="w-100 clean-field">
+                <mat-label>Document Type / Title <span class="required-star">*</span></mat-label>
+                <input matInput formControlName="docName" placeholder="e.g. Aadhaar Card, Passport, Degree..." [matAutocomplete]="autoDoc" required>
+                <mat-icon matSuffix class="search-suffix-icon">description</mat-icon>
+                <mat-autocomplete #autoDoc="matAutocomplete">
+                  @for (suggestion of documentSuggestions; track suggestion) {
+                    <mat-option [value]="suggestion">
+                      {{ suggestion }}
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+
+            <!-- Right: Upload or File Preview Area -->
+            <div class="doc-upload-wrap">
+              @if (!imageUrl[i]) {
+                <div class="upload-dropzone" (click)="fileInput.click()">
+                  <input type="file" class="file-input" hidden #fileInput accept=".pdf, image/png, image/jpeg, image/jpg" (change)="onFileSelected($event, i)">
+                  <div class="dropzone-icon">
+                    <mat-icon>cloud_upload</mat-icon>
+                  </div>
+                  <div class="dropzone-text">
+                    <span class="dropzone-title">Click to Browse Document</span>
+                    <span class="dropzone-sub">PDF, PNG, JPG up to 10MB</span>
+                  </div>
+                  @if (uploading[i]) {
+                    <mat-progress-bar mode="indeterminate" class="upload-progress"></mat-progress-bar>
+                  }
+                </div>
+              } @else {
+                <div class="file-preview-card">
+                  <div class="file-preview-left">
+                    <div class="file-icon-box" [class.pdf]="isPdf(imageUrl[i])">
+                      <mat-icon>{{ isPdf(imageUrl[i]) ? 'picture_as_pdf' : 'image' }}</mat-icon>
+                    </div>
+                    <div class="file-info-text">
+                      <span class="file-attached-label">File Uploaded & Secure</span>
+                      <a [href]="imageUrl[i]" target="_blank" class="file-view-link">
+                        <mat-icon>open_in_new</mat-icon> View Attachment
+                      </a>
+                    </div>
+                  </div>
+                  <button type="button" mat-stroked-button color="warn" class="btn-delete-file" (click)="onDeleteImage(i)" matTooltip="Remove attached file">
+                    <mat-icon>delete</mat-icon>
+                    <span>Replace File</span>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Row Save / Update Button -->
+            <div class="doc-save-wrap">
+              <button type="button" mat-raised-button class="btn-save-doc" (click)="onSubmit(i)" [disabled]="uploadForm.invalid">
+                <mat-icon>{{ editStatus[i] ? 'check' : 'save' }}</mat-icon>
+                <span>{{ editStatus[i] ? 'Update' : 'Save' }}</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      }
+
+      @if (doc().controls.length === 0) {
+        <div class="empty-docs-card">
+          <mat-icon class="empty-icon">folder_open</mat-icon>
+          <h4 class="empty-title">No Documents Attached Yet</h4>
+          <p class="empty-sub">Add identification cards, educational certificates, and employment contracts for compliance.</p>
+          <button type="button" mat-raised-button class="btn-add-first" (click)="addDoc()">
+            <mat-icon>add</mat-icon>
+            <span>Attach First Document</span>
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Step Footer Actions -->
+    <div class="step-footer-actions">
+      <div class="footer-left">
+        <button type="button" mat-stroked-button class="btn-step-prev" (click)="triggerPreviousTab()">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Previous Step</span>
+        </button>
+      </div>
+
+      <div class="footer-right">
+        <button type="button" mat-stroked-button class="btn-step-newline" (click)="addDoc()">
+          <mat-icon>add</mat-icon>
+          <span>New Document</span>
+        </button>
+
+        <button type="button" mat-raised-button class="btn-step-complete" (click)="completeForm()">
+          <mat-icon>check_circle</mat-icon>
+          <span>Complete Onboarding</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</form>

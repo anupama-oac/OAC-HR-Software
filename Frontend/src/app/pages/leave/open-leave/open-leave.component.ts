@@ -14,6 +14,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { NoteDialogComponent } from '../note-dialog/note-dialog.component';
 import { RoleService } from '@services/role.service';
+import { UsersService } from '@services/users.service';
 import { Role } from '../../../common/interfaces/users/role';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
@@ -42,19 +43,46 @@ export class OpenLeaveComponent implements OnInit, OnDestroy{
   }
 
   private readonly roleService = inject(RoleService);
+  private readonly userService = inject(UsersService);
   private roleSub!: Subscription;
+  private userSub?: Subscription;
   roleName: string;
   employeeStat: boolean = false;
   getRoleById(id: number, userId: number){
-    this.roleSub = this.roleService.getRoleById(id).subscribe((res: Role) => {
-      let roleName = res.abbreviation
-      if(roleName === 'HR Admin' || roleName === 'Super Admin'){
-        this.employeeStat = true;
-        // this.getLeaveByUser(userId)
-      }else{
-        // this.getLeaves()
+    const token: any = localStorage.getItem('token');
+    if (token) {
+      try {
+        const u = JSON.parse(token);
+        const d = (u.designationName || u.roleName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin')) {
+          this.employeeStat = true;
+          return;
+        }
+      } catch (e) {}
+    }
+
+    this.userSub = this.userService.getUserById(userId).subscribe({
+      next: (user: any) => {
+        const desig = (user?.userPosition?.designation?.designationName || '').toLowerCase().trim();
+        if (desig.includes('hr & administration manager') || desig.includes('hr & admin manager') || desig.includes('super admin')) {
+          this.employeeStat = true;
+        } else {
+          this.checkRoleService(id);
+        }
+      },
+      error: () => {
+        this.checkRoleService(id);
       }
-    })
+    });
+  }
+
+  private checkRoleService(id: number) {
+    this.roleSub = this.roleService.getRoleById(id).subscribe((res: Role) => {
+      let roleName = res.abbreviation;
+      if (roleName === 'HR Admin' || roleName === 'Super Admin') {
+        this.employeeStat = true;
+      }
+    });
   }
 
   private leaveService = inject(NewLeaveService);
@@ -229,8 +257,13 @@ private processUnapprovedLeave(leaveId: number, note: any): void {
   }
 
   ngOnDestroy(): void {
-    this.leaveSub.unsubscribe();
+    this.leaveSub?.unsubscribe();
     this.ulSub?.unsubscribe();
+    this.roleSub?.unsubscribe();
+    this.userSub?.unsubscribe();
+    this.leaveBalSub?.unsubscribe();
+    this.approveSub?.unsubscribe();
+    this.rejectSub?.unsubscribe();
   }
 
 }

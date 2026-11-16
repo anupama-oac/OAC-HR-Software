@@ -18,29 +18,24 @@ import { Nominee } from '../common/interfaces/users/nominee';
   providedIn: 'root'
 })
 export class UsersService {
-
- 
-  // private apiUrl = environment.apiUrl;
-    private apiUrl = `${environment.apiUrl}/auth/`;
+  private apiUrl = `${environment.apiUrl}/auth/`;
 
   constructor(public http: HttpClient) { }
 
-
   getUser(search?: string, page: number = 1, pageSize: number = 6): Observable<User[]> {
-
-  const searchTerm = search ? search : '';
-  return this.http.get<User[]>(
-    `${this.apiUrl}find?search=${searchTerm}&page=${page}&pageSize=${pageSize}`
-  );
-}
-
-  // addUser(user:User){
-  //     return this.http.post(this.apiUrl, user);
-  // }
-  public addUser(data: any): Observable<any> {
-    return this.http.post( this.apiUrl+'/user/add', data);
+    const searchTerm = search ? search : '';
+    return this.http.get<User[]>(
+      `${this.apiUrl}find?search=${searchTerm}&page=${page}&pageSize=${pageSize}`
+    );
   }
 
+  getActiveEmployees(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}find`);
+  }
+
+  public addUser(data: any): Observable<any> {
+    return this.http.post(this.apiUrl + 'user/add', data);
+  }
 
   uploadImage(file: any): Observable<any> {
     if (file instanceof File) {
@@ -52,12 +47,6 @@ export class UsersService {
       return throwError("Invalid file type");
     }
   }
-
-
-
-  // deleteInvoice(id: number, fileName: string){
-  //   return this._http.delete(this.url + `/invoice/filedelete/?id=${id}&fileName=${fileName}`);
-  // }
 
   deleteUser(id: number) {
     return this.http.delete(`${this.apiUrl}/user/delete/${id}`);
@@ -75,15 +64,9 @@ export class UsersService {
     return this.http.get<User>(this.apiUrl + '/user/findbyrole/'+id)
   }
 
-  // getUserById(id:number):Observable<User>{
-  //   return this.http.get<User>(this.apiUrl + 'auth/user/findone/'+id)
-  // }
-
-
   getUserById(id: number): Observable<User> {
-  // Hardcoding the exact base endpoint cleanly handles it
-  return this.http.get<User>(`http://localhost:4000/api/auth/user/findone/${id}`);
-}
+    return this.http.get<User>(`${this.apiUrl}user/findone/${id}`);
+  }
 
   addUserPersonalDetails(data: any): Observable<any> {
     return this.http.post( this.apiUrl + '/personal/add', data);
@@ -202,8 +185,11 @@ export class UsersService {
     return this.http.get<User[]>(this.apiUrl + '/user/confirmed')
   }
 
-  confirmEmployee(id: number, note: string): Observable<any> {
-    return this.http.get( this.apiUrl+`/user/confirmemployee/${id}/?note=${note}`);
+  confirmEmployee(id: number, note: string = '', targetStatus?: 'probation' | 'confirmation' | boolean): Observable<any> {
+    const statusParam = targetStatus !== undefined
+      ? `&status=${typeof targetStatus === 'boolean' ? (targetStatus ? 'probation' : 'confirmation') : targetStatus}`
+      : '';
+    return this.http.get(this.apiUrl + `/user/confirmemployee/${id}/?note=${encodeURIComponent(note || '')}${statusParam}`);
   }
 
   getBirthdays():Observable<UserPersonal[]>{
@@ -281,6 +267,27 @@ export class UsersService {
   // --------------------------------------------------------------------------
   addUserEmail(data: any){
     return this.http.post(this.apiUrl + '/useremail/add', data);
+  }
+
+  getEmployeesForExport(includeSeparated: boolean = false): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}export/all?includeSeparated=${includeSeparated}`);
+  }
+
+  getEmployeeExportById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}export/single/${id}`);
+  }
+
+  getCelebrationWishes(year?: number): Observable<any[]> {
+    const q = year ? `?year=${year}` : '';
+    return this.http.get<any[]>(`${this.apiUrl}/personal/wishes${q}`);
+  }
+
+  saveCelebrationWish(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/personal/wishes`, data);
+  }
+
+  deleteCelebrationWish(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/personal/wishes/${id}`);
   }
 
 }

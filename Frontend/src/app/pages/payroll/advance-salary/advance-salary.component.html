@@ -1,106 +1,436 @@
+<div class="advance-salary-page fade-in">
 
-<!DOCTYPE html>
-<html lang="en">
-<body>
-  <div fxLayout="row" fxLayoutAlign="space-between center" class="row">
-    <div fxLayout="row" class="col">
-        <mat-button-toggle-group #controls="matButtonToggleGroup" appearance="legacy" hideSingleSelectionIndicator="true">
-
-            @if(admin){
-              <mat-button-toggle value="add" (click)="openAdvanceDialog()">
-                <mat-icon>money_off</mat-icon>
-              </mat-button-toggle>
-              
-              <mat-button-toggle value="add" (click)="openAdvanceLog()">
-                <mat-icon>layers</mat-icon>
-              </mat-button-toggle>
-            }
-
-        </mat-button-toggle-group>
+  <!-- HERO / HEADER BANNER -->
+  <div class="advance-salary-header-card">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="header-text">
+        <div class="breadcrumb-trail">Payroll / Advance Salary</div>
+        <h1 class="header-title">Advance Salary Management</h1>
+        <p class="header-subtitle">
+          Manage employee salary advance requests, repayment tenures, monthly EMI deductions, and settlement history
+        </p>
+      </div>
     </div>
-    <div fxLayout="row" class="col">
-      <form class="user-search">
-        <mat-form-field class="user-search-input">
-            <input matInput placeholder="Search..." name="search" (keyup)="search($event)">
+    <div class="header-actions">
+      @if (isAdmin) {
+        <button mat-raised-button class="btn-primary-action" (click)="openAdvanceDialog()">
+          <mat-icon>add</mat-icon>
+          <span>Record Advance Salary</span>
+        </button>
+      }
+      <!-- <button mat-stroked-button class="btn-secondary-action" (click)="openAdvanceLog()" matTooltip="Open full logs & settlement history page">
+        <mat-icon>receipt_long</mat-icon>
+        <span>View Full Logs</span>
+      </button> -->
+    </div>
+  </div>
+
+  <!-- ACTIVE EMPLOYEE FILTER BANNER -->
+  @if (selectedEmployeeFilter !== 'ALL') {
+    <div class="active-filter-banner fade-in">
+      <div class="filter-banner-info">
+        <mat-icon class="filter-icon">filter_alt</mat-icon>
+        <span>Viewing salary advances and repayment records for: <strong>{{ selectedEmployeeName }}</strong></span>
+      </div>
+      <button mat-button class="btn-clear-filter" (click)="onEmployeeFilterChange('ALL')">
+        <mat-icon>close</mat-icon>
+        <span>Show All Employees</span>
+      </button>
+    </div>
+  }
+
+  <!-- KPI SUMMARY METRICS CARDS -->
+  <div class="metrics-grid">
+    <!-- Active Advance Pool Card -->
+    <div class="metric-card active-metric">
+      <div class="metric-icon-wrap active-icon">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Active Advances Pool</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-active">
+          ₹ {{ displayedActiveAmount | number:'1.2-2' }}
+        </div>
+        <div class="metric-badge badge-active">
+          <mat-icon>people</mat-icon>
+          <span>{{ displayedActiveCount }} Active Beneficiaries</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Recovered Card -->
+    <div class="metric-card recovered-metric">
+      <div class="metric-icon-wrap recovered-icon">
+        <mat-icon>published_with_changes</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Total Recovered</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-recovered">
+          ₹ {{ displayedRecoveredAmount | number:'1.2-2' }}
+        </div>
+        <span class="metric-hint">Recovered via payroll EMI deductions</span>
+      </div>
+    </div>
+
+    <!-- Outstanding Balance Card -->
+    <div class="metric-card balance-metric" [ngClass]="{'has-balance': displayedOutstandingBalance > 0}">
+      <div class="metric-icon-wrap balance-icon">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Outstanding Balance</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-balance">
+          ₹ {{ displayedOutstandingBalance | number:'1.2-2' }}
+        </div>
+        <div class="metric-badge" [ngClass]="displayedOutstandingBalance > 0 ? 'badge-warning' : 'badge-positive'">
+          <mat-icon>{{ displayedOutstandingBalance > 0 ? 'pending_actions' : 'check_circle' }}</mat-icon>
+          <span>{{ displayedOutstandingBalance > 0 ? 'Pending Collection' : 'Fully Recovered' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Advance Records Card -->
+    <div class="metric-card total-metric">
+      <div class="metric-icon-wrap total-icon">
+        <mat-icon>assignment</mat-icon>
+      </div>
+      <div class="metric-content">
+        <div class="metric-header-row">
+          <span class="metric-label">Total Advance Records</span>
+          @if (selectedEmployeeFilter !== 'ALL') {
+            <span class="filter-badge" [title]="selectedEmployeeName">{{ selectedEmployeeName }}</span>
+          }
+        </div>
+        <div class="metric-value text-total">
+          {{ displayedTotalCount }}
+        </div>
+        <span class="metric-hint">
+          {{ selectedEmployeeFilter === 'ALL' ? 'Total records in system' : 'Records for this employee' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <div class="content-card">
+
+    <!-- TOOLBAR: SEARCH & FILTERS -->
+    <div class="table-toolbar">
+      <div class="toolbar-left">
+        <!-- Search field -->
+        <div class="search-box">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Search by employee, emp no, scheme, amount, reason..." 
+            [value]="searchTerm"
+            (input)="onSearch($event)"
+          />
+          @if (searchTerm) {
+            <button mat-icon-button class="clear-btn" (click)="clearSearch()" matTooltip="Clear search">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Employee Filter for Admins -->
+        @if (isAdmin && usersList.length > 0) {
+          <mat-form-field appearance="outline" class="employee-filter-field" subscriptSizing="dynamic">
+            <mat-label>Filter by Employee</mat-label>
+            <mat-select [value]="selectedEmployeeFilter" (selectionChange)="onEmployeeFilterChange($event.value)">
+              <mat-option value="ALL">All Employees ({{ usersList.length }})</mat-option>
+              @for (u of usersList; track u.id) {
+                <mat-option [value]="u.id">
+                  {{ u.name }} ({{ u.empNo || 'ID: ' + u.id }})
+                </mat-option>
+              }
+            </mat-select>
+            <mat-icon matPrefix class="prefix-icon">person</mat-icon>
+          </mat-form-field>
+        }
+
+        <!-- Scheme Filter -->
+        <mat-form-field appearance="outline" class="scheme-filter-field" subscriptSizing="dynamic">
+          <mat-label>Scheme</mat-label>
+          <mat-select [value]="selectedSchemeFilter" (selectionChange)="onSchemeFilterChange($event.value)">
+            <mat-option value="ALL">All Schemes</mat-option>
+            <mat-option value="Monthly">Monthly Installment</mat-option>
+            <mat-option value="OneTime">One-Time Settlement</mat-option>
+          </mat-select>
+          <mat-icon matPrefix class="prefix-icon">tune</mat-icon>
         </mat-form-field>
-      </form>
+      </div>
+
+      <div class="toolbar-right">
+        <!-- Status Filter Pills -->
+        <div class="status-filter-group">
+          <button 
+            type="button" 
+            class="status-pill active-pill" 
+            [class.selected]="selectedStatusFilter === 'ACTIVE'" 
+            (click)="onStatusFilterChange('ACTIVE')">
+            <span class="dot dot-active"></span>
+            <span>Active ({{ getActiveCount() }})</span>
+          </button>
+          <button 
+            type="button" 
+            class="status-pill closed-pill" 
+            [class.selected]="selectedStatusFilter === 'CLOSED'" 
+            (click)="onStatusFilterChange('CLOSED')">
+            <span class="dot dot-closed"></span>
+            <span>Settled / History ({{ getClosedCount() }})</span>
+          </button>
+          <button 
+            type="button" 
+            class="status-pill" 
+            [class.selected]="selectedStatusFilter === 'ALL'" 
+            (click)="onStatusFilterChange('ALL')">
+            <span>All ({{ allAdvanceSalaries.length }})</span>
+          </button>
+        </div>
+
+        <!-- Export CSV Button -->
+        <button mat-stroked-button class="btn-export" (click)="exportToCsv()" matTooltip="Export filtered records to CSV">
+          <mat-icon>file_download</mat-icon>
+          <span>Export CSV</span>
+        </button>
+      </div>
     </div>
+
+    <!-- DATA TABLE -->
+    <div class="table-responsive">
+      <table class="advance-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Scheme</th>
+            <th>Advance Amount</th>
+            <th>Tenure & EMI</th>
+            <th>Repayment Progress</th>
+            <th>Remaining Balance</th>
+            <th>Reason</th>
+            <th>Created On</th>
+            <th>Status</th>
+            @if (isAdmin) {
+              <th class="text-right">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (salary of pagedSalaries; track salary.id) {
+            <tr class="table-row">
+              <!-- Employee Column -->
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">
+                    {{ getUserInitials(getUserName(salary)) }}
+                  </div>
+                  <div class="user-info">
+                    <span class="user-name">{{ getUserName(salary) }}</span>
+                    <span class="user-meta">EMP: {{ getUserEmpNo(salary) }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Scheme Column -->
+              <td>
+                @if (salary.scheme === 'Monthly') {
+                  <span class="scheme-badge badge-monthly">
+                    <mat-icon>date_range</mat-icon>
+                    <span>Monthly EMI</span>
+                  </span>
+                } @else {
+                  <span class="scheme-badge badge-onetime">
+                    <mat-icon>flash_on</mat-icon>
+                    <span>One-Time</span>
+                  </span>
+                }
+              </td>
+
+              <!-- Amount Column -->
+              <td>
+                <div class="amount-cell">
+                  <span class="currency-symbol">₹</span>
+                  <span class="amount-number">{{ salary.amount | number:'1.2-2' }}</span>
+                </div>
+              </td>
+
+              <!-- Tenure & EMI Column -->
+              <td>
+                <div class="emi-cell">
+                  <span class="emi-amount">₹ {{ salary.monthlyPay | number:'1.2-2' }}<span class="per-month">/mo</span></span>
+                  <span class="emi-tenure">{{ salary.duration }} {{ salary.duration === 1 ? 'Month' : 'Months' }} Total</span>
+                </div>
+              </td>
+
+              <!-- Repayment Progress Column -->
+              <td>
+                <div class="progress-cell">
+                  <div class="progress-header">
+                    <span class="progress-steps">{{ salary.completed }} / {{ salary.duration }} Months</span>
+                    <span class="progress-pct">{{ getProgressPercent(salary) }}%</span>
+                  </div>
+                  <div class="custom-progress-bar">
+                    <div 
+                      class="progress-bar-fill" 
+                      [style.width.%]="getProgressPercent(salary)"
+                      [ngClass]="salary.status === false || getProgressPercent(salary) === 100 ? 'bar-complete' : 'bar-active'">
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Remaining Balance Column -->
+              <td>
+                <div class="balance-cell">
+                  @if (salary.status === false) {
+                    <span class="badge-settled-zero">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>₹ 0.00</span>
+                    </span>
+                  } @else {
+                    <span class="balance-pill" [ngClass]="{'has-due': getBalance(salary) > 0}">
+                      ₹ {{ getBalance(salary) | number:'1.2-2' }}
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <!-- Reason Column -->
+              <td>
+                <div class="reason-cell" [matTooltip]="salary.reason || 'No reason provided'" matTooltipPosition="above">
+                  <span>{{ salary.reason || '-' }}</span>
+                </div>
+              </td>
+
+              <!-- Created Date Column -->
+              <td>
+                <div class="date-cell">
+                  <mat-icon class="date-icon">event</mat-icon>
+                  <span>{{ salary.createdAt | date: 'dd-MM-yyyy' }}</span>
+                </div>
+              </td>
+
+              <!-- Status Column -->
+              <td>
+                @if (salary.status !== false) {
+                  <span class="status-badge badge-active-pill">
+                    <span class="pulse-dot"></span>
+                    <span>Active</span>
+                  </span>
+                } @else {
+                  <span 
+                    class="status-badge badge-closed-pill" 
+                    [matTooltip]="'Closed on ' + (salary.completedDate | date:'mediumDate') + (salary.closeNote ? ': ' + salary.closeNote : '')" 
+                    matTooltipPosition="above">
+                    <mat-icon>done_all</mat-icon>
+                    <span>Settled</span>
+                  </span>
+                }
+              </td>
+
+              <!-- Actions Column -->
+              @if (isAdmin) {
+                <td class="text-right">
+                  <div class="action-buttons">
+                    <!-- Edit Button -->
+                    <button 
+                      mat-icon-button 
+                      class="btn-icon btn-edit" 
+                      (click)="openAdvanceDialog(salary)" 
+                      matTooltip="Edit Advance Details">
+                      <mat-icon>mode_edit</mat-icon>
+                    </button>
+
+                    <!-- Settle / Close Advance Button -->
+                    @if (salary.status !== false) {
+                      <button 
+                        mat-icon-button 
+                        class="btn-icon btn-settle" 
+                        (click)="onCloseAdvance(salary.id)" 
+                        matTooltip="Close / Settle Advance">
+                        <mat-icon>check_circle_outline</mat-icon>
+                      </button>
+                    }
+
+                    <!-- Delete Button -->
+                    <button 
+                      mat-icon-button 
+                      class="btn-icon btn-delete" 
+                      (click)="deleteAdvanceSalary(salary.id)" 
+                      matTooltip="Delete Advance Record">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+
+          <!-- EMPTY STATE ROW -->
+          @if (pagedSalaries.length === 0) {
+            <tr>
+              <td [attr.colspan]="isAdmin ? 10 : 9" class="empty-table-cell">
+                <div class="empty-state">
+                  <div class="empty-icon-wrap">
+                    <mat-icon>payments_off</mat-icon>
+                  </div>
+                  <h3 class="empty-title">No Advance Salary Records Found</h3>
+                  <p class="empty-desc">
+                    {{ searchTerm || selectedEmployeeFilter !== 'ALL' || selectedSchemeFilter !== 'ALL' ? 'No records match your active search or filters. Try adjusting your parameters.' : 'There are currently no advance salary applications recorded in the system.' }}
+                  </p>
+                  <div class="empty-actions">
+                    @if (searchTerm || selectedEmployeeFilter !== 'ALL' || selectedSchemeFilter !== 'ALL') {
+                      <button mat-stroked-button class="btn-reset-filter" (click)="clearSearch(); onEmployeeFilterChange('ALL'); onSchemeFilterChange('ALL')">
+                        <mat-icon>refresh</mat-icon>
+                        <span>Reset All Filters</span>
+                      </button>
+                    }
+                    @if (isAdmin) {
+                      <button mat-raised-button class="btn-primary-action" (click)="openAdvanceDialog()">
+                        <mat-icon>add</mat-icon>
+                        <span>Record Advance Salary</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATOR -->
+    <mat-paginator
+      class="custom-paginator"
+      [length]="totalItems"
+      [pageSize]="pageSize"
+      [pageIndex]="currentPage - 1"
+      (page)="onPageChange($event)"
+      [pageSizeOptions]="[10, 20, 30, 50, 100]"
+      showFirstLastButtons>
+    </mat-paginator>
 
   </div>
 
-    <main class="table" id="customers_table">
-        <!-- <section class="table__header">
-            <h1>ROLES</h1>
-        </section> -->
-        <section class="table__body"><br>
-          <table>
-            <thead>
-              <tr>
-                <th> Employee </th>
-                <th> Employee No </th>
-                <th> Scheme </th>
-                <th> Amount </th>
-                <th> Duration </th>
-                <th> Completed </th>
-                <th> Balance </th>
-                <th> Created on </th>
-                <th> Reason </th>
-                @if(admin){
-                  <th> Manage </th>
-                  <th> Status </th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (advanceSalary of advanceSalaries; track $index) {
-                <tr>
-                  <td> {{ advanceSalary.user.name }} </td>
-                  <td> {{ advanceSalary.user.empNo }} </td>
-                  <td> {{ advanceSalary.scheme }} </td>
-                  <td> {{ advanceSalary.amount }} </td>
-                  <td> {{ advanceSalary.duration }} </td>
-                  <td> {{ advanceSalary.completed }} </td>
-                  <td>
-                    {{ advanceSalary.amount - (advanceSalary.monthlyPay * advanceSalary.completed) }}
-                  </td>
-                  <!-- <td> {{ advanceSalary.reason }} </td> -->
-                  <td> {{ advanceSalary.createdAt | date: 'dd-MM-yyyy' }} </td>
-                  <td> {{ advanceSalary.reason }} </td>
-                  @if(admin){
-                    <td>
-                      <div style="display: flex; gap: 8px;">
-                        <!-- <button mat-menu-item (click)="openAdvanceDialog(advanceSalary)"> -->
-                          <mat-icon (click)="openAdvanceDialog(advanceSalary)">mode_edit</mat-icon>
-                        <!-- </button> -->
-                        <!-- <button mat-menu-item > -->
-                          <mat-icon (click)="deleteTeam(advanceSalary.id);">delete</mat-icon>
-                        <!-- </button> -->
-                      </div>
-                    </td>
-                    <td>
-                      <mat-slide-toggle (change)="onToggleChange($event, advanceSalary.id)"></mat-slide-toggle>
-                    </td>
-                  }
-                </tr>
-              }
-
-            </tbody>
-
-          </table>
-          <mat-paginator
-            [length]="totalItems"
-            [pageSize]="pageSize"
-            [pageIndex]="currentPage - 1"
-            (page)="onPageChanged($event)"
-            [pageSizeOptions]="[10, 20, 30, 40, 50, 100]">
-          </mat-paginator>
-        </section>
-    </main>
-
-    <!-- <div class="tabs">
-     <a routerLink="role">ROLE</a>
-     <a>USER</a>
- </div> -->
-</body>
-
-</html>
+</div>

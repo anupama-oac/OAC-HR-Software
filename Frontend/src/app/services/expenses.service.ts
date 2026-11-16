@@ -10,59 +10,59 @@ import { ExcelLog } from '../common/interfaces/payments/excel-log';
 })
 export class ExpensesService {
 
-  url = environment.apiUrl;
+  url = `${environment.apiUrl}/expenses`;
   private http = inject(HttpClient);
 
   addExpense(data: any){
-    return this.http.post(this.url + '/expense/save', data);
+    return this.http.post(this.url + '/save', data);
   }
 
   getExpense(): Observable<Expense[]>{
-    return this.http.get<Expense[]>(this.url + '/expense/find');
+    return this.http.get<Expense[]>(this.url + '/find');
   }
 
   getExpenseByUser(search?: string, currentPage?:number, pageSize?:number, isFlow?: boolean): Observable<Expense[]>{
-    return this.http.get<Expense[]>(this.url + `/expense/findbyuser/?search=${search}&page=${currentPage}&pageSize=${pageSize}&isFLow=${isFlow}`);
+    return this.http.get<Expense[]>(this.url + `/findbyuser/?search=${search}&page=${currentPage}&pageSize=${pageSize}&isFLow=${isFlow}`);
   }
 
   updateStatus(data: any){
-    return this.http.post(this.url + '/expense/updatestatus', data);
+    return this.http.post(this.url + '/updatestatus', data);
   }
 
   uploadExpense(formData: any): Observable<any> {
-    return this.http.post(this.url + '/expense/fileupload', formData);
+    return this.http.post(this.url + '/fileupload', formData);
   }
 
   addBankSlip(data: any, id: number){
-    return this.http.patch(this.url + '/expense/bankslip/' + id, data);
+    return this.http.patch(this.url + '/bankslip/' + id, data);
   }
 
   getExpenseById(id: number): Observable<Expense>{
-    return this.http.get<Expense>(this.url + '/expense/findbyid/'+id);
+    return this.http.get<Expense>(this.url + '/findbyid/'+id);
   }
 
   deleteUploaded(id: number, i: number, key?: string) {
-    return this.http.delete(`${this.url}/expense/filedelete?id=${id}&index=${i}&key=${key}`);
+    return this.http.delete(`${this.url}/filedelete?id=${id}&index=${i}&key=${key}`);
   }
 
   deleteUploadByurl(key: string) {
-    return this.http.delete(`${this.url}/expense/filedeletebyurl/?key=${key}`);
+    return this.http.delete(`${this.url}/filedeletebyurl/?key=${key}`);
   }
 
   updateExpense(data: any, id: number){
-    return this.http.patch(this.url + '/expense/update/'+ id, data);
+    return this.http.patch(this.url + '/update/'+ id, data);
   }
 
   deleteExpense(id: number) {
-    return this.http.delete(`${this.url}/expense/${id}`);
+    return this.http.delete(`${this.url}/${id}`);
   }
 
   getExpenseReports(data: any){
-    return this.http.patch<any[]>(this.url + '/expense/getforadminreport', data);
+    return this.http.patch<any[]>(this.url + '/getforadminreport', data);
   }
 
   reportExport(data: any){
-    return this.http.post<any[]>(this.url + '/expense/download-excel', data);
+    return this.http.post<any[]>(this.url + '/download-excel', data);
   }
 
   getExcelLog(): Observable<ExcelLog[]>{
@@ -70,6 +70,17 @@ export class ExpensesService {
   }
   
   getDashboardExpense(status?: string, currentPage?: number, pageSize?: number): Observable<any[]>{
-    return this.http.get<any[]>(this.url + `/expense/dashboard/expense/?status=${status}&page=${currentPage}&pageSize=${pageSize}`);
+    return this.http.get<any[]>(this.url + `/dashboard/expense/?status=${status}&page=${currentPage}&pageSize=${pageSize}`);
+  }
+
+  getFileUrl(key: string) {
+    return this.http.get<any>(
+      `${this.url}/file-url`,
+      {
+        params: {
+          key: key
+        }
+      }
+    );
   }
 }

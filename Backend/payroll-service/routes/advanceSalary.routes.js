@@ -4,7 +4,7 @@ const { authenticateToken } = require('../middlewares/auth');
 const advSalaryController = require('../controllers/advanceSalary.controller')
 
 
-router.post("/", authenticateToken, advSalaryController.createAdvanceSalary);
+router.post(['/', ''], authenticateToken, advSalaryController.createAdvanceSalary);
 router.get("/notcompleted", authenticateToken, advSalaryController.getNotCompleted);
 router.get("/findall", authenticateToken, advSalaryController.findAll);
 router.get("/findbyid/:id", authenticateToken, advSalaryController.findById);
