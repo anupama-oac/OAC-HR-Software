@@ -33,6 +33,7 @@ const children = [];
 const startingServices = new Set();
 
 function checkAndStartService(service, port) {
+  if (process.env.AUTO_LAUNCH_SERVICES === 'false') return;
   if (startingServices.has(service)) return;
   const socket = new net.Socket();
   let finished = false;
