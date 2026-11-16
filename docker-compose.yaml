@@ -1,0 +1,187 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oac-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-oac_softwares}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+      POSTGRES_DB: oac_auth_db
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-oac_softwares} -d oac_auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oac-network
+
+  auth-service:
+    build:
+      context: ./Backend/auth-service
+      dockerfile: Dockerfile
+    container_name: oac-auth-service
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-oac_softwares}
+      DB_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+      DB_NAME: oac_auth_db
+      JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-aerohr-uploads}
+    networks:
+      - oac-network
+
+  leave-service:
+    build:
+      context: ./Backend/leave-service
+      dockerfile: Dockerfile
+    container_name: oac-leave-service
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-oac_softwares}
+      DB_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+      DB_NAME: oac_leave_db
+      AUTH_DB_NAME: oac_auth_db
+      AUTH_SERVICE_URL: http://auth-service:4001
+      JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-aerohr-uploads}
+    networks:
+      - oac-network
+
+  expense-service:
+    build:
+      context: ./Backend/expense-service
+      dockerfile: Dockerfile
+    container_name: oac-expense-service
+    restart: unless-stopped
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-oac_softwares}
+      DB_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+      DB_NAME: oac_expense_db
+      AUTH_DB_NAME: oac_auth_db
+      JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-aerohr-uploads}
+    networks:
+      - oac-network
+
+  payroll-service:
+    build:
+      context: ./Backend/payroll-service
+      dockerfile: Dockerfile
+    container_name: oac-payroll-service
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4004
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-oac_softwares}
+      DB_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+      DB_NAME: oac_payroll_db
+      AUTH_SERVICE_URL: http://auth-service:4001
+      JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
+    networks:
+      - oac-network
+
+  api-gateway:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: oac-api-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-4000}:4000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      leave-service:
+        condition: service_started
+      expense-service:
+        condition: service_started
+      payroll-service:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      AUTO_LAUNCH_SERVICES: "false"
+      AUTH_SERVICE_URL: http://auth-service:4001
+      LEAVE_SERVICE_URL: http://leave-service:4002
+      EXPENSE_SERVICE_URL: http://expense-service:4003
+      PAYROLL_SERVICE_URL: http://payroll-service:4004
+      JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
+    networks:
+      - oac-network
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: oac-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - oac-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  oac-network:
+    driver: bridge
+

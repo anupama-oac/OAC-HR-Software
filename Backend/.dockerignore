@@ -1,0 +1,14 @@
+node_modules
+auth-service
+leave-service
+expense-service
+payroll-service
+backups
+scheduler
+.env
+.env.*
+*.log
+npm-debug.log*
+.git
+.gitignore
+
