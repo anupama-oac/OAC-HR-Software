@@ -21,6 +21,7 @@
     "multer": "^2.5.0",
     "pg": "^8.21.0",
     "pg-hstore": "^2.3.4",
+    "phantomjs-prebuilt": "^2.1.16",
     "sequelize": "^6.37.8"
   }
 }

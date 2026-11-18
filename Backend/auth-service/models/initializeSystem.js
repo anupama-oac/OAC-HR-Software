@@ -14,23 +14,17 @@ module.exports = async function initializeSystem() {
       {
         roleName: 'Super Administrator',
         abbreviation: 'SA',
-        description: 'Has all permissions across the entire system',
-        permissions: ['*'],
-        isActive: true
+        status: true
       },
       {
         roleName: 'HR Administrator',
         abbreviation: 'HR',
-        description: 'Full access to employee management, leaves, and onboarding modules',
-        permissions: ['HR_ALL', 'EMPLOYEE_MANAGEMENT', 'LEAVE_APPROVE'],
-        isActive: true
+        status: true
       },
       {
         roleName: 'Employee',
         abbreviation: 'EMP',
-        description: 'Standard employee access',
-        permissions: ['SELF_SERVICE', 'LEAVE_APPLY'],
-        isActive: true
+        status: true
       }
     ];
 

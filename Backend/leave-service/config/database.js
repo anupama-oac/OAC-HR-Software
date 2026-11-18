@@ -31,6 +31,9 @@ const connectDB = async () => {
       // alter: true updates tables to match models without dropping data
       await sequelize.sync({ alter: true });
       console.log('🔄Leave Service: Database tables synced.');
+    } else {
+      await sequelize.sync();
+      console.log('🔄Leave Service: Missing database tables created.');
     }
 
   } catch (error) {
