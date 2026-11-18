@@ -2,90 +2,7 @@ const { Op } = require('sequelize');
 const Expense = require('../models/expense');
 const PettyCash = require('../models/pettyCash');
 const s3 = require('../utils/s3bucket');
-const { User, Role, Designation, UserPosition, Notification } = require('../../auth-service/models');
-
-/**
- * Helper to find all user IDs with a specific role or designation keyword (e.g. 'finance manager', 'operations manager')
- */
-async function getManagerUserIds(roleKeywords) {
-  try {
-    const keywords = Array.isArray(roleKeywords) ? roleKeywords : [roleKeywords];
-
-    // Find designations matching keyword (case-insensitive)
-    const desigWhere = {
-      [Op.or]: keywords.map(kw => ({
-        designationName: { [Op.iLike]: `%${kw}%` }
-      }))
-    };
-    const designations = await Designation.findAll({ where: desigWhere, attributes: ['id'] });
-    const desigIds = designations.map(d => d.id);
-
-    // Find roles matching keyword (case-insensitive)
-    const roleWhere = {
-      [Op.or]: keywords.map(kw => ({
-        roleName: { [Op.iLike]: `%${kw}%` }
-      }))
-    };
-    const roles = await Role.findAll({ where: roleWhere, attributes: ['id'] });
-    const roleIds = roles.map(r => r.id);
-
-    let positionUserIds = [];
-    if (desigIds.length > 0) {
-      const positions = await UserPosition.findAll({
-        where: { designationId: desigIds },
-        attributes: ['userId']
-      });
-      positionUserIds = positions.map(p => p.userId).filter(Boolean);
-    }
-
-    const orConditions = [];
-    if (roleIds.length > 0) orConditions.push({ roleId: roleIds });
-    if (positionUserIds.length > 0) orConditions.push({ id: positionUserIds });
-
-    if (orConditions.length === 0) return [];
-
-    const users = await User.findAll({
-      where: {
-        [Op.or]: orConditions,
-        separated: false
-      },
-      attributes: ['id', 'name', 'email']
-    });
-
-    return [...new Set(users.map(u => u.id))];
-  } catch (err) {
-    console.error('Error finding manager user IDs:', err);
-    return [];
-  }
-}
-
-/**
- * Helper to create a single notification in the database
- */
-async function sendNotification(userId, message, route) {
-  try {
-    if (!userId) return;
-    await Notification.create({
-      userId,
-      message,
-      route: route || '/login/viewApproval/viewexpenses',
-      isRead: false,
-      createdAt: new Date()
-    });
-  } catch (err) {
-    console.error(`Failed to send notification to user ${userId}:`, err.message);
-  }
-}
-
-/**
- * Helper to broadcast notifications to multiple user IDs
- */
-async function notifyUsers(userIds, message, route) {
-  if (!Array.isArray(userIds) || userIds.length === 0) return;
-  for (const uid of userIds) {
-    await sendNotification(uid, message, route);
-  }
-}
+const authService = require('../services/authService');
 
 const createExpense = async (req, res) => {
   try {
@@ -207,23 +124,23 @@ const createExpense = async (req, res) => {
     // 1. If paymentMode is pettyCash -> send notification to FinanceManager
     // 2. If paymentMode is card -> requires approval from OperationsManager (send notification to OperationsManager)
     // 3. If paymentMode is not pettyCash or card -> requires FinanceManager approval (send notification to FinanceManager)
-    const empUser = await User.findByPk(userId, { attributes: ['id', 'name', 'empNo'] });
+    const empUser = await authService.getUserById(userId, req.headers.authorization);
     const empName = empUser ? empUser.name : (req.user?.name || 'Employee');
     const formattedAmount = `${numericAmount} ${currency || 'INR'}`;
     const expenseRoute = `/login/viewApproval/openexpenses/${expense.id}`;
 
     if (isPettyCash) {
-      const fmIds = await getManagerUserIds(['finance manager', 'finance mgr']);
+      const fmIds = await authService.getManagerUserIds(['finance manager', 'finance mgr'], req.headers.authorization);
       const msg = `New Petty Cash expense ${expenseNumber} (${formattedAmount}) recorded for ${empName}.`;
-      await notifyUsers(fmIds, msg, expenseRoute);
+      await authService.notifyUsers(fmIds, msg, expenseRoute, req.headers.authorization);
     } else if (isCard) {
-      const omIds = await getManagerUserIds(['operations manager', 'operation manager', 'operations mgr']);
+      const omIds = await authService.getManagerUserIds(['operations manager', 'operation manager', 'operations mgr'], req.headers.authorization);
       const msg = `New Card expense ${expenseNumber} (${formattedAmount}) submitted by ${empName} requires your approval.`;
-      await notifyUsers(omIds, msg, expenseRoute);
+      await authService.notifyUsers(omIds, msg, expenseRoute, req.headers.authorization);
     } else {
-      const fmIds = await getManagerUserIds(['finance manager', 'finance mgr']);
+      const fmIds = await authService.getManagerUserIds(['finance manager', 'finance mgr'], req.headers.authorization);
       const msg = `New ${paymentMode || 'Standard'} expense ${expenseNumber} (${formattedAmount}) submitted by ${empName} requires your approval.`;
-      await notifyUsers(fmIds, msg, expenseRoute);
+      await authService.notifyUsers(fmIds, msg, expenseRoute, req.headers.authorization);
     }
 
     return res.status(201).json({
@@ -251,13 +168,7 @@ const getUserExpenses = async (req, res) => {
     const userId = req.user.id;
     const rawExpenses = await Expense.findAll({ where: { userId } });
     
-    const users = await User.findAll({
-      where: { id: [userId] },
-      include: [{ model: Role, as: 'role' }]
-    });
-
-    const userMap = {};
-    users.forEach(u => userMap[u.id] = u);
+    const userMap = await authService.getUsersMap([userId], req.headers.authorization);
 
     const expenses = rawExpenses.map(e => {
       const expenseData = e.toJSON();
@@ -308,13 +219,7 @@ const getAllExpenses = async (req, res) => {
     });
     
     const userIds = [...new Set(rawExpenses.map(e => e.userId))];
-    const users = await User.findAll({
-      where: { id: userIds },
-      include: [{ model: Role, as: 'role' }]
-    });
-
-    const userMap = {};
-    users.forEach(u => userMap[u.id] = u);
+    const userMap = await authService.getUsersMap(userIds, req.headers.authorization);
 
     const expenses = rawExpenses.map(e => {
       const expenseData = e.toJSON();
@@ -410,7 +315,7 @@ const updateExpenseStatus = async (req, res) => {
 
     const employeeRoute = `/login/viewApproval/openexpenses/${expense.id}`;
     const notifMsg = `Your ${expense.paymentMode || ''} expense ${expense.expenseNumber} has been ${actionText} by ${approverTitle}${remarks ? `: "${remarks}"` : '.'}`;
-    await sendNotification(expense.userId, notifMsg, employeeRoute);
+    await authService.sendNotification(expense.userId, notifMsg, employeeRoute, req.headers.authorization);
 
     return res.status(200).json({
       success: true,
@@ -504,9 +409,7 @@ const getExpenseById = async (req, res) => {
       });
     }
 
-    const user = await User.findByPk(rawExpense.userId, {
-      include: [{ model: Role, as: 'role' }]
-    });
+    const user = await authService.getUserById(rawExpense.userId, req.headers.authorization);
 
     const expenseData = rawExpense.toJSON();
     expenseData.user = user || null;
