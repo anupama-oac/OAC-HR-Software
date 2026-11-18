@@ -115,6 +115,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
       DB_NAME: oac_expense_db
       AUTH_DB_NAME: oac_auth_db
+      AUTH_SERVICE_URL: http://auth-service:4001
       JWT_SECRET: ${JWT_SECRET:-s1@e2c3r4e5t6}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
