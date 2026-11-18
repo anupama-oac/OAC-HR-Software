@@ -71,6 +71,9 @@ const connectDB = async () => {
         await sequelize.sync();
         console.log('🔄 Auth Service: Database tables verified.');
       }
+    } else {
+      await sequelize.sync();
+      console.log('🔄 Auth Service: Missing database tables created.');
     }
 
     await syncAllPostgresSequences();

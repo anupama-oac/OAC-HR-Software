@@ -14,11 +14,6 @@ const payrollRoutes = require('./routes/payroll.routes');
 const monthlyPayrollRoutes = require('./routes/monthlyPayroll.routes');
 const payrollLogController = require('./controllers/payrollLog.controller');
 
-// Connect to Database
-connectDB().then(async () => {
-  // await initializeSystem();
-});
-
 app.use(helmet());
 
 app.use(cors({
@@ -61,8 +56,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4004; // Updated to port 4004 to avoid conflict with API Gateway and Expense Service
 
-app.listen(PORT, () => {
-  console.log(`🚀 Payroll Service running on ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Payroll Service running on ${PORT}`);
+  });
 });
 
 process.on('uncaughtException', err => {

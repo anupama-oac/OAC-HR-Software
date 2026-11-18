@@ -15,13 +15,6 @@ const leaveTypeRoutes = require('./routes/leaveType.routes');
 const userLeaveRoutes = require('./routes/userLeave.routes');
 
 
-// connect to Database;
-connectDB().then(async () => {
-  // await initializeSystem();
-});
-
-
-
 app.use(helmet());
 
 
@@ -77,8 +70,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4002;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Leave Service running on ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Leave Service running on ${PORT}`);
+  });
 });
 
 process.on('uncaughtException', err => {
@@ -88,8 +83,6 @@ process.on('uncaughtException', err => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
-
-
 
 
 

@@ -11,12 +11,27 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-oac_softwares} -d oac_auth_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - oac-network
+
+  database-init:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${DB_USER:-oac_softwares}
+      PGPASSWORD: ${DB_PASSWORD:-AWTGBVHYTUOKJK25690}
+    volumes:
+      - ./docker/ensure-databases.sh:/ensure-databases.sh:ro
+    entrypoint: ["sh", "/ensure-databases.sh"]
     networks:
       - oac-network
 
@@ -29,8 +44,8 @@ services:
     ports:
       - "4001:4001"
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: 4001
@@ -56,8 +71,8 @@ services:
     ports:
       - "4002:4002"
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       auth-service:
         condition: service_started
     environment:
@@ -87,8 +102,8 @@ services:
     ports:
       - "4003:4003"
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       auth-service:
         condition: service_started
     environment:
@@ -117,8 +132,8 @@ services:
     ports:
       - "4004:4004"
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       auth-service:
         condition: service_started
     environment:
@@ -184,4 +199,3 @@ volumes:
 networks:
   oac-network:
     driver: bridge
-
