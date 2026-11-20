@@ -5,9 +5,29 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
+const allowedOrigins = [
+  'https://oacnew.aerohr.in',
+  'https://oac.aerohr.in',
+  'http://localhost:4200',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:4200',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.aerohr\.in$/.test(origin.replace(/^https?:\/\//, '').split(':')[0]) ||
+      /^http:\/\/localhost(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
 // SERVICES
