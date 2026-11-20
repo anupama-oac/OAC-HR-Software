@@ -39,8 +39,8 @@ export class LoginService {
     localStorage.setItem(this.REFRESH_TOKEN, tokens.token.refreshToken)
     localStorage.setItem('token', JSON.stringify(tokens))
   }
-  getUserByRole(id: number):Observable<User[]>{
-    return this._http.get<User[]>(this.url + '/user/findbyrole/'+id)
+  getUserByRole(id: number): Observable<User[]> {
+    return this._http.get<User[]>(`${this.url}/auth/user/findbyrole/${id}`);
   }
   getUserByRoleName(roleName: string): Observable<User[]> {
     return this._http.get<User[]>(`${this.url}/auth/findbyroleName/${roleName}`);
@@ -78,19 +78,11 @@ export class LoginService {
 
 
   //---------------------------User-------------------------------------
-  registerUser(data : any){
-    return this._http.post(this.url + '/user/add', data)
+  registerUser(data: any) {
+    return this._http.post(`${this.url}/auth/user/add`, data);
   }
 
-  // getUserById(id: number): Observable<User>{
-  //   return this._http.get<User>(this.url + '/authnv/user/findone/'+id);
-  // }
-//   getUserById(id:number):Observable<User>{
-//   return this._http.get<User>(this.url + '/auth/user/findone/'+id)
-// }
-
-getUserById(id: number): Observable<User> {
-  // Hardcoding the exact base endpoint cleanly handles it
-  return this._http.get<User>(`http://localhost:4000/api/auth/user/findone/${id}`);
-}
+  getUserById(id: number): Observable<User> {
+    return this._http.get<User>(`${this.url}/auth/user/findone/${id}`);
+  }
 }
