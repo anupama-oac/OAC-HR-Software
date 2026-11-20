@@ -111,6 +111,15 @@ app.use('/api/auth', createProxyMiddleware({
   }
 }));
 
+// USER ROUTES DIRECT PROXY TO AUTH
+app.use(['/api/user', '/api/users'], createProxyMiddleware({
+  target: AUTH_URL,
+  changeOrigin: true,
+  pathRewrite: (path) => {
+    return '/user' + (path && path !== '/' ? (path.startsWith('/') ? path : '/' + path) : '');
+  }
+}));
+
 
 // ROLE SERVICE INSIDE AUTH
 app.use('/api/role', createProxyMiddleware({
