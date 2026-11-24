@@ -2,25 +2,30 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const Role = require('./role');
 
-const Designation = sequelize.define('designation',{
-    designationName : {type : DataTypes.STRING, allowNull : false},
-    abbreviation:{type : DataTypes.STRING, allowNull : false},
-    roleId: {type : DataTypes.INTEGER, allowNull : true}
-},
-{
+// Unified with Role table: points to the 'role' table with designationName mapped to roleName
+const Designation = sequelize.define('designation', {
+    designationName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        field: 'roleName'
+    },
+    abbreviation: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    status: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    department: {
+        type: DataTypes.STRING
+    }
+}, {
+    tableName: 'role',
     freezeTableName: true,
-    timestamps : false
-})
-
-// Role.hasOne(Designation, { foreignKey: 'roleId', onUpdate: 'CASCADE' });
-// Designation.belongsTo(Role, { foreignKey: 'roleId', onUpdate: 'CASCADE' });
-
-// Designation.sync({ alter: true })
-//   .then(() => console.log("Designation table Sync"))
-//   .catch((err) => console.log("Error syncing table Role:", err));
-
+    timestamps: false
+});
 
 module.exports = Designation;
 

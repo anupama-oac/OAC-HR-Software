@@ -28,10 +28,7 @@ const { Team, TeamLeader, TeamMember } = require('./team');
 Role.hasMany(User, { foreignKey: 'roleId', as: 'users' });
 User.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
 
-// Role <-> Designation
-Role.hasOne(Designation, { foreignKey: 'roleId' });
-Designation.belongsTo(Role, { foreignKey: 'roleId' });
-
+// Unified Role/Designation <-> UserPosition
 Designation.hasMany(UserPosition, { foreignKey: 'designationId' });
 UserPosition.belongsTo(Designation, { foreignKey: 'designationId', as: 'designation' });
 
