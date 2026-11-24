@@ -60,6 +60,8 @@ export class DesignationComponent implements OnInit, OnDestroy {
     this.roleSub?.unsubscribe();
     this.roleSub = this.roleService.getDesignation(this.searchText, this.currentPage, this.pageSize).subscribe({
       next: (res: any) => {
+        console.log(res);
+        
         this.roles = res?.items || [];
         this.totalItems = res?.count || 0;
         this.isLoading = false;

@@ -243,7 +243,7 @@ exports.UserFindOne = async (req, res) => {
             { 
               model: Designation, 
               as: 'designation', 
-              include: [{ model: Role }] 
+              attributes: ['id', 'designationName', 'abbreviation']
             }
           ]
         },

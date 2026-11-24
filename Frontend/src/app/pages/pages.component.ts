@@ -132,7 +132,9 @@ export class PagesComponent implements OnInit, OnDestroy {
   getRoleById(id: number){
     this.roleSub = this.roleService.getRoleById(id).subscribe(role => {
       const roleName = role.roleName; 
-      if(roleName === 'HR Administrator' || roleName ==='Super Administrator' || roleName === 'Administrator') {
+      console.log(roleName);
+      
+      if(roleName === 'HR ADMIN' || roleName ==='SUPER ADMIN') {
         this.admin = true;
       }
     })

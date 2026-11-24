@@ -199,8 +199,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get isFinanceRole(): boolean {
-    console.log(this.roleName);
-    
     return this.roleName.toLowerCase() === 'finance manager';
   }
 
@@ -294,7 +292,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         } else if (user?.role === 2 || user?.roleId === 2 || user?.designationId === 2) {
           this.roleName = 'HR Administrator';
         }
-        console.log(this.roleName);
         
         this.canAccessDraft = this.isSuperAdmin || this.isHrAdminOrExecutive || ['Super Administrator', 'HR Administrator', 'Super Admin', 'HR & ADMINISTRATION MANAGER'].includes(this.roleName);
 
@@ -996,8 +993,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   loadFinanceExpenses(): void {
-    console.log("aaaaaaaaaaa", this.canApproveExpenses);
-    
     if (!this.canApproveExpenses) {
       this.pendingExpensesForFinance = [];
       this.pendingFinanceExpensesCount = 0;
@@ -1006,8 +1001,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.expenseSub?.unsubscribe();
     this.expenseSub = this.expensesService.getExpense().subscribe({
       next: (res: any) => {
-        console.log(res);
-        
         const list: any[] = res?.data || (Array.isArray(res) ? res : []);
         this.totalExpensesCount = list.length;
 
@@ -1030,8 +1023,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
           return false;
         });
-        console.log(this.pendingExpensesForFinance);
-        
         this.pendingFinanceExpensesCount = this.pendingExpensesForFinance.length;
       },
       error: (err) => console.warn('Could not load finance expenses for dashboard:', err)
