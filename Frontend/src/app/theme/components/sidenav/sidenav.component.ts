@@ -155,7 +155,7 @@ users:User;
 
 
       );
-    } else if (role === 'Super Administrator' || role === 'HR & ADMINISTRATION MANAGER' || (role || '').toLowerCase().trim() === 'hr & administration manager' || (role || '').toLowerCase().trim() === 'hr & admin manager') {
+    } else if (role === 'SUPER ADMIN' || role === 'HR & ADMINISTRATION MANAGER' || (role || '').toLowerCase().trim() === 'hr & administration manager' || (role || '').toLowerCase().trim() === 'hr & admin manager') {
       this.filteredMenuItems = allMenuItems.filter(item =>
         item.title === 'Dashboard' ||
         (item.title === 'Employee' && !item.parentId) ||
