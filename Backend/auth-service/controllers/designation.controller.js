@@ -1,21 +1,29 @@
-const Designation = require('../models/designation');
+const Role = require('../models/role');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const UserPosition = require('../models/userPosition');
 const User = require('../models/user');
-const Role = require('../models/role');
 
 exports.addDesignation = async (req, res) => {
-  const { designationName, abbreviation } = req.body;
+  const designationName = req.body.designationName || req.body.roleName;
+  const abbreviation = req.body.abbreviation;
   try {
-    const role = new Designation({ designationName, abbreviation, roleId: null });
+    const role = new Role({
+      roleName: designationName,
+      abbreviation,
+      status: req.body.status !== undefined ? req.body.status : true,
+      department: req.body.department || null
+    });
     await role.save();
 
-    res.send(role);
+    res.status(201).json({
+      ...role.toJSON(),
+      designationName: role.roleName
+    });
   } catch (error) {
     res.status(500).send(error.message);
   }
-}
+};
 
 exports.findDesignations = async (req, res) => {
   try {
@@ -36,7 +44,7 @@ exports.findDesignations = async (req, res) => {
       whereClause = {
         [Op.or]: [
           sequelize.where(
-            sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('designationName'), ' ', '')),
+            sequelize.fn('LOWER', sequelize.fn('REPLACE', sequelize.col('roleName'), ' ', '')),
             {
               [Op.like]: `%${searchTerm}%`
             }
@@ -51,98 +59,113 @@ exports.findDesignations = async (req, res) => {
       };
     }
 
-    const role = await Designation.findAll({
+    const roles = await Role.findAll({
       order: [['id', 'ASC']],
       limit,
       offset,
       where: whereClause
     });
 
-    const totalCount = await Designation.count({ where: whereClause });
+    const totalCount = await Role.count({ where: whereClause });
+
+    // Ensure both roleName and designationName are present on each item
+    const items = roles.map(r => ({
+      ...r.toJSON(),
+      designationName: r.roleName
+    }));
 
     if (hasPaging) {
-      const response = {
+      res.json({
         count: totalCount,
-        items: role,
-      };
-
-      res.json(response);
-    }
-    else {
-      const filteredRoles = role.filter(r =>
-        r.designationName !== 'SUPER ADMIN' && r.designationName !== 'APPROVAL ADMIN' && r.designationName !== 'HR ADMIN'
-      );
-      res.json(filteredRoles);
+        items: items
+      });
+    } else {
+      res.json(items);
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 exports.updateDesignation = async (req, res) => {
   try {
-    const designation = await Designation.findByPk(req.params.id);
-    if (!designation) {
+    const role = await Role.findByPk(req.params.id);
+    if (!role) {
       return res.status(404).json({ success: false, message: 'Designation not found' });
     }
 
-    designation.designationName = req.body.designationName;
-    designation.abbreviation = req.body.abbreviation;
-    await designation.save();
+    if (req.body.designationName || req.body.roleName) {
+      role.roleName = req.body.designationName || req.body.roleName;
+    }
+    if (req.body.abbreviation) {
+      role.abbreviation = req.body.abbreviation;
+    }
+    if (req.body.status !== undefined) {
+      role.status = req.body.status;
+    }
+    await role.save();
 
-    res.send(designation);
+    res.json({
+      ...role.toJSON(),
+      designationName: role.roleName
+    });
   } catch (error) {
     res.status(500).send(error.message);
   }
-}
+};
 
 exports.deleteDesignation = async (req, res) => {
   try {
-    const result = await Designation.destroy({
-      where: { id: req.params.id },
-      force: true,
+    const result = await Role.destroy({
+      where: { id: req.params.id }
     });
 
     if (result === 0) {
       return res.status(404).json({
         status: "fail",
-        message: "Role with that ID not found",
+        message: "Designation with that ID not found",
       });
     }
 
     res.status(204).json();
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
-
-}
+};
 
 exports.getDesignationsByRoleId = async (req, res) => {
   try {
-    const role = await Designation.findAll({ where: { roleId: req.params.id } });
-
-    res.send(role);
+    const roles = await Role.findAll({ order: [['id', 'ASC']] });
+    res.json(roles.map(r => ({
+      ...r.toJSON(),
+      designationName: r.roleName
+    })));
   } catch (error) {
-    res.send(error.message);
+    res.status(500).send(error.message);
   }
-}
-
+};
 
 exports.getInternalUserByDesignation = async (req, res) => {
   try {
     const { designationName } = req.params;
+    const formattedName = designationName.replace('-', ' ');
 
-    // Replace hyphens with spaces if passed as 'OPERATIONS-MANAGER'
-    const formattedDesignation = designationName.replace('-', ' ');
+    const role = await Role.findOne({
+      where: {
+        [Op.or]: [
+          { roleName: formattedName },
+          { abbreviation: formattedName }
+        ]
+      }
+    });
 
-    // Query your DB. Find the user assigned to this designation
     const user = await User.findOne({
-      where: { designation: formattedDesignation },
-      include: [{ model: UserPosition, as: 'userPosition' }] // Include relation if officialMail lives there
+      where: role ? { roleId: role.id } : { name: formattedName },
+      include: [{ model: UserPosition, as: 'userPosition' }]
     });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: `No user found with designation: ${formattedDesignation}` });
+      return res.status(404).json({ success: false, message: `No user found with designation: ${formattedName}` });
     }
 
     return res.status(200).json({ success: true, user });
