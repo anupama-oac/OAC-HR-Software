@@ -98,7 +98,7 @@
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Employee</mat-label>
                 <mat-icon matPrefix class="field-icon">person</mat-icon>
-                <input matInput [value]="loggedInUserName" readonly>
+                <input matInput [value]="loggedInUserName || leaveRequestForm.get('userName')?.value || ''" readonly>
               </mat-form-field>
             }
 

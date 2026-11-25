@@ -102,7 +102,7 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
   isEditMode: boolean = false;
   originalLeaveTypes: LeaveType[] = [];
   roleName: string = '';
-  employeeStat: boolean = false;
+  employeeStat: boolean = true;
   loggedInUserId: number | null = null;
   loggedInUserName: string = '';
   userLeaves: UserLeave[] = [];
@@ -136,9 +136,10 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
 
   search(event: Event): void {
     this.filterValue = (event.target as HTMLInputElement).value.trim().replace(/\s+/g, '').toLowerCase();
-    this.filteredOptions = this.users.filter(option =>
-      option.name.replace(/\s+/g, '').toLowerCase().includes(this.filterValue) ||
-      option.empNo.toString().replace(/\s+/g, '').toLowerCase().includes(this.filterValue)
+    const userList: User[] = Array.isArray(this.users) ? this.users : [];
+    this.filteredOptions = userList.filter(option =>
+      (option.name || '').replace(/\s+/g, '').toLowerCase().includes(this.filterValue) ||
+      (option.empNo ? option.empNo.toString() : '').replace(/\s+/g, '').toLowerCase().includes(this.filterValue)
     );
   }
 
@@ -178,14 +179,12 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
           this.leaveRequestForm.get('status')?.setValue('AdminApproved');
           this.getUsers();
         }
-
-        const roleId = user.role || user.roleId;
-        if (roleId) {
-          this.getRoleById(roleId, user.id);
-        }
       } catch (e) {
         console.error('Error parsing token', e);
+        this.employeeStat = true;
       }
+    } else {
+      this.employeeStat = true;
     }
 
     const leaveId = this.route.snapshot.params['id'];
@@ -315,9 +314,16 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
   }
 
   getUsers(): void {
-    this.userSub = this.userService.getUser().subscribe(res => {
-      this.users = res || [];
-      this.filteredOptions = this.users;
+    this.userSub = this.userService.getUser('', 1, 1000).subscribe({
+      next: (res: any) => {
+        const userList: User[] = Array.isArray(res) ? res : (res?.items || []);
+        this.users = userList;
+        this.filteredOptions = userList;
+      },
+      error: () => {
+        this.users = [];
+        this.filteredOptions = [];
+      }
     });
   }
 
