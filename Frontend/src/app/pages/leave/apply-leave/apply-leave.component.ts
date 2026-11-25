@@ -103,6 +103,8 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
   originalLeaveTypes: LeaveType[] = [];
   roleName: string = '';
   employeeStat: boolean = false;
+  loggedInUserId: number | null = null;
+  loggedInUserName: string = '';
   userLeaves: UserLeave[] = [];
   users: User[] = [];
   leaveTypes: any[] = [];
@@ -145,8 +147,42 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
     if (token) {
       try {
         const user = JSON.parse(token);
-        const roleId = user.role;
-        this.getRoleById(roleId, user.id);
+        this.loggedInUserId = user.id;
+        this.loggedInUserName = user.name || '';
+
+        const rLower = (user.roleName || user.systemRoleName || user.designationName || '').toLowerCase().trim();
+        const isAdmin = Boolean(
+          user.isSuperAdmin ||
+          rLower === 'super admin' ||
+          rLower === 'super administrator' ||
+          rLower === 'hr admin' ||
+          rLower === 'hr administrator' ||
+          rLower.includes('hr & administration manager') ||
+          rLower.includes('hr & admin manager')
+        );
+
+        if (!isAdmin) {
+          // Regular employee applying for leave: automatically select logged-in employee
+          this.employeeStat = true;
+          this.roleName = 'Employee';
+          this.leaveRequestForm.patchValue({
+            userId: user.id,
+            userName: user.name
+          });
+          this.leaveRequestForm.get('status')?.setValue('Requested');
+          this.checkProbationStatus(user.id);
+        } else {
+          // Admin / HR
+          this.employeeStat = false;
+          this.roleName = 'Super Admin';
+          this.leaveRequestForm.get('status')?.setValue('AdminApproved');
+          this.getUsers();
+        }
+
+        const roleId = user.role || user.roleId;
+        if (roleId) {
+          this.getRoleById(roleId, user.id);
+        }
       } catch (e) {
         console.error('Error parsing token', e);
       }
@@ -173,8 +209,8 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
     if (token) {
       try {
         const u = JSON.parse(token);
-        const d = (u.designationName || u.roleName || '').toLowerCase().trim();
-        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin')) {
+        const d = (u.designationName || u.roleName || u.systemRoleName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin') || d.includes('hr admin')) {
           isSuperAdminDesignation = true;
         }
       } catch (e) {}
@@ -192,7 +228,7 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
     this.userSub = this.userService.getUserById(userId).subscribe({
       next: (userRes: any) => {
         const desig = (userRes?.userPosition?.designation?.designationName || '').toLowerCase().trim();
-        if (desig.includes('hr & administration manager') || desig.includes('hr & admin manager') || desig.includes('super admin')) {
+        if (desig.includes('hr & administration manager') || desig.includes('hr & admin manager') || desig.includes('super admin') || desig.includes('hr admin')) {
           this.roleName = 'Super Admin';
           this.employeeStat = false;
           this.getUsers();
@@ -208,16 +244,34 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
   }
 
   private fetchRole(id: number, userId: number): void {
-    this.roleSub = this.roleService.getRoleById(id).subscribe((res: Role) => {
-      this.roleName = res.abbreviation;
-      if (this.roleName !== 'HR Admin' && this.roleName !== 'Super Admin') {
+    this.roleSub?.unsubscribe();
+    this.roleSub = this.roleService.getRoleById(id).subscribe({
+      next: (res: Role) => {
+        const rName = (res.roleName || res.abbreviation || '').toLowerCase().trim();
+        const isAdmin = rName.includes('super admin') || rName.includes('hr admin') || rName.includes('administrator') || rName.includes('hr & admin');
+        if (!isAdmin) {
+          this.employeeStat = true;
+          this.checkProbationStatus(userId);
+          this.leaveRequestForm.get('userId')?.setValue(userId);
+          if (this.loggedInUserName) {
+            this.leaveRequestForm.get('userName')?.setValue(this.loggedInUserName);
+          }
+          this.leaveRequestForm.get('status')?.setValue('Requested');
+        } else {
+          this.getUsers();
+          this.employeeStat = false;
+          this.leaveRequestForm.get('status')?.setValue('AdminApproved');
+        }
+      },
+      error: () => {
+        // Fallback to employee mode
         this.employeeStat = true;
         this.checkProbationStatus(userId);
         this.leaveRequestForm.get('userId')?.setValue(userId);
+        if (this.loggedInUserName) {
+          this.leaveRequestForm.get('userName')?.setValue(this.loggedInUserName);
+        }
         this.leaveRequestForm.get('status')?.setValue('Requested');
-      } else {
-        this.getUsers();
-        this.leaveRequestForm.get('status')?.setValue('AdminApproved');
       }
     });
   }

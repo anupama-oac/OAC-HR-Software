@@ -74,7 +74,7 @@
           </div>
 
           <div class="form-grid-2">
-            <!-- Employee Selection (Admin / HR view) -->
+            <!-- Employee Selection: Admin/HR can search, regular employee is auto-selected -->
             @if(!employeeStat) {
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Employee</mat-label>
@@ -93,6 +93,12 @@
                     </mat-option>
                   }
                 </mat-autocomplete>
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Employee</mat-label>
+                <mat-icon matPrefix class="field-icon">person</mat-icon>
+                <input matInput [value]="loggedInUserName" readonly>
               </mat-form-field>
             }
 
