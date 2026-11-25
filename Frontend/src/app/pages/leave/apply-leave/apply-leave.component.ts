@@ -150,18 +150,17 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
         const user = JSON.parse(token);
         this.loggedInUserId = user.id;
         this.loggedInUserName = user.name || '';
-
-        const rLower = (user.roleName || user.systemRoleName || user.designationName || '').toLowerCase().trim();
+        
+        const dLower = (user.designationName || '').toLowerCase().trim();
         const isAdmin = Boolean(
           user.isSuperAdmin ||
-          rLower === 'super admin' ||
-          rLower === 'super administrator' ||
-          rLower === 'hr admin' ||
-          rLower === 'hr administrator' ||
-          rLower.includes('hr & administration manager') ||
-          rLower.includes('hr & admin manager')
+          dLower.includes('super admin') ||
+          dLower.includes('super administrator') ||
+          dLower.includes('hr & administration manager') ||
+          dLower.includes('hr & admin manager') ||
+          dLower === 'hr admin'
         );
-
+        
         if (!isAdmin) {
           // Regular employee applying for leave: automatically select logged-in employee
           this.employeeStat = true;
@@ -208,8 +207,8 @@ export class ApplyLeaveComponent implements OnInit, OnDestroy {
     if (token) {
       try {
         const u = JSON.parse(token);
-        const d = (u.designationName || u.roleName || u.systemRoleName || '').toLowerCase().trim();
-        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin') || d.includes('hr admin')) {
+        const d = (u.designationName || '').toLowerCase().trim();
+        if (u.isSuperAdmin || d.includes('hr & administration manager') || d.includes('hr & admin manager') || d.includes('super admin') || d === 'hr admin') {
           isSuperAdminDesignation = true;
         }
       } catch (e) {}

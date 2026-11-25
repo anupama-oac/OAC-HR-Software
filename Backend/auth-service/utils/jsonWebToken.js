@@ -1,25 +1,25 @@
 const jwt = require('jsonwebtoken');
 
-function jwtTokens({id, name, email, phoneNumber, roleId, designationId, systemRoleId, roleName, designationName, systemRoleName}){
-    const effectiveRoleId = designationId !== undefined && designationId !== null ? designationId : roleId;
+function jwtTokens({ id, name, email, phoneNumber, roleId, designationId, designationName, isSuperAdmin, empNo, role } = {}) {
+    const effectiveRoleId = designationId !== undefined && designationId !== null ? designationId : (roleId || role);
     const user = {
       id,
       name,
       email,
       phoneNumber,
+      empNo,
+      role: effectiveRoleId,
       roleId: effectiveRoleId,
       designationId: effectiveRoleId,
-      systemRoleId,
-      roleName,
       designationName,
-      systemRoleName
+      isSuperAdmin: Boolean(isSuperAdmin)
     };
     
     // Changed these to JWT_SECRET to match your .env file
-    const accessToken = jwt.sign(user, process.env.JWT_SECRET, {expiresIn: '1d'});
-    const refreshToken = jwt.sign(user, process.env.JWT_SECRET, {expiresIn: '7d'});
+    const accessToken = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const refreshToken = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '7d' });
     
-    return({accessToken, refreshToken});    
+    return ({ accessToken, refreshToken });    
 }
 
 module.exports = jwtTokens;

@@ -31,8 +31,12 @@ const authenticateToken = async (req, res, next) => {
     req.user = {
       id: user.id,
       email: user.email,
-      roleId: user.roleId,
-      name: user.name
+      roleId: decoded.roleId || user.roleId,
+      designationId: decoded.designationId,
+      designationName: decoded.designationName,
+      isSuperAdmin: Boolean(decoded.isSuperAdmin),
+      name: user.name,
+      empNo: user.empNo
     };
 
     next();
@@ -71,7 +75,7 @@ const authorizeRole = (...roles) => {
 
     const dLower = (req.user.designationName || '').toLowerCase().trim();
     const isHrAdminMgr = dLower === 'hr & administration manager' || dLower.includes('hr & administration manager') || dLower.includes('hr & admin manager');
-    if (req.user.isSuperAdmin || req.user.roleId === 1 || req.user.systemRoleId === 1 || isHrAdminMgr) return next();
+    if (req.user.isSuperAdmin || isHrAdminMgr) return next();
     if (!roles.includes(req.user.roleId)) {
       return res.status(403).json({ 
         success: false, 

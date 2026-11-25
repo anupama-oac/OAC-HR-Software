@@ -59,35 +59,37 @@ exports.Login = async (req, res) => {
 
     logAttempt({ empNo: rawEmpNo, matchedUser: user.empNo, status: 200, reason: 'Success' });
 
-    // Look up designation from userPosition and role name from Role
+    // Look up designation/role from userPosition
     const userPos = await UserPosition.findOne({
       where: { userId: user.id },
       include: [{ model: Designation, as: 'designation' }]
     });
-    const roleRecord = await Role.findByPk(user.roleId);
-    let systemRoleName = roleRecord?.roleName || '';
-    const designationName = userPos?.designation?.designationName || '';
-    const designationId = userPos?.designationId ?? user.roleId;
+
+    const effectiveRoleId = userPos?.designationId ?? user.roleId;
+    let designationName = userPos?.designation?.designationName || userPos?.designation?.roleName || '';
+    if (!designationName && effectiveRoleId) {
+      const foundRole = await Role.findByPk(effectiveRoleId);
+      designationName = foundRole?.roleName || foundRole?.designationName || '';
+    }
 
     const dLower = (designationName || '').toLowerCase().trim();
-    const isHrAdminManager = dLower === 'hr & administration manager' ||
-                             dLower.includes('hr & administration manager') ||
-                             dLower.includes('hr & admin manager');
-
-    if (isHrAdminManager) {
-      systemRoleName = 'Super Administrator';
-    }
-    const roleName = isHrAdminManager ? 'Super Administrator' : (systemRoleName || designationName || 'Employee');
+    const isSuperAdmin = dLower.includes('super admin') ||
+                         dLower.includes('super administrator') ||
+                         dLower.includes('hr & administration manager') ||
+                         dLower.includes('hr & admin manager') ||
+                         dLower === 'hr admin';
 
     const tokenPayload = {
-      ...user.dataValues,
-      roleId: designationId,
-      designationId: designationId,
-      systemRoleId: isHrAdminManager ? 1 : user.roleId,
-      roleName: roleName,
-      systemRoleName: systemRoleName,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      empNo: user.empNo,
+      role: effectiveRoleId,
+      roleId: effectiveRoleId,
+      designationId: effectiveRoleId,
       designationName: designationName,
-      isSuperAdmin: isHrAdminManager || systemRoleName.toLowerCase().includes('super admin')
+      isSuperAdmin: isSuperAdmin
     };
 
     const token = jwtTokens(tokenPayload);
@@ -95,14 +97,11 @@ exports.Login = async (req, res) => {
 
     return res.status(200).json({
       token: token,
-      role: designationId,
-      roleId: designationId,
-      systemRoleId: isHrAdminManager ? 1 : user.roleId,
-      designationId: designationId,
-      roleName: roleName,
-      systemRoleName: systemRoleName,
+      role: effectiveRoleId,
+      roleId: effectiveRoleId,
+      designationId: effectiveRoleId,
       designationName: designationName,
-      isSuperAdmin: isHrAdminManager || systemRoleName.toLowerCase().includes('super admin'),
+      isSuperAdmin: isSuperAdmin,
       name: user.name,
       id: user.id,
       paswordReset: user.paswordReset,
