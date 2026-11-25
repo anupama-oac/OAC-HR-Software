@@ -195,7 +195,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get isHrOrSuperAdmin(): boolean {
-    return this.roleName === 'Super Administrator' || this.roleName === 'HR & ADMINISTRATION MANAGER';
+    return this.roleName === 'SUPER ADMIN' || this.roleName === 'HR ADMIN';
   }
 
   get isFinanceRole(): boolean {

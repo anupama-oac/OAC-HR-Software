@@ -12,37 +12,39 @@
                   <mat-icon>message</mat-icon>&nbsp;&nbsp;Messages
               </ng-template>
               <mat-card class="content">
-                  <ng-scrollbar pointerEventsMethod="scrollbar">
-                      <div fxLayout="column" fxLayoutAlign="none">
-                          @for (message of notifications; track message.id) {
-                            <button mat-button (click)="navigateToMessage(message)">
-                              <div fxLayout="column" fxLayoutAlign="none" class="w-100">
-                                <div fxLayout="row" fxLayoutAlign="space-between start">
-                                  <span class="name">{{ message.name }}</span>
-                                  <span class="info">
-                                    <mat-icon>access_time</mat-icon> {{ message.createdAt | timeAgo }}
-                                  </span>
+                  @if (notifications && notifications.length > 0) {
+                    <ng-scrollbar pointerEventsMethod="scrollbar">
+                        <div fxLayout="column" fxLayoutAlign="none">
+                            @for (message of notifications; track message.id) {
+                              <button mat-button (click)="navigateToMessage(message)">
+                                <div fxLayout="column" fxLayoutAlign="none" class="w-100">
+                                  <div fxLayout="row" fxLayoutAlign="space-between start">
+                                    <span class="name">{{ message.name }}</span>
+                                    <span class="info">
+                                      <mat-icon>access_time</mat-icon> {{ message.createdAt | timeAgo }}
+                                    </span>
+                                  </div>
+                                  <span class="text muted-text" [innerHTML]="message.message"></span>
                                 </div>
-                                <span class="text muted-text" [innerHTML]="message.message"></span>
-                              </div>
-                              <!-- <mat-icon
-                              style="color: blue; cursor: pointer;"
-                              (click)="!isAdmin() ? markAsRead(message.id) : null"
-                              aria-label="Mark as read"
-                            > -->
-                              <!-- mark_email_read
-                            </mat-icon> -->
 
-                            <mat-icon [ngStyle]="{'color': message.isRead ? 'blue' : 'green'}"
-                                (click)="!isAdmin() ? markAsRead(message.id) : null"
-                                aria-label="Mark as read">
-                        mark_email_read
-                      </mat-icon>
-     
-                            </button>
-                          }
+                                <mat-icon [ngStyle]="{'color': message.isRead ? 'blue' : 'green'}"
+                                    (click)="!isAdmin() ? markAsRead(message.id) : null"
+                                    aria-label="Mark as read">
+                                  mark_email_read
+                                </mat-icon>
+                              </button>
+                            }
+                        </div>
+                    </ng-scrollbar>
+                  } @else {
+                    <div class="empty-notifications" fxLayout="column" fxLayoutAlign="center center">
+                      <div class="empty-icon-circle">
+                        <mat-icon>notifications_off</mat-icon>
                       </div>
-                  </ng-scrollbar>
+                      <span class="empty-title">No notifications</span>
+                      <span class="empty-subtitle">You have no new notifications right now</span>
+                    </div>
+                  }
               </mat-card>
           </mat-tab>
 
