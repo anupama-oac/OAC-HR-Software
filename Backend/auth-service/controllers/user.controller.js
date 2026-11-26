@@ -238,7 +238,7 @@ exports.UserFindOne = async (req, res) => {
         { 
           model: UserPosition, 
           as: 'userPosition',
-          attributes: ['designationId'],
+          attributes: ['designationId', 'department', 'location'],
           include: [
             { 
               model: Designation, 
@@ -250,7 +250,17 @@ exports.UserFindOne = async (req, res) => {
         { 
           model: UserPersonal, 
           as: 'userPersonal',
-          attributes: ['dateOfBirth'] 
+          attributes: ['dateOfBirth', 'dateOfJoining'] 
+        },
+        {
+          model: UserAccount,
+          as: 'userAccount',
+          attributes: ['bankName', 'accountNo']
+        },
+        {
+          model: StatutoryInfo,
+          as: 'statutoryInfo',
+          attributes: ['panNumber', 'pfNumber', 'uanNumber']
         }
       ]
     });

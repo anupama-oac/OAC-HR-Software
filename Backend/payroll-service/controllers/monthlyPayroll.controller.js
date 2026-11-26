@@ -59,7 +59,7 @@ exports.findPayroll = async (req, res) => {
       order: [['id', 'DESC']]
     });
 
-    const users = await authService.getAllActiveUsers();
+    const users = await authService.getAllActiveUsers(req.headers.authorization);
     const userMap = {};
     users.forEach(u => { userMap[u.id] = u; });
 
@@ -112,7 +112,7 @@ exports.findPayrollByUser = async (req, res) => {
       order: [['id', 'DESC']]
     });
     const totalCount = await MonthlyPayroll.count({where: whereClause});
-    const user = await authService.getUserById(req.params.id);
+    const user = await authService.getUserById(req.params.id, req.headers.authorization);
 
     const enriched = monthlyPayroll.map(mp => {
       const data = mp.toJSON ? mp.toJSON() : mp;
@@ -144,7 +144,7 @@ exports.getPayrollByPayedFor = async (req, res) => {
       order: [['id', 'ASC']]
     });
 
-    const users = await authService.getAllActiveUsers();
+    const users = await authService.getAllActiveUsers(req.headers.authorization);
     const userMap = {};
     users.forEach(u => { userMap[u.id] = u; });
 
@@ -225,7 +225,7 @@ exports.findPayrollById = async (req, res) => {
       return res.status(404).json({ message: 'Payroll not found' });
     }
     const data = monthlyPayroll.toJSON ? monthlyPayroll.toJSON() : monthlyPayroll;
-    const user = await authService.getUserById(data.userId);
+    const user = await authService.getUserById(data.userId, req.headers.authorization);
     data.user = user || { name: 'Unknown', empNo: '' };
     return res.status(200).json(data);
   } catch (error) {

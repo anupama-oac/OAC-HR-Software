@@ -75,7 +75,7 @@ exports.getPayrolls = async (req, res) => {
     const payrolls = await Payroll.findAll({
       order: [['id', 'ASC']]
     });
-    const users = await authService.getAllActiveUsers();
+    const users = await authService.getAllActiveUsers(req.headers.authorization);
     const userMap = {};
     users.forEach(u => { userMap[u.id] = u; });
 
@@ -99,7 +99,7 @@ exports.getPayrollByUserId = async (req, res) => {
     if (!payroll) {
       return res.status(200).json(null);
     }
-    const user = await authService.getUserById(userId);
+    const user = await authService.getUserById(userId, req.headers.authorization);
     const data = payroll.toJSON ? payroll.toJSON() : payroll;
     data.user = user || { name: 'Unknown', empNo: '' };
     return res.status(200).json(data);

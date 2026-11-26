@@ -35,14 +35,14 @@
                   <div style="display: flex; align-items: center; width: 100%;">
                     <span style="flex: 1;">Joining Date</span>
                     <span style="width: 20px; text-align: center;">:</span>
-                    <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.userpersonal[0]?.dateOfJoining | date: 'dd-MM-yyyy'}}</span>
+                    <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{dateOfJoining | date: 'dd-MM-yyyy'}}</span>
                   </div>
                 </td>
                 <td>
                   <div style="display: flex; align-items: center; width: 100%;">
                     <span style="flex: 1;">Bank Name</span>
                     <span style="width: 20px; text-align: center;">:</span>
-                    <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.useraccount?.bankName}}</span>
+                    <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{bankInfo?.bankName}}</span>
                   </div>
                 </td>
               </tr>
@@ -51,14 +51,14 @@
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">Designation</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.userPosition?.designation?.designationName}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user?.userPosition?.designation?.designationName || empUser?.role?.roleName}}</span>
                       </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">Bank Account No</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.useraccount?.accountNo}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{bankInfo?.accountNo}}</span>
                       </div>
                 </td>
             </tr>
@@ -67,14 +67,14 @@
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">Department</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.userPosition?.department}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user?.userPosition?.department}}</span>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">PAN Number</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.statutoryinfo?.panNumber}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{statutory?.panNumber}}</span>
                     </div>
                 </td>
             </tr>
@@ -83,14 +83,14 @@
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">Location</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.userPosition?.location}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user?.userPosition?.location}}</span>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">PF No</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.statutoryinfo?.pfNumber}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{statutory?.pfNumber}}</span>
                     </div>
                 </td>
             </tr>
@@ -106,7 +106,7 @@
                     <div style="display: flex; align-items: center; width: 100%;">
                         <span style="flex: 1;">PF UAN</span>
                         <span style="width: 20px; text-align: center;">:</span>
-                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{payroll.user.statutoryinfo?.uanNumber}}</span>
+                        <span style="flex: 1; font-weight: bolder; color: rgb(8, 72, 115);">{{statutory?.uanNumber}}</span>
                     </div>
                 </td>
             </tr>

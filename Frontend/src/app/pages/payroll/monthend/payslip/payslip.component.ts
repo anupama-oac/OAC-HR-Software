@@ -31,6 +31,25 @@ export class PayslipComponent implements OnInit, OnDestroy{
   payroll: MonthlyPayroll;
   workingDays: number;
   paySlipSub!: Subscription;
+
+  get empUser(): any {
+    return this.payroll?.user || {};
+  }
+
+  get dateOfJoining(): any {
+    const u = this.empUser;
+    return u.userPersonal?.dateOfJoining || u.userpersonal?.[0]?.dateOfJoining || u.userpersonal?.dateOfJoining || null;
+  }
+
+  get bankInfo(): any {
+    const u = this.empUser;
+    return u.userAccount || u.useraccount || {};
+  }
+
+  get statutory(): any {
+    const u = this.empUser;
+    return u.statutoryInfo || u.statutoryinfo || {};
+  }
   getPaySlip(){
     this.paySlipSub = this.payroleService.getMonthlyPayrollById(this.route.snapshot.params['id']).subscribe(payroll => {
       this.workingDays = payroll.daysInMonth - payroll.leaveDays
